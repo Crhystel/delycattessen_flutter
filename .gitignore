@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .env
+
+# Claude Code configuration (local only, not tracked in the repo)
+.claude/

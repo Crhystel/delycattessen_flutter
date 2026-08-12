@@ -1,4 +1,4 @@
-// Data Classes para Autenticación e Historias de Usuario
+// Data classes for Authentication and User Stories
 
 class ParentRegistration {
   final String email;
@@ -15,14 +15,14 @@ class ParentRegistration {
     required this.phone,
   });
 
-  /// Convierte el modelo a JSON para enviar a Django
+  /// Converts the model to JSON to send to Django
   Map<String, dynamic> toJson() {
     return {
       'email': email,
       'password': password,
       'first_name': firstName,
       'last_name': lastName,
-      'telefono': phone, // Mapeado al nombre de campo de Django
+      'telefono': phone, // Mapped to Django's field name
     };
   }
 }
@@ -40,12 +40,12 @@ class StudentRegistration {
     required this.institutionId,
   });
 
-  /// Convierte el modelo a JSON para enviar a Django
+  /// Converts the model to JSON to send to Django
   Map<String, dynamic> toJson() {
     return {
-      'nombres': firstName, // Mapeado al nombre de campo de Django
+      'nombres': firstName, // Mapped to Django's field name
       'apellidos': lastName,
-      'fecha_nacimiento': dateOfBirth, // Formato YYYY-MM-DD
+      'fecha_nacimiento': dateOfBirth, // YYYY-MM-DD format
       'institucion_id': institutionId,
     };
   }
