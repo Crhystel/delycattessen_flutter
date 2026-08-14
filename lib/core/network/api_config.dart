@@ -5,8 +5,14 @@ class ApiConfig {
   static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // API Endpoints
-  static const String requestPasswordReset = '$baseUrl/usuarios/password-reset/request/';
-  static const String confirmPasswordReset = '$baseUrl/usuarios/password-reset/confirm/';
+  static const String requestPasswordReset =
+      '$baseUrl/usuarios/password-reset/request/';
+  static const String confirmPasswordReset =
+      '$baseUrl/usuarios/password-reset/confirm/';
   static const String registerParent = '$baseUrl/usuarios/parent-registration/';
-  static const String registerStudent = '$baseUrl/usuarios/student-registration/';
+  static const String registerStudent =
+      '$baseUrl/usuarios/student-registration/';
+  static const String walletRecharge = '$baseUrl/wallet/recharge/';
+  static String walletTransactions(int walletId) =>
+      '$baseUrl/wallet/$walletId/transactions/';
 }

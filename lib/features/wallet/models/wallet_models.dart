@@ -1,0 +1,57 @@
+class RechargeRequest {
+  final int walletId;
+  final double amount;
+
+  RechargeRequest({required this.walletId, required this.amount});
+
+  Map<String, dynamic> toJson() {
+    return {'wallet_id': walletId, 'amount': amount};
+  }
+}
+
+class RechargeResponse {
+  final int? transactionId;
+  final String? paymentUrl;
+  final String? detail;
+
+  RechargeResponse({this.transactionId, this.paymentUrl, this.detail});
+
+  factory RechargeResponse.fromJson(Map<String, dynamic> json) {
+    return RechargeResponse(
+      transactionId: json['transaction_id'] as int?,
+      paymentUrl: json['payment_url'] as String?,
+      detail: json['detail'] as String?,
+    );
+  }
+
+  bool get isProcessingAsync => paymentUrl == null;
+}
+
+class TransactionModel {
+  final int id;
+  final double amount;
+  final String gateway;
+  final String status;
+  final String type;
+  final DateTime createdAt;
+
+  TransactionModel({
+    required this.id,
+    required this.amount,
+    required this.gateway,
+    required this.status,
+    required this.type,
+    required this.createdAt,
+  });
+
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    return TransactionModel(
+      id: json['id'] as int,
+      amount: double.parse(json['amount'].toString()),
+      gateway: json['gateway'] as String? ?? '',
+      status: json['status'] as String,
+      type: json['type'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+}
