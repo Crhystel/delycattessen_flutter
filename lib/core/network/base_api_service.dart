@@ -1,47 +1,70 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'error_handler_mixin.dart';
+import '../storage/token_storage.dart';
 
-/// Template Method pattern: this abstract class defines the skeleton of HTTP requests.
-/// Implements [ErrorHandlerMixin] to get robust error handling automatically.
 abstract class BaseApiService with ErrorHandlerMixin {
-  /// Returns the default headers (conceptual Permission Class equivalent for injection).
-  /// In the future, the JWT token retrieved from SecureStorage can be injected here.
-  Map<String, String> get defaultHeaders => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // 'Authorization': 'Bearer $_token', // Future implementation
-  };
+  Future<Map<String, String>> _buildHeaders({bool requiresAuth = true}) async {
+    final token = requiresAuth ? await TokenStorage.getAccessToken() : null;
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
-  /// Template Method: defines the skeleton of a POST request.
-  /// Takes the URL and body (converted to JSON), performs the request,
-  /// and delegates success/error handling to the Mixin.
   Future<dynamic> performPostRequest(
     String url,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) async {
     try {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
       final response = await http.post(
         Uri.parse(url),
-        headers: defaultHeaders,
+        headers: headers,
         body: jsonEncode(body),
       );
-
-      // The Mixin is responsible for throwing an exception or returning the decoded data
       return handleResponse(response);
     } catch (e) {
       if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow; // Re-throw if it's an API exception (already parsed by the mixin)
+        rethrow;
       }
-      throw handleNetworkError(
-        e,
-      ); // Handle pure connection failures (no internet, server down)
+      throw handleNetworkError(e);
     }
   }
 
-  Future<dynamic> performGetRequest(String url) async {
+  Future<dynamic> performGetRequest(String url, {bool requiresAuth = true}) async {
     try {
-      final response = await http.get(Uri.parse(url), headers: defaultHeaders);
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final response = await http.get(Uri.parse(url), headers: headers);
+      return handleResponse(response);
+    } catch (e) {
+      if (e is Exception && !e.toString().contains('Error de conexión')) {
+        rethrow;
+      }
+      throw handleNetworkError(e);
+    }
+  }
+
+  Future<dynamic> performMultipartPostRequest(
+    String url,
+    Map<String, String> fields,
+    String fileFieldName,
+    String filePath, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final token = requiresAuth ? await TokenStorage.getAccessToken() : null;
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.fields.addAll(fields);
+      request.files.add(
+        await http.MultipartFile.fromPath(fileFieldName, filePath),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
       return handleResponse(response);
     } catch (e) {
       if (e is Exception && !e.toString().contains('Error de conexión')) {

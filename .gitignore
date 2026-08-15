@@ -20,18 +20,23 @@ migrate_working_dir/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# is commented out by default. Uncommented here to keep editor-specific config
+# out of the repo.
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
+*.g.dart
+*.freezed.dart
+*.mocks.dart
 
 # Symbolication related
 app.*.symbols
@@ -43,7 +48,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment/secrets - never commit real credentials
 .env
+.env.*
+!.env.example
+*.keystore
+*.jks
+key.properties
 
 # Claude Code configuration (local only, not tracked in the repo)
 .claude/

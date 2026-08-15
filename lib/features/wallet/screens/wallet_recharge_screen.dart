@@ -113,7 +113,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
             Expanded(
               child: Text(
                 'Procesando tu recarga…',
-                style: GoogleFonts.inter(fontSize: 15, color: AppColors.ink900),
+                style: GoogleFonts.nunito(fontSize: 15, color: AppColors.ink900),
               ),
             ),
           ],
@@ -161,7 +161,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
         backgroundColor: AppColors.successBg,
         content: Text(
           '¡Recarga exitosa!',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.nunito(
             color: AppColors.success700,
             fontWeight: FontWeight.w600,
           ),
@@ -190,7 +190,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
                   children: [
                     Text(
                       'Selecciona a quién recargar',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.nunito(
                         fontSize: 13,
                         color: AppColors.ink900.withValues(alpha: 0.6),
                       ),
@@ -202,7 +202,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Monto a recargar',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.nunito(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppColors.ink900,
@@ -242,7 +242,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
           ),
           Text(
             'Billetera Digital',
-            style: GoogleFonts.sora(
+            style: GoogleFonts.nunito(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: AppColors.ink900,
@@ -288,7 +288,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
                   const SizedBox(height: 6),
                   Text(
                     child.name,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.nunito(
                       fontSize: 11,
                       color: AppColors.ink900,
                     ),
@@ -320,14 +320,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
               const SizedBox(width: 6),
               Text(
                 'Saldo Actual de ${_selectedChild.name}',
-                style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
+                style: GoogleFonts.nunito(fontSize: 13, color: Colors.white70),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             '\$${_selectedChild.currentBalance.toStringAsFixed(2)}',
-            style: GoogleFonts.sora(
+            style: GoogleFonts.nunito(
               fontSize: 30,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -342,14 +342,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
     return TextField(
       controller: _amountController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: GoogleFonts.sora(
+      style: GoogleFonts.nunito(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: AppColors.ink900,
       ),
       decoration: InputDecoration(
         prefixText: '\$ ',
-        prefixStyle: GoogleFonts.sora(
+        prefixStyle: GoogleFonts.nunito(
           fontSize: 20,
           color: AppColors.ink900.withValues(alpha: 0.4),
         ),
@@ -383,7 +383,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
             ),
             child: Text(
               '\$${amount.toStringAsFixed(0)}',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.nunito(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.brand700,
@@ -405,7 +405,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
       ),
       child: Text(
         _errorMessage!,
-        style: GoogleFonts.inter(fontSize: 13, color: AppColors.danger700),
+        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.danger700),
       ),
     );
   }
@@ -434,7 +434,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
             : const Icon(Icons.lock_outline, size: 18, color: Colors.white),
         label: Text(
           'Recargar saldo seguro',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: Colors.white,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Mixin pattern: centralizes HTTP error handling and response decoding.
@@ -13,6 +14,15 @@ mixin ErrorHandlerMixin {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);
     } else {
+      debugPrint(
+        '--- HTTP ERROR ---\n'
+        'URL: ${response.request?.url}\n'
+        'Status: $statusCode\n'
+        'Headers: ${response.headers}\n'
+        'Body: ${response.body}\n'
+        '------------------',
+      );
+
       // Try to decode the error message coming from Django
       String errorMessage = 'Error desconocido en el servidor';
       try {
