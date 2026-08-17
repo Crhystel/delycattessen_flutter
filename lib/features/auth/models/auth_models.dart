@@ -136,3 +136,37 @@ class MeResponse {
     );
   }
 }
+
+class Child {
+  final int id;
+  final String firstName;
+  final String lastName;
+  final String institutionName;
+  final String? profilePictureUrl;
+  final double? balance;
+  final int? walletId;
+
+  Child({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.institutionName,
+    this.profilePictureUrl,
+    this.balance,
+    this.walletId,
+  });
+
+  factory Child.fromJson(Map<String, dynamic> json) {
+    return Child(
+      id: json['id'] as int,
+      firstName: json['first_name'] as String,
+      lastName: json['last_name'] as String,
+      institutionName: json['institution_name'] as String? ?? '',
+      profilePictureUrl: json['profile_picture'] as String?,
+      balance: json['balance'] != null
+          ? double.tryParse(json['balance'].toString())
+          : null,
+      walletId: json['wallet_id'] as int?,
+    );
+  }
+}

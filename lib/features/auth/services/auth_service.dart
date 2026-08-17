@@ -77,4 +77,11 @@ class AuthService extends BaseApiService {
     final response = await performGetRequest(ApiConfig.me);
     return MeResponse.fromJson(response as Map<String, dynamic>);
   }
+
+  Future<List<Child>> getChildren() async {
+    final response = await performGetRequest(ApiConfig.children);
+    return (response as List)
+        .map((item) => Child.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
 }

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
+import '../../children/screens/children_list_screen.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -122,8 +123,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         ),
       );
       if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      // TODO: navegar a "Tus hijos" cuando esa pantalla exista, en vez de volver al inicio.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ChildrenListScreen()),
+        (route) => false,
+      );
     } catch (e) {
       setState(
         () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
