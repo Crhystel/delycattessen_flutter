@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'parent_register_screen.dart';
@@ -15,39 +17,22 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
   bool _obscurePassword = true;
-
-  late final AnimationController _floatController;
-
-  @override
-  void initState() {
-    super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-  }
 
   @override
   void dispose() {
-    _floatController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
     try {
       await _authService.login(
         LoginRequest(
@@ -72,8 +57,12 @@ class _LoginScreenState extends State<LoginScreen>
         );
       }
     } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+      if (!mounted) return;
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'No se pudo iniciar sesión',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -86,8 +75,8 @@ class _LoginScreenState extends State<LoginScreen>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          _buildFloatingBubbles(alignTop: true),
-          _buildFloatingBubbles(alignTop: false),
+          const FloatingBubbles(corner: BubbleCorner.topLeft),
+          const FloatingBubbles(corner: BubbleCorner.bottomRight),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -108,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.teal700,
+                        color: AppColors.teal500,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -124,16 +113,6 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
-                            Text(
-                              _errorMessage!,
-                              style: GoogleFonts.nunito(
-                                color: AppColors.dangerBg,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
                           SizedBox(
                             width: double.infinity,
                             height: 48,
@@ -176,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Text(
                         'No tienes cuenta? Regístrate',
                         style: GoogleFonts.nunito(
-                          color: AppColors.teal700,
+                          color: AppColors.teal500,
                           fontSize: 13,
                         ),
                       ),
@@ -188,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Text(
                         'Olvidé mi contraseña',
                         style: GoogleFonts.nunito(
-                          color: AppColors.teal700,
+                          color: AppColors.teal500,
                           fontSize: 13,
                         ),
                       ),
@@ -235,59 +214,6 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 onPressed: onToggleObscure,
               ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingBubbles({required bool alignTop}) {
-    return Positioned(
-      top: alignTop ? -100 : null,
-      bottom: alignTop ? null : -100,
-      left: alignTop ? -70 : null,
-      right: alignTop ? null : -70,
-      child: AnimatedBuilder(
-        animation: _floatController,
-        builder: (context, child) {
-          final offset =
-              14 * (_floatController.value - 0.5) * (alignTop ? 1 : -1);
-          return Transform.translate(offset: Offset(0, offset), child: child);
-        },
-        child: SizedBox(
-          width: 300,
-          height: 300,
-          child: Stack(
-            children: [
-              Positioned(
-                left: alignTop ? 0 : null,
-                right: alignTop ? null : 0,
-                top: alignTop ? 0 : null,
-                bottom: alignTop ? null : 0,
-                child: Container(
-                  width: 220,
-                  height: 220,
-                  decoration: const BoxDecoration(
-                    color: AppColors.teal700,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: alignTop ? 110 : null,
-                right: alignTop ? null : 110,
-                top: alignTop ? 0 : null,
-                bottom: alignTop ? null : 0,
-                child: Container(
-                  width: 190,
-                  height: 190,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brand500,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -249,7 +249,8 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.home_outlined, color: Colors.white),
-              onPressed: () => Navigator.of(context).maybePop(),
+              onPressed: () =>
+                  Navigator.of(context).popUntil((route) => route.isFirst),
             ),
             const Icon(Icons.restaurant_menu, color: Colors.white),
           ],

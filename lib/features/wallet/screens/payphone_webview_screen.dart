@@ -38,7 +38,7 @@ class _PayphoneWebViewScreenState extends State<PayphoneWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.teal700,
+        backgroundColor: AppColors.teal500,
         title: const Text('Pago seguro', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(

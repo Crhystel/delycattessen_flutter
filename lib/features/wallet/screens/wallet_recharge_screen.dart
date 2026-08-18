@@ -2,19 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
+import 'recharge_card_form_screen.dart';
 
 class ChildOption {
   final int walletId;
   final String name;
   final double currentBalance;
+  final String? profilePictureUrl;
 
   ChildOption({
     required this.walletId,
     required this.name,
     required this.currentBalance,
+    this.profilePictureUrl,
   });
 }
 
@@ -33,14 +37,15 @@ class WalletRechargeScreen extends StatefulWidget {
 }
 
 class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
-  final WalletService _walletService = WalletService();
   final TextEditingController _amountController = TextEditingController();
+  final WalletService _walletService = WalletService();
 
   late ChildOption _selectedChild;
-  bool _isSubmitting = false;
   String? _errorMessage;
+  bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
+  static const double _gatewayThreshold = 5.0;
 
   @override
   void initState() {
@@ -61,35 +66,45 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
     setState(() => _amountController.text = amount.toStringAsFixed(2));
   }
 
-  Future<void> _submitRecharge() async {
+  Future<void> _proceedToRecharge() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
       setState(() => _errorMessage = 'Ingresa un monto válido.');
       return;
     }
+    setState(() => _errorMessage = null);
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
+    if (amount < _gatewayThreshold) {
+      await _rechargeViaPayphone(amount);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RechargeCardFormScreen(
+            walletId: _selectedChild.walletId,
+            childName: _selectedChild.name,
+            amount: amount,
+          ),
+        ),
+      );
+    }
+  }
 
+  Future<void> _rechargeViaPayphone(double amount) async {
+    setState(() => _isSubmitting = true);
     try {
       final response = await _walletService.recharge(
         RechargeRequest(walletId: _selectedChild.walletId, amount: amount),
       );
-
       if (!mounted) return;
 
-      if (response.isProcessingAsync) {
-        _showProcessingDialog();
-      } else {
-        final result = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) =>
-                PayphoneWebViewScreen(paymentUrl: response.paymentUrl!),
-          ),
-        );
-        if (result == true) _showSuccessAndPop();
+      final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) =>
+              PayphoneWebViewScreen(paymentUrl: response.paymentUrl!),
+        ),
+      );
+      if (result == true && mounted) {
+        Navigator.of(context).pop(true); // vuelve a "Tus hijos" con éxito
       }
     } catch (e) {
       setState(
@@ -100,129 +115,93 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
     }
   }
 
-  void _showProcessingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Row(
-          children: [
-            const CircularProgressIndicator(color: AppColors.secondary500),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Text(
-                'Procesando tu recarga…',
-                style: GoogleFonts.nunito(fontSize: 15, color: AppColors.ink900),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    _pollTransactionStatus();
-  }
-
-  Future<void> _pollTransactionStatus() async {
-    for (var i = 0; i < 7; i++) {
-      await Future.delayed(const Duration(seconds: 2));
-      try {
-        final transactions = await _walletService.getTransactions(
-          _selectedChild.walletId,
-        );
-        final latest = transactions.isNotEmpty ? transactions.first : null;
-        if (latest != null && latest.status != 'pending') {
-          if (!mounted) return;
-          Navigator.of(context).pop();
-          if (latest.status == 'success') {
-            _showSuccessAndPop();
-          } else {
-            setState(
-              () =>
-                  _errorMessage = 'La recarga fue rechazada. Intenta de nuevo.',
-            );
-          }
-          return;
-        }
-      } catch (_) {}
-    }
-    if (mounted) {
-      Navigator.of(context).pop();
-      setState(
-        () => _errorMessage =
-            'La recarga está tardando más de lo normal. Revisa el historial en unos minutos.',
-      );
-    }
-  }
-
-  void _showSuccessAndPop() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.successBg,
-        content: Text(
-          '¡Recarga exitosa!',
-          style: GoogleFonts.nunito(
-            color: AppColors.success700,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-    Navigator.of(context).pop(true);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Selecciona a quién recargar',
-                      style: GoogleFonts.nunito(
-                        fontSize: 13,
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
+      body: Stack(
+        children: [
+          const FloatingBubbles(corner: BubbleCorner.topRight),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
                     ),
-                    const SizedBox(height: 12),
-                    _buildChildSelector(),
-                    const SizedBox(height: 20),
-                    _buildBalanceCard(),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Monto a recargar',
-                      style: GoogleFonts.nunito(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink900,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Selecciona a quién recargar',
+                          style: GoogleFonts.nunito(
+                            fontSize: 13,
+                            color: AppColors.ink900.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildChildSelector(),
+                        const SizedBox(height: 20),
+                        _buildBalanceCard(),
+                        const SizedBox(height: 24),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Monto a recargar',
+                            style: GoogleFonts.nunito(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildAmountField(),
+                        const SizedBox(height: 14),
+                        _buildQuickAmountChips(),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            _errorMessage!,
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              color: AppColors.danger700,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                        _buildRechargeButton(),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    _buildAmountField(),
-                    const SizedBox(height: 14),
-                    _buildQuickAmountChips(),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 16),
-                      _buildErrorBanner(),
-                    ],
-                    const SizedBox(height: 28),
-                    _buildRechargeButton(),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        color: AppColors.brand500,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.home, color: Colors.white),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
+              ),
+              IconButton(
+                icon: const Icon(Icons.attach_money, color: Colors.white),
+                onPressed: () {},
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -254,19 +233,16 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   }
 
   Widget _buildChildSelector() {
-    return SizedBox(
-      height: 84,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: widget.children.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final child = widget.children[index];
-          final isSelected = child.walletId == _selectedChild.walletId;
-          return GestureDetector(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: widget.children.map((child) {
+        final isSelected = child.walletId == _selectedChild.walletId;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: GestureDetector(
             onTap: () => setState(() => _selectedChild = child),
             child: Container(
-              width: 84,
+              width: 88,
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -280,10 +256,18 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
               ),
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 18,
+                  CircleAvatar(
+                    radius: 20,
                     backgroundColor: AppColors.ink50,
-                    child: Icon(Icons.person, color: AppColors.secondary500),
+                    backgroundImage: child.profilePictureUrl != null
+                        ? NetworkImage(child.profilePictureUrl!)
+                        : null,
+                    child: child.profilePictureUrl == null
+                        ? const Icon(
+                            Icons.person,
+                            color: AppColors.secondary500,
+                          )
+                        : null,
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -293,13 +277,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
                       color: AppColors.ink900,
                     ),
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -308,7 +293,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.teal700,
+        color: AppColors.teal500,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -341,6 +326,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   Widget _buildAmountField() {
     return TextField(
       controller: _amountController,
+      textAlign: TextAlign.center,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: GoogleFonts.nunito(
         fontSize: 20,
@@ -370,6 +356,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
 
   Widget _buildQuickAmountChips() {
     return Wrap(
+      alignment: WrapAlignment.center,
       spacing: 10,
       children: _quickAmounts.map((amount) {
         return GestureDetector(
@@ -395,27 +382,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
     );
   }
 
-  Widget _buildErrorBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.dangerBg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        _errorMessage!,
-        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.danger700),
-      ),
-    );
-  }
-
   Widget _buildRechargeButton() {
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton.icon(
-        onPressed: _isSubmitting ? null : _submitRecharge,
+        onPressed: _isSubmitting ? null : _proceedToRecharge,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.secondary500,
           shape: RoundedRectangleBorder(

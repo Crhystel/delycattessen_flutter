@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'student_registration_screen.dart';
@@ -13,30 +15,17 @@ class ParentRegisterScreen extends StatefulWidget {
   State<ParentRegisterScreen> createState() => _ParentRegisterScreenState();
 }
 
-class _ParentRegisterScreenState extends State<ParentRegisterScreen>
-    with SingleTickerProviderStateMixin {
+class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
   final _authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  late final AnimationController _floatController;
-
-  @override
-  void initState() {
-    super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-  }
 
   @override
   void dispose() {
-    _floatController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -45,13 +34,15 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
 
   Future<void> _next() async {
     if (_passwordController.text != _confirmController.text) {
-      setState(() => _errorMessage = 'Las contraseñas no coinciden.');
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Las contraseñas no coinciden',
+        message: 'Verifica que ambas contraseñas sean iguales.',
+      );
       return;
     }
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
     try {
       await _authService.registerParent(
         ParentRegistration(
@@ -65,8 +56,12 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
         MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()),
       );
     } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+      if (!mounted) return;
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'No se pudo completar el registro',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -79,8 +74,8 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          _buildFloatingBubbles(alignTop: true),
-          _buildFloatingBubbles(alignTop: false),
+          const FloatingBubbles(corner: BubbleCorner.topLeft),
+          const FloatingBubbles(corner: BubbleCorner.bottomRight),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -101,7 +96,7 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.teal700,
+                        color: AppColors.teal500,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -126,16 +121,6 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
                             ),
                           ),
                           const SizedBox(height: 20),
-                          if (_errorMessage != null) ...[
-                            Text(
-                              _errorMessage!,
-                              style: GoogleFonts.nunito(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
                           SizedBox(
                             width: double.infinity,
                             height: 48,
@@ -210,59 +195,6 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
                 ),
                 onPressed: onToggleObscure,
               ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingBubbles({required bool alignTop}) {
-    return Positioned(
-      top: alignTop ? -100 : null,
-      bottom: alignTop ? null : -100,
-      left: alignTop ? -70 : null,
-      right: alignTop ? null : -70,
-      child: AnimatedBuilder(
-        animation: _floatController,
-        builder: (context, child) {
-          final offset =
-              14 * (_floatController.value - 0.5) * (alignTop ? 1 : -1);
-          return Transform.translate(offset: Offset(0, offset), child: child);
-        },
-        child: SizedBox(
-          width: 300,
-          height: 300,
-          child: Stack(
-            children: [
-              Positioned(
-                left: alignTop ? 0 : null,
-                right: alignTop ? null : 0,
-                top: alignTop ? 0 : null,
-                bottom: alignTop ? null : 0,
-                child: Container(
-                  width: 220,
-                  height: 220,
-                  decoration: const BoxDecoration(
-                    color: AppColors.teal700,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: alignTop ? 110 : null,
-                right: alignTop ? null : 110,
-                top: alignTop ? 0 : null,
-                bottom: alignTop ? null : 0,
-                child: Container(
-                  width: 190,
-                  height: 190,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brand500,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

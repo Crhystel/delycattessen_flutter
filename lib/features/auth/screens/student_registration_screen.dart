@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../../children/screens/children_list_screen.dart';
@@ -39,7 +40,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   File? _photo;
 
   bool _isSubmitting = false;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -64,16 +64,15 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     if (_firstNameController.text.isEmpty ||
         _firstLastNameController.text.isEmpty ||
         _selectedInstitution == null) {
-      setState(
-        () => _errorMessage =
-            'Completa primer nombre, primer apellido e institución.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Faltan datos',
+        message: 'Completa primer nombre, primer apellido e institución.',
       );
       return;
     }
-    setState(() {
-      _errorMessage = null;
-      _currentStep = 1;
-    });
+    setState(() => _currentStep = 1);
   }
 
   Future<void> _pickPhoto() async {
@@ -86,28 +85,35 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
   Future<void> _submit() async {
     if (_photo == null) {
-      setState(() => _errorMessage = 'La foto es obligatoria.');
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Falta la foto',
+        message: 'La foto es obligatoria.',
+      );
       return;
     }
     if (_usernameController.text.isEmpty ||
         _passwordController.text.length < 6) {
-      setState(
-        () => _errorMessage =
-            'Usuario requerido y contraseña mínimo 6 caracteres.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Datos incompletos',
+        message: 'Usuario requerido y contraseña mínimo 6 caracteres.',
       );
       return;
     }
     if (!_acceptedTerms) {
-      setState(
-        () => _errorMessage = 'Debes aceptar los Términos y Condiciones.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Términos y condiciones',
+        message: 'Debes aceptar los Términos y Condiciones.',
       );
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
       await _authService.registerStudent(
@@ -128,8 +134,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         (route) => false,
       );
     } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+      if (!mounted) return;
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'No se pudo crear la cuenta',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -141,7 +151,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: _currentStep == 0 ? Colors.white : AppColors.teal700,
+        backgroundColor: _currentStep == 0 ? Colors.white : AppColors.teal500,
         elevation: 0,
         iconTheme: IconThemeData(
           color: _currentStep == 0 ? AppColors.ink900 : Colors.white,
@@ -187,16 +197,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
               ),
               const SizedBox(height: 20),
               if (_currentStep == 0) _buildStep1() else _buildStep2(),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: GoogleFonts.nunito(
-                    fontSize: 12,
-                    color: AppColors.danger700,
-                  ),
-                ),
-              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
+import 'child_detail_screen.dart';
 
 class ChildrenListScreen extends StatefulWidget {
   const ChildrenListScreen({super.key});
@@ -48,10 +50,11 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   void _openWallet([Child? preselected]) {
     final withWallet = _children.where((c) => c.walletId != null).toList();
     if (withWallet.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ningún hijo tiene billetera activa todavía.'),
-        ),
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Sin billetera activa',
+        message: 'Ningún hijo tiene billetera activa todavía.',
       );
       return;
     }
@@ -65,6 +68,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
                   walletId: c.walletId!,
                   name: '${c.firstName} ${c.lastName}',
                   currentBalance: c.balance ?? 0,
+                  profilePictureUrl: c.profilePictureUrl,
                 ),
               )
               .toList(),
@@ -72,6 +76,19 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
         ),
       ),
     );
+  }
+
+  void _openChildDetail(Child child) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) =>
+                ChildDetailScreen(child: child, allChildren: _children),
+          ),
+        )
+        .then(
+          (_) => _loadChildren(),
+        ); // refresca saldo al volver, por si recargó desde ahí
   }
 
   @override
@@ -193,7 +210,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   Widget _buildChildCard(Child child) {
     final isLowBalance = child.balance != null && child.balance! < 5;
     return GestureDetector(
-      onTap: () => _openWallet(child),
+      onTap: () => _openChildDetail(child),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
