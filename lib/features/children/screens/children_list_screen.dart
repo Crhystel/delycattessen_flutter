@@ -8,6 +8,7 @@ import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import 'child_detail_screen.dart';
+import '../../menu/screens/menu_screen.dart';
 
 class ChildrenListScreen extends StatefulWidget {
   const ChildrenListScreen({super.key});
@@ -196,6 +197,12 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
               IconButton(
                 icon: const Icon(Icons.home, color: Colors.white),
                 onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.restaurant_menu, color: Colors.white),
+                onPressed: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const MenuScreen())),
               ),
               IconButton(
                 icon: const Icon(Icons.attach_money, color: Colors.white),
