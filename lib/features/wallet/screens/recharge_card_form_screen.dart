@@ -5,7 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
-import 'payphone_webview_screen.dart';
+import '../services/kushki_service.dart';
 
 class RechargeCardFormScreen extends StatefulWidget {
   final int walletId;
@@ -29,6 +29,8 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
   final _holderNameController = TextEditingController();
   final _expirationController = TextEditingController();
   final _cvvController = TextEditingController();
+  final _documentNumberController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -45,28 +47,45 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
       return;
     }
 
+    if (_documentNumberController.text.isEmpty ||
+        _phoneController.text.isEmpty) {
+      setState(
+        () => _errorMessage =
+            'Ingresa tu cédula y teléfono para procesar el pago.',
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
     });
 
     try {
+      final expirationParts = _expirationController.text.split('/');
+      final token = await KushkiService().tokenizeCard(
+        cardNumber: _cardNumberController.text,
+        cvv: _cvvController.text,
+        expiryMonth: expirationParts[0],
+        expiryYear: expirationParts[1],
+        holderName: _holderNameController.text,
+        amount: widget.amount,
+      );
+
       final response = await _walletService.recharge(
-        RechargeRequest(walletId: widget.walletId, amount: widget.amount),
+        RechargeRequest(
+          walletId: widget.walletId,
+          amount: widget.amount,
+          kushkiToken: token,
+          documentNumber: _documentNumberController.text,
+          phoneNumber: _phoneController.text,
+        ),
       );
 
       if (!mounted) return;
 
       if (response.isProcessingAsync) {
         await _pollUntilResolved();
-      } else {
-        final result = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) =>
-                PayphoneWebViewScreen(paymentUrl: response.paymentUrl!),
-          ),
-        );
-        if (result == true && mounted) _showSuccess();
       }
     } catch (e) {
       setState(
@@ -195,6 +214,22 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+            _buildLabel('CÉDULA DEL TITULAR'),
+            _buildField(
+              _documentNumberController,
+              'Ej. 1712345678',
+              icon: Icons.badge_outlined,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 14),
+            _buildLabel('TELÉFONO DE CONTACTO'),
+            _buildField(
+              _phoneController,
+              'Ej. 0991234567',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),

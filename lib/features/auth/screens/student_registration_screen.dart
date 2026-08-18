@@ -294,7 +294,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                 child: CircularProgressIndicator(),
               )
             : DropdownButtonFormField<Institution>(
-                value: _selectedInstitution,
+                initialValue: _selectedInstitution,
                 items: _institutions
                     .map((i) => DropdownMenuItem(value: i, child: Text(i.name)))
                     .toList(),

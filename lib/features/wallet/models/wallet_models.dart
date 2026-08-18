@@ -1,11 +1,26 @@
 class RechargeRequest {
   final int walletId;
   final double amount;
+  final String? kushkiToken;
+  final String? documentNumber;
+  final String? phoneNumber;
 
-  RechargeRequest({required this.walletId, required this.amount});
+  RechargeRequest({
+    required this.walletId,
+    required this.amount,
+    this.kushkiToken,
+    this.documentNumber,
+    this.phoneNumber,
+  });
 
   Map<String, dynamic> toJson() {
-    return {'wallet_id': walletId, 'amount': amount};
+    return {
+      'wallet_id': walletId,
+      'amount': amount,
+      if (kushkiToken != null) 'kushki_token': kushkiToken,
+      if (documentNumber != null) 'document_number': documentNumber,
+      if (phoneNumber != null) 'phone_number': phoneNumber,
+    };
   }
 }
 
