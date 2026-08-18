@@ -7,6 +7,7 @@ import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
 import 'recharge_card_form_screen.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 
 class ChildOption {
   final int walletId;
@@ -104,7 +105,13 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
         ),
       );
       if (result == true && mounted) {
-        Navigator.of(context).pop(true); // vuelve a "Tus hijos" con éxito
+        await AppNotificationDialog.show(
+          context,
+          type: NotificationType.success,
+          title: '¡Recarga exitosa!',
+          message: 'El saldo se acreditó correctamente.',
+        );
+        if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
       setState(

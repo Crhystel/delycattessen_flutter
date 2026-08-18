@@ -15,7 +15,7 @@ class ChildDetailScreen extends StatelessWidget {
     required this.allChildren,
   });
 
-  void _goToWallet(BuildContext context) {
+  void _goToWallet(BuildContext context) async {
     final withWallet = allChildren.where((c) => c.walletId != null).toList();
     if (child.walletId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -25,7 +25,7 @@ class ChildDetailScreen extends StatelessWidget {
       );
       return;
     }
-    Navigator.of(context).push(
+    final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => WalletRechargeScreen(
           children: withWallet
@@ -42,6 +42,9 @@ class ChildDetailScreen extends StatelessWidget {
         ),
       ),
     );
+    if (result == true && context.mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override

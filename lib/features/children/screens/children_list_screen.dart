@@ -47,7 +47,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     }
   }
 
-  void _openWallet([Child? preselected]) {
+  void _openWallet([Child? preselected]) async {
     final withWallet = _children.where((c) => c.walletId != null).toList();
     if (withWallet.isEmpty) {
       AppNotificationDialog.show(
@@ -59,7 +59,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
       return;
     }
     final target = preselected ?? withWallet.first;
-    Navigator.of(context).push(
+    final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => WalletRechargeScreen(
           children: withWallet
@@ -76,6 +76,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
         ),
       ),
     );
+    if (result == true) _loadChildren();
   }
 
   void _openChildDetail(Child child) {
