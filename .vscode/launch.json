@@ -6,7 +6,8 @@
       "type": "dart",
       "request": "launch",
       "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=env.json"]
+      "toolArgs": ["--dart-define-from-file=env.json"],
+      "preLaunchTask": "adb-reverse-backend"
     }
   ]
 }
