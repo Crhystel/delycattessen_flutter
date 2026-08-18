@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -6,6 +7,77 @@ import '../../../core/widgets/app_notification_dialog.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import '../services/kushki_service.dart';
+
+enum DocumentType { cedula, ruc, pasaporte }
+
+extension DocumentTypeLabel on DocumentType {
+  String get label {
+    switch (this) {
+      case DocumentType.cedula:
+        return 'Cédula de identidad';
+      case DocumentType.ruc:
+        return 'RUC';
+      case DocumentType.pasaporte:
+        return 'Pasaporte';
+    }
+  }
+
+  String get apiCode {
+    switch (this) {
+      case DocumentType.cedula:
+        return 'CC';
+      case DocumentType.ruc:
+        return 'RUC';
+      case DocumentType.pasaporte:
+        return 'PPT';
+    }
+  }
+}
+
+/// Inserts a space every 4 digits as the user types the card number.
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final buffer = StringBuffer();
+    for (var i = 0; i < digitsOnly.length && i < 16; i++) {
+      if (i != 0 && i % 4 == 0) buffer.write(' ');
+      buffer.write(digitsOnly[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Inserts a "/" automatically after the 2-digit month (MM/AA).
+class _ExpirationDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited = digitsOnly.length > 4
+        ? digitsOnly.substring(0, 4)
+        : digitsOnly;
+    final buffer = StringBuffer();
+    for (var i = 0; i < limited.length; i++) {
+      if (i == 2) buffer.write('/');
+      buffer.write(limited[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class RechargeCardFormScreen extends StatefulWidget {
   final int walletId;
@@ -29,9 +101,12 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
   final _holderNameController = TextEditingController();
   final _expirationController = TextEditingController();
   final _cvvController = TextEditingController();
-  final _documentNumberController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _documentNumberController = TextEditingController();
 
+  DocumentType _documentType = DocumentType.cedula;
+  bool _acceptedTerms = false;
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -46,12 +121,16 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
       );
       return;
     }
-
-    if (_documentNumberController.text.isEmpty ||
-        _phoneController.text.isEmpty) {
+    if (_phoneController.text.isEmpty ||
+        _documentNumberController.text.isEmpty) {
       setState(
-        () => _errorMessage =
-            'Ingresa tu cédula y teléfono para procesar el pago.',
+        () => _errorMessage = 'Ingresa tu teléfono y documento de identidad.',
+      );
+      return;
+    }
+    if (!_acceptedTerms) {
+      setState(
+        () => _errorMessage = 'Debes aceptar los Términos y Condiciones.',
       );
       return;
     }
@@ -77,13 +156,13 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
           walletId: widget.walletId,
           amount: widget.amount,
           kushkiToken: token,
+          documentType: _documentType.apiCode,
           documentNumber: _documentNumberController.text,
           phoneNumber: _phoneController.text,
         ),
       );
 
       if (!mounted) return;
-
       if (response.isProcessingAsync) {
         await _pollUntilResolved();
       }
@@ -173,6 +252,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
               '0000 0000 0000 0000',
               icon: Icons.credit_card,
               keyboardType: TextInputType.number,
+              inputFormatters: [_CardNumberFormatter()],
             ),
             const SizedBox(height: 14),
             _buildLabel('NOMBRE DEL TITULAR'),
@@ -192,7 +272,8 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
                       _buildField(
                         _expirationController,
                         'MM/AA',
-                        keyboardType: TextInputType.datetime,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [_ExpirationDateFormatter()],
                       ),
                     ],
                   ),
@@ -216,23 +297,54 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            _buildLabel('CÉDULA DEL TITULAR'),
+            _buildLabel('CORREO'),
             _buildField(
-              _documentNumberController,
-              'Ej. 1712345678',
-              icon: Icons.badge_outlined,
-              keyboardType: TextInputType.number,
+              _emailController,
+              'correo@ejemplo.com',
+              icon: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 14),
-            _buildLabel('TELÉFONO DE CONTACTO'),
+            _buildLabel('TELÉFONO'),
             _buildField(
               _phoneController,
               'Ej. 0991234567',
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
             ),
+            const SizedBox(height: 14),
+            _buildLabel('TIPO DE DOCUMENTO'),
+            _buildDocumentTypeDropdown(),
+            const SizedBox(height: 14),
+            _buildLabel('NÚMERO DE DOCUMENTO'),
+            _buildField(
+              _documentNumberController,
+              'Ej. 1712345678',
+              icon: Icons.badge_outlined,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Checkbox(
+                  value: _acceptedTerms,
+                  onChanged: (value) =>
+                      setState(() => _acceptedTerms = value ?? false),
+                  activeColor: AppColors.secondary500,
+                ),
+                Expanded(
+                  child: Text(
+                    'Acepto los Términos y Condiciones',
+                    style: GoogleFonts.nunito(
+                      fontSize: 12,
+                      color: AppColors.ink900.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (_errorMessage != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Text(
                 _errorMessage!,
                 style: GoogleFonts.nunito(
@@ -241,7 +353,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             SizedBox(
               height: 52,
               child: ElevatedButton(
@@ -331,7 +443,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
           const Spacer(),
           Text(
             _cardNumberController.text.isEmpty
-                ? '**** **** **** 1234'
+                ? '**** **** **** ****'
                 : _cardNumberController.text,
             style: GoogleFonts.nunito(
               fontSize: 17,
@@ -378,7 +490,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
                   ),
                   Text(
                     _expirationController.text.isEmpty
-                        ? '12/28'
+                        ? '00/00'
                         : _expirationController.text,
                     style: GoogleFonts.nunito(
                       fontSize: 12,
@@ -464,11 +576,13 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
     IconData? icon,
     TextInputType? keyboardType,
     bool obscure = false,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscure,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.nunito(color: AppColors.ink900),
       onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
@@ -480,6 +594,61 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
         prefixIcon: icon != null
             ? Icon(icon, color: AppColors.secondary500, size: 20)
             : null,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary700,
+            width: 1.8,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentTypeDropdown() {
+    return DropdownButtonFormField<DocumentType>(
+      value: _documentType,
+      items: DocumentType.values
+          .map(
+            (type) => DropdownMenuItem(
+              value: type,
+              child: Text(
+                type.label,
+                style: GoogleFonts.nunito(
+                  fontSize: 14,
+                  color: AppColors.ink900,
+                ),
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (value) =>
+          setState(() => _documentType = value ?? DocumentType.cedula),
+      icon: const Icon(
+        Icons.keyboard_arrow_down,
+        color: AppColors.secondary500,
+      ),
+      decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(

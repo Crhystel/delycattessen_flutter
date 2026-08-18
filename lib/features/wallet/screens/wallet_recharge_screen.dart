@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
 import 'recharge_card_form_screen.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
 
 class ChildOption {
   final int walletId;
@@ -42,7 +42,6 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   final WalletService _walletService = WalletService();
 
   late ChildOption _selectedChild;
-  String? _errorMessage;
   bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
@@ -70,10 +69,24 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   Future<void> _proceedToRecharge() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      setState(() => _errorMessage = 'Ingresa un monto válido.');
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Monto inválido',
+        message: 'Ingresa un monto válido para recargar.',
+      );
       return;
     }
-    setState(() => _errorMessage = null);
+
+    if (amount < 1.0) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Monto muy bajo',
+        message: 'El monto mínimo de recarga es \$1.00.',
+      );
+      return;
+    }
 
     if (amount < _gatewayThreshold) {
       await _rechargeViaPayphone(amount);
@@ -114,8 +127,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
         if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+      if (!mounted) return;
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'No se pudo procesar la recarga',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -169,16 +186,6 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
                         _buildAmountField(),
                         const SizedBox(height: 14),
                         _buildQuickAmountChips(),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            _errorMessage!,
-                            style: GoogleFonts.nunito(
-                              fontSize: 12,
-                              color: AppColors.danger700,
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 28),
                         _buildRechargeButton(),
                       ],
