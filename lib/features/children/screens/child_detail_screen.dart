@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/models/auth_models.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
+import '../../menu/screens/transaction_history_screen.dart';
 
 class ChildDetailScreen extends StatelessWidget {
   final Child child;
@@ -174,6 +175,53 @@ class ChildDetailScreen extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               color: AppColors.teal500,
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TransactionHistoryScreen(
+                              walletId: child.walletId!,
+                              childName: '${child.firstName} ${child.lastName}',
+                            ),
+                          ),
+                        ),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.brand500,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.receipt_long,
+                                size: 16,
+                                color: AppColors.ink900,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Ver historial de movimientos',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink900,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: AppColors.ink900,
+                              ),
+                            ],
                           ),
                         ),
                       ),

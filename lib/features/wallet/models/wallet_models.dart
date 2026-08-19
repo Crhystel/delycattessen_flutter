@@ -47,28 +47,34 @@ class RechargeResponse {
 
 class TransactionModel {
   final int id;
+  final String displayName;
   final double amount;
   final String gateway;
   final String status;
   final String type;
+  final String time;
   final DateTime createdAt;
 
   TransactionModel({
     required this.id,
+    required this.displayName,
     required this.amount,
     required this.gateway,
     required this.status,
     required this.type,
+    required this.time,
     required this.createdAt,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
       id: json['id'] as int,
+      displayName: json['display_name'] as String,
       amount: double.parse(json['amount'].toString()),
       gateway: json['gateway'] as String? ?? '',
       status: json['status'] as String,
       type: json['type'] as String,
+      time: json['time'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
