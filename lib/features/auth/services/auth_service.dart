@@ -2,6 +2,7 @@ import '../../../core/network/api_config.dart';
 import '../../../core/network/base_api_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/auth_models.dart';
+import '../../users/models/allergy_models.dart';
 
 class AuthService extends BaseApiService {
   Future<LoginResponse> login(LoginRequest data) async {
@@ -83,5 +84,29 @@ class AuthService extends BaseApiService {
     return (response as List)
         .map((item) => Child.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<List<Allergen>> getAllergens() async {
+    final response = await performGetRequest(ApiConfig.allergens);
+    return (response as List)
+        .map((item) => Allergen.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<int>> getUserAllergyIds(int targetUserId) async {
+    final response = await performGetRequest(
+      '${ApiConfig.allergies}?target_user_id=$targetUserId',
+    );
+    return (response as List).map((item) => item['allergen'] as int).toList();
+  }
+
+  Future<void> saveUserAllergies(
+    int targetUserId,
+    List<int> allergenIds,
+  ) async {
+    await performPutRequest(ApiConfig.allergies, {
+      'target_user_id': targetUserId,
+      'allergen_ids': allergenIds,
+    });
   }
 }

@@ -19,4 +19,6 @@ class ApiConfig {
       '$baseUrl/wallet/$walletId/transactions/';
   static const String me = '$baseUrl/users/me/';
   static const String children = '$baseUrl/users/children/';
+  static const String allergens = '$baseUrl/users/allergens/';
+  static const String allergies = '$baseUrl/users/allergies/';
 }

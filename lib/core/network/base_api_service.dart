@@ -34,7 +34,31 @@ abstract class BaseApiService with ErrorHandlerMixin {
     }
   }
 
-  Future<dynamic> performGetRequest(String url, {bool requiresAuth = true}) async {
+  Future<dynamic> performPutRequest(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final response = await http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      return handleResponse(response);
+    } catch (e) {
+      if (e is Exception && !e.toString().contains('Error de conexión')) {
+        rethrow;
+      }
+      throw handleNetworkError(e);
+    }
+  }
+
+  Future<dynamic> performGetRequest(
+    String url, {
+    bool requiresAuth = true,
+  }) async {
     try {
       final headers = await _buildHeaders(requiresAuth: requiresAuth);
       final response = await http.get(Uri.parse(url), headers: headers);
