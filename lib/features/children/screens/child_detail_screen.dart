@@ -5,8 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/models/auth_models.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
+import '../../users/screens/allergy_management_screen.dart';
 
-class ChildDetailScreen extends StatelessWidget {
+class ChildDetailScreen extends StatefulWidget {
   final Child child;
   final List<Child> allChildren;
 
@@ -16,9 +17,16 @@ class ChildDetailScreen extends StatelessWidget {
     required this.allChildren,
   });
 
+  @override
+  State<ChildDetailScreen> createState() => _ChildDetailScreenState();
+}
+
+class _ChildDetailScreenState extends State<ChildDetailScreen> {
   void _goToWallet(BuildContext context) async {
-    final withWallet = allChildren.where((c) => c.walletId != null).toList();
-    if (child.walletId == null) {
+    final withWallet = widget.allChildren
+        .where((c) => c.walletId != null)
+        .toList();
+    if (widget.child.walletId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Este hijo aún no tiene billetera activa.'),
@@ -39,7 +47,7 @@ class ChildDetailScreen extends StatelessWidget {
                 ),
               )
               .toList(),
-          initialWalletId: child.walletId!,
+          initialWalletId: widget.child.walletId!,
         ),
       ),
     );
@@ -48,8 +56,25 @@ class ChildDetailScreen extends StatelessWidget {
     }
   }
 
+  void _goToAllergies(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AllergyManagementScreen(
+          studentId: widget.child.id,
+          personName: '${widget.child.firstName} ${widget.child.lastName}',
+        ),
+      ),
+    );
+    if (result == true && context.mounted) {
+      Navigator.of(
+        context,
+      ).pop(true); // avisa a ChildrenListScreen que refresque
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final child = widget.child;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -248,7 +273,8 @@ class ChildDetailScreen extends StatelessWidget {
                   _buildSettingRow(
                     icon: Icons.warning_amber_outlined,
                     title: 'Alergias registradas',
-                    subtitle: 'Pendiente de configurar',
+                    subtitle: 'Toca para registrar o editar',
+                    onTap: () => _goToAllergies(context),
                   ),
                 ],
               ),
@@ -264,47 +290,51 @@ class ChildDetailScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.secondary500, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink900,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEFEFEF)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.secondary500, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.nunito(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink900,
+                    ),
                   ),
-                ),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.nunito(
-                    fontSize: 11,
-                    color: AppColors.ink900.withValues(alpha: 0.5),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      color: AppColors.ink900.withValues(alpha: 0.5),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Icon(
-            Icons.settings_outlined,
-            color: Color(0xFFBBBBBB),
-            size: 18,
-          ),
-        ],
+            Icon(
+              onTap != null ? Icons.chevron_right : Icons.settings_outlined,
+              color: const Color(0xFFBBBBBB),
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

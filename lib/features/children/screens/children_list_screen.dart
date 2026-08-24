@@ -80,6 +80,23 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     if (result == true) _loadChildren();
   }
 
+  void _openMenu() {
+    if (_children.isEmpty) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Sin hijos registrados',
+        message: 'Registra al menos un hijo para ver el menú.',
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MenuScreen(studentId: _children.first.id),
+      ),
+    );
+  }
+
   void _openChildDetail(Child child) {
     Navigator.of(context)
         .push(
@@ -200,9 +217,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.restaurant_menu, color: Colors.white),
-                onPressed: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const MenuScreen())),
+                onPressed: _openMenu,
               ),
               IconButton(
                 icon: const Icon(Icons.attach_money, color: Colors.white),

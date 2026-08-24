@@ -93,19 +93,20 @@ class AuthService extends BaseApiService {
         .toList();
   }
 
-  Future<List<int>> getUserAllergyIds(int targetUserId) async {
+  Future<List<Allergen>> getStudentAllergies(int studentId) async {
     final response = await performGetRequest(
-      '${ApiConfig.allergies}?target_user_id=$targetUserId',
+      ApiConfig.studentAllergies(studentId),
     );
-    return (response as List).map((item) => item['allergen'] as int).toList();
+    return (response as List)
+        .map((item) => Allergen.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<void> saveUserAllergies(
-    int targetUserId,
+  Future<void> saveStudentAllergies(
+    int studentId,
     List<int> allergenIds,
   ) async {
-    await performPutRequest(ApiConfig.allergies, {
-      'target_user_id': targetUserId,
+    await performPutRequest(ApiConfig.studentAllergies(studentId), {
       'allergen_ids': allergenIds,
     });
   }

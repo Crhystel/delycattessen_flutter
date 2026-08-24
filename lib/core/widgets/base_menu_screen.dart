@@ -19,27 +19,25 @@ class BaseMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.inputBackground, // Fondo celeste claro
+      backgroundColor: AppColors.ink50, // Fondo celeste claro
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(color: AppColors.white)),
-        backgroundColor: AppColors.bluePrimary,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.teal500,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
           // Contenido inyectado
           bodyContent,
-          
+
           // Loader Overlay
           if (isLoading)
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.orangeAccent,
-                ),
+                child: CircularProgressIndicator(color: AppColors.brand500),
               ),
             ),
         ],

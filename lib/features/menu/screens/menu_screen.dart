@@ -2,259 +2,370 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../models/menu_item.dart';
+import '../../../core/widgets/custom_header_shape.dart';
+import '../../../core/widgets/custom_bottom_nav.dart';
+import '../models/menu_models.dart';
+import '../services/menu_service.dart';
+import 'cart_screen.dart';
+import 'product_detail_screen.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final int studentId;
+
+  const MenuScreen({Key? key, required this.studentId}) : super(key: key);
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  MenuCategory _selectedCategory = MenuCategory.general;
-  final _searchController = TextEditingController();
+  final MenuService _menuService = MenuService();
+  bool _isLoading = true;
+  List<MenuItem> _menuItems = [];
+  final Map<int, int> _cart = {}; // itemId -> quantity
+  int _selectedCategoryIndex = 0;
 
-  static const _categoryLabels = {
-    MenuCategory.general: 'General',
-    MenuCategory.snacks: 'Snacks',
-    MenuCategory.bebidas: 'Bebidas',
-  };
+  final List<Map<String, dynamic>> _categories = [
+    {'name': 'General', 'icon': Icons.restaurant_menu},
+    {'name': 'Snacks', 'icon': Icons.lunch_dining},
+    {'name': 'Bebidas', 'icon': Icons.local_drink},
+    {'name': 'Postres', 'icon': Icons.icecream},
+  ];
 
-  static const _categoryIcons = {
-    MenuCategory.general: Icons.restaurant,
-    MenuCategory.snacks: Icons.lunch_dining,
-    MenuCategory.bebidas: Icons.local_cafe,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _fetchMenu();
+  }
+
+  Future<void> _fetchMenu() async {
+    try {
+      final items = await _menuService.getMenu();
+      setState(() => _menuItems = items);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: AppColors.danger500,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _addToCart(int itemId, int quantity) {
+    setState(() {
+      _cart[itemId] = (_cart[itemId] ?? 0) + quantity;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final items = mockMenuItems
-        .where((i) => i.category == _selectedCategory)
-        .toList();
+    double total = _cart.entries.fold(0, (sum, entry) {
+      final item = _menuItems.firstWhere((i) => i.id == entry.key);
+      return sum + (item.price * entry.value);
+    });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const CustomHeaderShape(height: 50),
             _buildHeader(),
+            _buildCategories(),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    Text(
-                      'Menú',
-                      style: GoogleFonts.nunito(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink900,
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.brand500,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Categorías',
-                      style: GoogleFonts.nunito(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildCategorySelector(),
-                    const SizedBox(height: 16),
-                    Text(
-                      _categoryLabels[_selectedCategory]!,
-                      style: GoogleFonts.nunito(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...items.map(_buildItemCard),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+                    )
+                  : _buildProductList(),
             ),
-            _buildBottomNav(),
+            if (total > 0) _buildCartSummary(total),
           ],
         ),
       ),
+      bottomNavigationBar: const CustomBottomNav(),
     );
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              style: GoogleFonts.nunito(fontSize: 14, color: AppColors.ink900),
-              decoration: InputDecoration(
-                hintText: 'Buscar...',
-                hintStyle: GoogleFonts.nunito(
-                  color: AppColors.ink900.withValues(alpha: 0.4),
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.secondary500,
-                ),
-                filled: true,
-                fillColor: AppColors.ink50,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: AppColors.ink900),
+                onPressed: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.teal50,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar...',
+                      hintStyle: TextStyle(
+                        color: AppColors.teal700.withValues(alpha: 0.5),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.teal700,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Menú',
+            style: GoogleFonts.nunito(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.ink900,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Categorías',
+            style: GoogleFonts.nunito(fontSize: 16, color: AppColors.ink900),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategorySelector() {
-    return Row(
-      children: MenuCategory.values.map((category) {
-        final isSelected = category == _selectedCategory;
-        return Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedCategory = category),
-            child: Column(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.secondary500
-                        : AppColors.secondary50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _categoryIcons[category],
-                    color: isSelected ? Colors.white : AppColors.secondary500,
-                  ),
+  Widget _buildCategories() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: SizedBox(
+        height: 100,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _categories.length,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemBuilder: (context, index) {
+            final category = _categories[index];
+            final isSelected = _selectedCategoryIndex == index;
+            return GestureDetector(
+              onTap: () => setState(() => _selectedCategoryIndex = index),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 24.0),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.secondary500
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.secondary500,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        category['icon'],
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.secondary500,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      category['name'],
+                      style: GoogleFonts.nunito(
+                        color: isSelected
+                            ? AppColors.ink900
+                            : AppColors.ink900.withValues(alpha: 0.5),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  _categoryLabels[category]!,
-                  style: GoogleFonts.nunito(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? AppColors.secondary700
-                        : AppColors.ink900.withValues(alpha: 0.5),
-                  ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductList() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _categories[_selectedCategoryIndex]['name'],
+                style: GoogleFonts.nunito(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
+              const SizedBox(height: 16),
+              ..._menuItems.map((item) => _buildProductCard(item)).toList(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductCard(MenuItem item) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductDetailScreen(
+              item: item,
+              onAdd: (qty) => _addToCart(item.id, qty),
             ),
           ),
         );
-      }).toList(),
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: GoogleFonts.nunito(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.description.isEmpty
+                        ? 'Delicioso producto preparado al instante.'
+                        : item.description,
+                    style: GoogleFonts.nunito(
+                      color: const Color(0xFF8A8686),
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '\$${item.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.nunito(
+                      color: AppColors.brand700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: AppColors.ink50,
+              ),
+              child: const Icon(Icons.fastfood, color: Color(0xFF8A8686)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildItemCard(MenuItem item) {
+  Widget _buildCartSummary(double total) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.brand50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Text(item.emoji, style: const TextStyle(fontSize: 28)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: GoogleFonts.nunito(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.description,
-                  style: GoogleFonts.nunito(
-                    fontSize: 11,
-                    color: AppColors.ink900.withValues(alpha: 0.5),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
           Text(
-            '\$${item.price.toStringAsFixed(2)}',
+            '\$${total.toStringAsFixed(2)}',
             style: GoogleFonts.nunito(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.brand700,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary500,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CartScreen(
+                    studentId: widget.studentId,
+                    cart: _cart,
+                    menuItems: _menuItems,
+                  ),
+                ),
+              ).then((cleared) {
+                if (cleared == true) setState(() => _cart.clear());
+              });
+            },
+            child: Text(
+              'Ver carrito',
+              style: GoogleFonts.nunito(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      color: AppColors.brand500,
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      child: SizedBox(
-        height: 60,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.home_outlined, color: Colors.white),
-              onPressed: () =>
-                  Navigator.of(context).popUntil((route) => route.isFirst),
-            ),
-            const Icon(Icons.restaurant_menu, color: Colors.white),
-          ],
-        ),
       ),
     );
   }
