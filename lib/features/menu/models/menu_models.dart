@@ -1,3 +1,18 @@
+
+class Ingredient {
+  final int id;
+  final String name;
+
+  Ingredient({required this.id, required this.name});
+
+  factory Ingredient.fromJson(Map<String, dynamic> json) {
+    return Ingredient(
+      id: json['id'],
+      name: json['name'],
+    );
+  }
+}
+
 class Allergen {
   final int id;
   final String name;
@@ -15,6 +30,7 @@ class MenuItem {
   final String description;
   final double price;
   final String? imageUrl;
+  final List<Ingredient> ingredients;
   final List<Allergen> allergens;
 
   MenuItem({
@@ -23,17 +39,20 @@ class MenuItem {
     required this.description,
     required this.price,
     this.imageUrl,
+    required this.ingredients,
     required this.allergens,
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     var allergensList = json['allergens'] as List? ?? [];
+    var ingredientsList = json['ingredients'] as List? ?? [];
     return MenuItem(
       id: json['id'],
       name: json['name'],
       description: json['description'] ?? '',
       price: double.parse(json['price'].toString()),
       imageUrl: json['image'] as String?,
+      ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
     );
   }

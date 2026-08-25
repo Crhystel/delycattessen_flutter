@@ -103,14 +103,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: [
-                            _buildIngredientChip('Pan brioche'),
-                            _buildIngredientChip('Carne de res'),
-                            _buildIngredientChip('Queso cheddar'),
-                            _buildIngredientChip('Lechuga'),
-                            _buildIngredientChip('Tomate'),
-                            _buildIngredientChip('Cebolla'),
-                          ],
+                                                      children: widget.menuItem.ingredients
+                                .map((ingredient) => _buildIngredientChip(ingredient.name))
+                                .toList(),
                         ),
                       ],
                     ),
