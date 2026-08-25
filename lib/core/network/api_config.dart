@@ -5,6 +5,7 @@ class ApiConfig {
   // comunicación directa celular-PC en esta red (aislamiento de clientes).
   static const String baseUrl = 'http://127.0.0.1:8000/api';
 
+  static const String tokenRefresh = '$baseUrl/token/refresh/';
   static const String login = '$baseUrl/users/login/';
   static const String institutions = '$baseUrl/users/institutions/';
   static const String requestPasswordReset =
@@ -23,4 +24,6 @@ class ApiConfig {
   static const String allergies = '$baseUrl/users/allergies/';
   static String studentAllergies(int studentId) =>
       '$baseUrl/users/students/$studentId/allergies';
+  static const String setPaymentPin = '$baseUrl/users/set-payment-pin/';
+  static const String verifyPaymentPin = '$baseUrl/users/verify-payment-pin/';
 }

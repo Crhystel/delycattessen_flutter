@@ -115,6 +115,7 @@ class MeResponse {
   final String lastName;
   final String role;
   final bool hasChildren;
+  final bool hasPaymentPin;
 
   MeResponse({
     required this.id,
@@ -123,6 +124,7 @@ class MeResponse {
     required this.lastName,
     required this.role,
     required this.hasChildren,
+    required this.hasPaymentPin,
   });
 
   factory MeResponse.fromJson(Map<String, dynamic> json) {
@@ -133,6 +135,7 @@ class MeResponse {
       lastName: json['last_name'] as String? ?? '',
       role: json['role'] as String,
       hasChildren: json['has_children'] as bool,
+      hasPaymentPin: json['has_payment_pin'] as bool,
     );
   }
 }

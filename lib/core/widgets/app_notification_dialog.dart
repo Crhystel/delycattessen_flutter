@@ -29,6 +29,7 @@ class AppNotificationDialog extends StatelessWidget {
   final VoidCallback? onPrimaryPressed;
   final String? secondaryButtonLabel;
   final VoidCallback? onSecondaryPressed;
+  final IconData? icon;
 
   const AppNotificationDialog({
     super.key,
@@ -41,6 +42,7 @@ class AppNotificationDialog extends StatelessWidget {
     this.onPrimaryPressed,
     this.secondaryButtonLabel,
     this.onSecondaryPressed,
+    this.icon,
   });
 
   static const Map<NotificationType, _NotificationStyle> _styles = {
@@ -82,6 +84,7 @@ class AppNotificationDialog extends StatelessWidget {
     String? secondaryButtonLabel,
     VoidCallback? onSecondaryPressed,
     bool barrierDismissible = true,
+    IconData? icon,
   }) {
     return showDialog(
       context: context,
@@ -91,6 +94,7 @@ class AppNotificationDialog extends StatelessWidget {
         type: type,
         title: title,
         message: message,
+        icon: icon,
         highlightValue: highlightValue,
         highlightCaption: highlightCaption,
         primaryButtonLabel: primaryButtonLabel,
@@ -128,7 +132,11 @@ class AppNotificationDialog extends StatelessWidget {
                       color: style.iconBackground,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(style.icon, color: style.iconColor, size: 32),
+                    child: Icon(
+                      icon ?? style.icon,
+                      color: style.iconColor,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Text(

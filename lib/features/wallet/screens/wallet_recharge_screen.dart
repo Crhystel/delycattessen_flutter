@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/pin_entry_screen.dart';
+import '../../auth/services/auth_service.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
@@ -40,6 +42,7 @@ class WalletRechargeScreen extends StatefulWidget {
 class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   final TextEditingController _amountController = TextEditingController();
   final WalletService _walletService = WalletService();
+  final AuthService _authService = AuthService();
 
   late ChildOption _selectedChild;
   bool _isSubmitting = false;
@@ -66,6 +69,22 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
     setState(() => _amountController.text = amount.toStringAsFixed(2));
   }
 
+  Future<bool> _confirmWithPin() async {
+    final me = await _authService.getMe();
+    if (!mounted) return false;
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PinEntryScreen(
+          isCreating: !me.hasPaymentPin,
+          onCreate: (pin) => _authService.setPaymentPin(pin),
+          onVerify: (pin) => _authService.verifyPaymentPin(pin),
+        ),
+      ),
+    );
+    return result == true;
+  }
+
   Future<void> _proceedToRecharge() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
@@ -87,6 +106,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
       );
       return;
     }
+
+    final confirmed = await _confirmWithPin();
+    if (!confirmed) return;
 
     if (amount < _gatewayThreshold) {
       await _rechargeViaPayphone(amount);

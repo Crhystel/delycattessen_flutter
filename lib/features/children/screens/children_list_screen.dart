@@ -6,6 +6,7 @@ import '../../../core/widgets/app_notification_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
+import '../../auth/screens/login_screen.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import 'child_detail_screen.dart';
 import '../../menu/screens/menu_screen.dart';
@@ -46,6 +47,32 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _confirmLogout() async {
+    await AppNotificationDialog.show(
+      context,
+      type: NotificationType.danger,
+      icon: Icons.logout,
+      title: 'Cerrar sesión',
+      message: '¿Estás seguro de que quieres cerrar tu sesión?',
+      primaryButtonLabel: 'Cerrar sesión',
+      onPrimaryPressed: () {
+        Navigator.of(context).pop();
+        _logout();
+      },
+      secondaryButtonLabel: 'Cancelar',
+      onSecondaryPressed: () => Navigator.of(context).pop(),
+    );
+  }
+
+  Future<void> _logout() async {
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   void _openWallet([Child? preselected]) async {
@@ -123,21 +150,35 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '¡Hola!',
-                  style: GoogleFonts.nunito(
-                    fontSize: 15,
-                    color: AppColors.ink900.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tus hijos',
-                  style: GoogleFonts.nunito(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.ink900,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '¡Hola!',
+                          style: GoogleFonts.nunito(
+                            fontSize: 15,
+                            color: AppColors.ink900.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tus hijos',
+                          style: GoogleFonts.nunito(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: AppColors.ink900),
+                      onPressed: _confirmLogout,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 if (_isLoading)

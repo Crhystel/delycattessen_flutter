@@ -21,6 +21,22 @@ class AuthService extends BaseApiService {
     return loginResponse;
   }
 
+  Future<bool> tryRefreshToken() async {
+    final refresh = await TokenStorage.getRefreshToken();
+    if (refresh == null) return false;
+
+    try {
+      final response = await performPostRequest(ApiConfig.tokenRefresh, {
+        'refresh': refresh,
+      }, requiresAuth: false).timeout(const Duration(seconds: 8));
+      final newAccess = (response as Map<String, dynamic>)['access'] as String;
+      await TokenStorage.saveTokens(access: newAccess, refresh: refresh);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> registerParent(ParentRegistration data) async {
     final response = await performPostRequest(
       ApiConfig.registerParent,
@@ -109,5 +125,20 @@ class AuthService extends BaseApiService {
     await performPutRequest(ApiConfig.studentAllergies(studentId), {
       'allergen_ids': allergenIds,
     });
+  }
+
+  Future<void> setPaymentPin(String pin) async {
+    await performPostRequest(ApiConfig.setPaymentPin, {'pin': pin});
+  }
+
+  Future<bool> verifyPaymentPin(String pin) async {
+    final response = await performPostRequest(ApiConfig.verifyPaymentPin, {
+      'pin': pin,
+    });
+    return (response as Map<String, dynamic>)['valid'] as bool;
+  }
+
+  Future<void> logout() async {
+    await TokenStorage.clear();
   }
 }

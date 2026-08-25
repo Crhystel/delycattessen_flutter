@@ -57,36 +57,40 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadTransactions,
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.secondary500,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadTransactions,
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.secondary500,
+                        ),
+                      )
+                    : _errorMessage != null
+                    ? _buildMessage(_errorMessage!, isError: true)
+                    : _transactions.isEmpty
+                    ? _buildMessage('Aún no hay movimientos registrados.')
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          16,
+                          20,
+                          16 + MediaQuery.of(context).padding.bottom,
+                        ),
+                        itemCount: _transactions.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) =>
+                            _buildTransactionRow(_transactions[index]),
                       ),
-                    )
-                  : _errorMessage != null
-                  ? _buildMessage(_errorMessage!, isError: true)
-                  : _transactions.isEmpty
-                  ? _buildMessage('Aún no hay movimientos registrados.')
-                  : ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      itemCount: _transactions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) =>
-                          _buildTransactionRow(_transactions[index]),
-                    ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
