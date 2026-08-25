@@ -5,10 +5,7 @@ class Allergen {
   Allergen({required this.id, required this.name});
 
   factory Allergen.fromJson(Map<String, dynamic> json) {
-    return Allergen(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Allergen(id: json['id'], name: json['name']);
   }
 }
 
@@ -17,6 +14,7 @@ class MenuItem {
   final String name;
   final String description;
   final double price;
+  final String? imageUrl;
   final List<Allergen> allergens;
 
   MenuItem({
@@ -24,6 +22,7 @@ class MenuItem {
     required this.name,
     required this.description,
     required this.price,
+    this.imageUrl,
     required this.allergens,
   });
 
@@ -34,6 +33,7 @@ class MenuItem {
       name: json['name'],
       description: json['description'] ?? '',
       price: double.parse(json['price'].toString()),
+      imageUrl: json['image'] as String?,
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
     );
   }
@@ -46,10 +46,7 @@ class PreOrderItem {
   PreOrderItem({required this.menuItemId, required this.quantity});
 
   Map<String, dynamic> toJson() {
-    return {
-      'menu_item_id': menuItemId,
-      'quantity': quantity,
-    };
+    return {'menu_item_id': menuItemId, 'quantity': quantity};
   }
 }
 

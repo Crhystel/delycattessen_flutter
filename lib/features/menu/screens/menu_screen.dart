@@ -8,6 +8,7 @@ import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import 'cart_screen.dart';
 import 'product_detail_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MenuScreen extends StatefulWidget {
   final int studentId;
@@ -301,13 +302,35 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
             const SizedBox(width: 12),
             Container(
-              width: 80,
-              height: 80,
+              width: 100,
+              height: 75, // 100 * 3/4 = 75 → mantiene 4:3
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: AppColors.ink50,
               ),
-              child: const Icon(Icons.fastfood, color: Color(0xFF8A8686)),
+              child: item.imageUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: item.imageUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => const Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.secondary500,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => const Icon(
+                          Icons.fastfood,
+                          color: Color(0xFF8A8686),
+                        ),
+                      ),
+                    )
+                  : const Icon(Icons.fastfood, color: Color(0xFF8A8686)),
             ),
           ],
         ),

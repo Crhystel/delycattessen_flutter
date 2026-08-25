@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/menu_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_header_shape.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final MenuItem item;
@@ -33,11 +34,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   width: double.infinity,
                   height: 250,
                   color: AppColors.ink50,
-                  child: const Icon(
-                    Icons.fastfood,
-                    size: 100,
-                    color: Color(0xFF8A8686),
-                  ),
+                  child: widget.item.imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: widget.item.imageUrl!,
+                          width: double.infinity,
+                          height: 250,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.secondary500,
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.fastfood,
+                            size: 100,
+                            color: Color(0xFF8A8686),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.fastfood,
+                          size: 100,
+                          color: Color(0xFF8A8686),
+                        ),
                 ),
                 Expanded(
                   child: SingleChildScrollView(
