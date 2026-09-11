@@ -6,6 +6,7 @@ import '../../auth/models/auth_models.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
 import '../../users/screens/allergy_management_screen.dart';
+import 'parental_control_screen.dart';
 
 class ChildDetailScreen extends StatefulWidget {
   final Child child;
@@ -56,7 +57,17 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
     }
   }
 
-  void _goToAllergies(BuildContext context) async {
+void _goToParentalControl(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ParentalControlScreen(
+          studentId: widget.child.id,
+        ),
+      ),
+    );
+  }
+
+  void _goToAllergies(BuildContext context) async { {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AllergyManagementScreen(
@@ -263,12 +274,14 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
                   _buildSettingRow(
                     icon: Icons.shield_outlined,
                     title: 'Límite de gasto diario',
-                    subtitle: '\$${(child.balance ?? 0) >= 5 ? '5.00' : '—'}',
+                    subtitle: 'Toca para configurar',
+                    onTap: () => _goToParentalControl(context),
                   ),
                   _buildSettingRow(
                     icon: Icons.shield_outlined,
                     title: 'Días permitidos de gasto',
-                    subtitle: 'Pendiente de configurar',
+                    subtitle: 'Toca para configurar',
+                    onTap: () => _goToParentalControl(context),
                   ),
                   _buildSettingRow(
                     icon: Icons.warning_amber_outlined,
