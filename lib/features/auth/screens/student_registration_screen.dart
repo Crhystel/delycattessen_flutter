@@ -9,6 +9,7 @@ import '../../../core/widgets/app_notification_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../../children/screens/children_list_screen.dart';
+import 'login_screen.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -169,7 +170,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
             if (_currentStep == 1) {
               setState(() => _currentStep = 0);
             } else {
-              Navigator.of(context).pop();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             }
           },
         ),
