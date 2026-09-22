@@ -168,95 +168,78 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Top Decorative Shapes (Amber & Blue curves - Figura 24)
+          // Top Decorative Shapes (Figma: Amber & Blue curves in the top-right corner)
           Positioned(
-            top: -40,
-            right: -30,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 140,
-                  height: 140,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE5A93C), // Amber
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Transform.translate(
-                  offset: const Offset(-40, 20),
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0099FF), // Teal/Blue
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
+            top: -50,
+            right: 25,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE5A93C), // Amber
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -20,
+            right: -45,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0099FF), // Cyan/Blue
+                shape: BoxShape.circle,
+              ),
             ),
           ),
 
-          // Bottom Decorative Shapes (Blue & Amber curves - Figura 24)
+          // Bottom Decorative Shapes (Figma: Blue & Amber overlapping curves)
           Positioned(
-            bottom: -50,
-            left: -30,
-            right: -30,
-            child: SizedBox(
-              height: 130,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Positioned(
-                    left: 20,
-                    bottom: -20,
-                    child: Container(
-                      width: 130,
-                      height: 130,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0099FF),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 110,
-                    bottom: -35,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE5A93C),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 40,
-                    bottom: -30,
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0099FF),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: -10,
-                    bottom: -25,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE5A93C),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+            bottom: -40,
+            left: -35,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0099FF),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -55,
+            left: 55,
+            child: Container(
+              width: 135,
+              height: 135,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE5A93C),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -45,
+            left: 145,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0099FF),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -40,
+            right: -35,
+            child: Container(
+              width: 145,
+              height: 145,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE5A93C),
+                shape: BoxShape.circle,
               ),
             ),
           ),
@@ -274,59 +257,102 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                   Text(
                     'Hola ${widget.userName}',
                     style: GoogleFonts.nunito(
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E293B),
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     _getCurrentDayFormatted(),
                     style: GoogleFonts.nunito(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF94A3B8),
+                      color: const Color(0xFF64748B),
                     ),
                   ),
 
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 28),
 
                   // Instruction Subheading
                   Text(
                     'Selecciona el método para identificar al usuario y registrar su consumo.',
                     style: GoogleFonts.nunito(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF94A3B8),
                       height: 1.4,
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
-                  // Card 1: Reconocimiento Facial (Figura 24)
+                  // Card 1: Reconocimiento Facial (Figma)
                   _buildOptionCard(
-                    iconBgColor: const Color(0xFF6F42C9),
+                    iconBgColor: const Color(0xFF5932EA), // Vibrant purple
                     icon: Icons.face_retouching_natural_rounded,
-                    title: 'Reconocimiento Facial',
-                    titleColor: const Color(0xFF6F42C9),
+                    title: 'Reconocimiento\nFacial',
+                    titleColor: const Color(0xFF5932EA),
                     subtitle: 'Identifica por rostro',
                     onTap: _navigateToFaceScan,
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Card 2: Escanear Código QR (Figura 24)
+                  // Card 2: Escanear Código QR (Figma)
                   _buildOptionCard(
-                    iconBgColor: const Color(0xFFE5A93C),
+                    iconBgColor: const Color(0xFFE5A93C), // Amber
                     icon: Icons.qr_code_2_rounded,
-                    title: 'Escanear Código QR',
+                    title: 'Escanear Código\nQR',
                     titleColor: const Color(0xFFE5A93C),
                     subtitle: 'Escanea el código QR del usuario',
                     onTap: _navigateToQrScan,
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 28),
+
+                  // Button: Venta Rápida (Figma)
+                  Center(
+                    child: Container(
+                      width: 190,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5932EA), // Purple from Figma
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Venta Rápida aún no está implementada.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.bolt, color: Colors.white, size: 20),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Venta Rápida',
+                                style: GoogleFonts.nunito(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(flex: 3),
                 ],
               ),
             ),
@@ -347,36 +373,29 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD4D4D8), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
             child: Row(
               children: [
-                // Icon Box
+                // Icon Box (Figma style)
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: iconBgColor,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 28),
+                  child: Icon(icon, color: Colors.white, size: 34),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 18),
 
                 // Texts
                 Expanded(
@@ -386,18 +405,19 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                       Text(
                         title,
                         style: GoogleFonts.nunito(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                           color: titleColor,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 6),
                       Text(
                         subtitle,
                         style: GoogleFonts.nunito(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF94A3B8),
+                          color: const Color(0xFF9CA3AF),
                         ),
                       ),
                     ],
@@ -407,8 +427,8 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 // Trailing Chevron
                 const Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFCBD5E1),
-                  size: 26,
+                  color: Color(0xFFD4D4D8),
+                  size: 34,
                 ),
               ],
             ),

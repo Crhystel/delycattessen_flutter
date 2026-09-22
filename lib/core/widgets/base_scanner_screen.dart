@@ -139,80 +139,84 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
 
               const SizedBox(height: 24),
 
-              // Information Notice Box (Dark blue with cyan accent bar)
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B1E34), // Dark deep navy
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      // Cyan left accent bar
-                      Container(
-                        width: 4,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00B4D8),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            bottomLeft: Radius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4.0,
-                            vertical: 12.0,
-                          ),
-                          child: Text(
-                            helpNoticeText,
-                            style: GoogleFonts.nunito(
-                              color: const Color(0xFF90E0EF),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              height: 1.3,
+              const SizedBox(height: 24),
+
+              // Information Notice Box (Dark deep navy with cyan accent bar - Figma)
+              Center(
+                child: Container(
+                  width: (boxSize * 0.82).clamp(210.0, 250.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF03192B), // Deep navy from Figma
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        // Cyan left accent bar
+                        Container(
+                          width: 4,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0099FF),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(4),
+                              bottomLeft: Radius.circular(4),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                    ],
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14.0,
+                              vertical: 12.0,
+                            ),
+                            child: Text(
+                              helpNoticeText,
+                              style: GoogleFonts.nunito(
+                                color: const Color(0xFF0099FF),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
               const Spacer(flex: 2),
 
-              // "Cancelar" Button (Black background with purple outline)
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton(
-                  onPressed: onCancelPressed,
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    side: const BorderSide(
-                      color: Color(0xFF7C3AED), // Purple border
-                      width: 2.0,
+              // "Cancelar" Button (Black background with purple outline - Figma)
+              Center(
+                child: SizedBox(
+                  width: (boxSize * 0.82).clamp(210.0, 250.0),
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: onCancelPressed,
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(
+                        color: Color(0xFF5932EA), // Purple outline from Figma
+                        width: 2.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'Cancelar',
-                    style: GoogleFonts.nunito(
-                      color: const Color(0xFFC4B5FD),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                    child: Text(
+                      'Cancelar',
+                      style: GoogleFonts.nunito(
+                        color: const Color(0xFF6F42C9),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
           ),
         ),
