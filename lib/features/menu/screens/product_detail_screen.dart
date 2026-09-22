@@ -103,10 +103,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                                                      children: widget.menuItem.ingredients
-                                .map((ingredient) => _buildIngredientChip(ingredient.name))
-                                .toList(),
+                          children: widget.item.ingredients
+                              .map((ingredient) => _buildIngredientChip(ingredient.name))
+                              .toList(),
                         ),
+
                       ],
                     ),
                   ),

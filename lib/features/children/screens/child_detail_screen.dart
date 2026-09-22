@@ -67,7 +67,7 @@ void _goToParentalControl(BuildContext context) async {
     );
   }
 
-  void _goToAllergies(BuildContext context) async { {
+  void _goToAllergies(BuildContext context) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AllergyManagementScreen(
