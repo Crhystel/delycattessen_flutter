@@ -22,6 +22,9 @@ class _FaceRecognitionScanScreenState
   bool _isProcessing = false;
   String? _errorMessage;
 
+  List<CameraDescription> _availableCameras = [];
+  int _selectedCameraIndex = 0;
+
   @override
   String get screenTitle => 'Reconocimiento Facial';
 
@@ -46,30 +49,46 @@ class _FaceRecognitionScanScreenState
         setState(() => _errorMessage = 'No se detectó cámara disponible.');
         return;
       }
-      // Prefer front camera for portrait face capture, or back camera if not available
-      final selectedCamera = cameras.firstWhere(
-        (cam) => cam.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
+      _availableCameras = cameras;
+      // Default to back camera so cashier can point at student, or front if not available
+      int initialIndex = cameras.indexWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.back,
       );
+      if (initialIndex == -1) initialIndex = 0;
+      _selectedCameraIndex = initialIndex;
 
-      final controller = CameraController(
-        selectedCamera,
-        ResolutionPreset.medium,
-        enableAudio: false,
-      );
-
-      await controller.initialize();
-      if (!mounted) return;
-
-      setState(() {
-        _cameraController = controller;
-        _isCameraReady = true;
-      });
+      await _startCameraController(_availableCameras[_selectedCameraIndex]);
     } catch (e) {
       if (mounted) {
         setState(() => _errorMessage = 'Error al iniciar cámara: $e');
       }
     }
+  }
+
+  Future<void> _startCameraController(CameraDescription camera) async {
+    final oldController = _cameraController;
+    setState(() => _isCameraReady = false);
+    await oldController?.dispose();
+
+    final controller = CameraController(
+      camera,
+      ResolutionPreset.medium,
+      enableAudio: false,
+    );
+
+    await controller.initialize();
+    if (!mounted) return;
+
+    setState(() {
+      _cameraController = controller;
+      _isCameraReady = true;
+    });
+  }
+
+  Future<void> _switchCamera() async {
+    if (_availableCameras.length < 2 || _isProcessing) return;
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % _availableCameras.length;
+    await _startCameraController(_availableCameras[_selectedCameraIndex]);
   }
 
   @override
@@ -152,6 +171,28 @@ class _FaceRecognitionScanScreenState
           color: const Color(0xFFE5A93C).withValues(alpha: 0.7),
           size: 110,
         ),
+
+        // Camera Switch Button (Top-Right)
+        if (_availableCameras.length > 1)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: GestureDetector(
+              onTap: _isProcessing ? null : _switchCamera,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.flip_camera_ios_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
 
         // Shutter / Capture Trigger Overlay Button
         Positioned(
