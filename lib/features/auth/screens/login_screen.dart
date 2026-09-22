@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import 'parent_register_screen.dart';
 import '../../children/screens/children_list_screen.dart';
 import 'student_registration_screen.dart';
+import '../../pos/screens/pos_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,7 +46,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final me = await _authService.getMe();
       if (!mounted) return;
 
-      if (me.hasChildren) {
+      if (me.role == 'OPERATIONS_STAFF') {
+        final displayName = me.firstName.isNotEmpty
+            ? me.firstName
+            : (_usernameController.text.trim().isNotEmpty
+                ? _usernameController.text.trim().split('@').first
+                : 'Usuario');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => PosHomeScreen(userName: displayName),
+          ),
+          (route) => false,
+        );
+      } else if (me.hasChildren) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const ChildrenListScreen()),
           (route) => false,
