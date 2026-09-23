@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
+import '../../menu/screens/menu_screen.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
@@ -16,23 +18,25 @@ class ChildOption {
   final String name;
   final double currentBalance;
   final String? profilePictureUrl;
+  final int? studentId;
 
   ChildOption({
     required this.walletId,
     required this.name,
     required this.currentBalance,
     this.profilePictureUrl,
+    this.studentId,
   });
 }
 
 class WalletRechargeScreen extends StatefulWidget {
-  final List<ChildOption> children;
-  final int initialWalletId;
+  final List<ChildOption>? children;
+  final int? initialWalletId;
 
   const WalletRechargeScreen({
     super.key,
-    required this.children,
-    required this.initialWalletId,
+    this.children,
+    this.initialWalletId,
   });
 
   @override
@@ -44,7 +48,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   final WalletService _walletService = WalletService();
   final AuthService _authService = AuthService();
 
-  late ChildOption _selectedChild;
+  List<ChildOption> _children = [];
+  ChildOption? _selectedChild;
+  bool _isLoadingChildren = false;
   bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
@@ -53,10 +59,46 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedChild = widget.children.firstWhere(
-      (c) => c.walletId == widget.initialWalletId,
-      orElse: () => widget.children.first,
-    );
+    if (widget.children != null && widget.children!.isNotEmpty) {
+      _children = List.from(widget.children!);
+      _selectedChild = _children.firstWhere(
+        (c) => c.walletId == widget.initialWalletId,
+        orElse: () => _children.first,
+      );
+    } else {
+      _loadChildrenFromApi();
+    }
+  }
+
+  Future<void> _loadChildrenFromApi() async {
+    setState(() => _isLoadingChildren = true);
+    try {
+      final children = await _authService.getChildren();
+      final withWallet = children.where((c) => c.walletId != null).toList();
+      if (!mounted) return;
+      setState(() {
+        _children = withWallet
+            .map(
+              (c) => ChildOption(
+                walletId: c.walletId!,
+                name: '${c.firstName} ${c.lastName}',
+                currentBalance: c.balance ?? 0,
+                profilePictureUrl: c.profilePictureUrl,
+                studentId: c.id,
+              ),
+            )
+            .toList();
+        if (_children.isNotEmpty) {
+          _selectedChild = _children.firstWhere(
+            (c) => c.walletId == widget.initialWalletId,
+            orElse: () => _children.first,
+          );
+        }
+        _isLoadingChildren = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingChildren = false);
+    }
   }
 
   @override
@@ -107,6 +149,16 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
       return;
     }
 
+    if (_selectedChild == null) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Selecciona un hijo',
+        message: 'Debes seleccionar a quién recargar saldo.',
+      );
+      return;
+    }
+
     final confirmed = await _confirmWithPin();
     if (!confirmed) return;
 
@@ -116,8 +168,8 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => RechargeCardFormScreen(
-            walletId: _selectedChild.walletId,
-            childName: _selectedChild.name,
+            walletId: _selectedChild!.walletId,
+            childName: _selectedChild!.name,
             amount: amount,
           ),
         ),
@@ -126,10 +178,11 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   }
 
   Future<void> _rechargeViaPayphone(double amount) async {
+    if (_selectedChild == null) return;
     setState(() => _isSubmitting = true);
     try {
       final response = await _walletService.recharge(
-        RechargeRequest(walletId: _selectedChild.walletId, amount: amount),
+        RechargeRequest(walletId: _selectedChild!.walletId, amount: amount),
       );
       if (!mounted) return;
 
@@ -219,26 +272,20 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        color: AppColors.brand500,
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.home, color: Colors.white),
-                onPressed: () =>
-                    Navigator.of(context).popUntil((route) => route.isFirst),
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 2,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    MenuScreen(studentId: _selectedChild?.studentId),
               ),
-              IconButton(
-                icon: const Icon(Icons.attach_money, color: Colors.white),
-                onPressed: () {},
-              ),
-            ],
-          ),
-        ),
+            );
+          }
+        },
       ),
     );
   }
@@ -246,19 +293,24 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEFEFEF))),
-      ),
+      color: Colors.transparent,
       child: Row(
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            },
           ),
+          const SizedBox(width: 4),
           Text(
             'Billetera Digital',
             style: GoogleFonts.nunito(
-              fontSize: 17,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: AppColors.ink900,
             ),
@@ -269,10 +321,34 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   }
 
   Widget _buildChildSelector() {
+    if (_isLoadingChildren) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: CircularProgressIndicator(color: AppColors.secondary500),
+        ),
+      );
+    }
+
+    if (_children.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Text(
+            'No hay hijos con billetera activa.',
+            style: GoogleFonts.nunito(
+              fontSize: 13,
+              color: AppColors.ink900.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: widget.children.map((child) {
-        final isSelected = child.walletId == _selectedChild.walletId;
+      children: _children.map((child) {
+        final isSelected = child.walletId == _selectedChild?.walletId;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: GestureDetector(
@@ -325,6 +401,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   }
 
   Widget _buildBalanceCard() {
+    final balance = _selectedChild?.currentBalance ?? 0.0;
+    final childName = _selectedChild?.name ?? 'Usuario';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -340,14 +419,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
               const Icon(Icons.credit_card, color: Colors.white70, size: 18),
               const SizedBox(width: 6),
               Text(
-                'Saldo Actual de ${_selectedChild.name}',
+                'Saldo Actual de $childName',
                 style: GoogleFonts.nunito(fontSize: 13, color: Colors.white70),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            '\$${_selectedChild.currentBalance.toStringAsFixed(2)}',
+            '\$${balance.toStringAsFixed(2)}',
             style: GoogleFonts.nunito(
               fontSize: 30,
               fontWeight: FontWeight.w700,

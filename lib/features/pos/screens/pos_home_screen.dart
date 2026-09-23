@@ -248,7 +248,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 140,
                 height: 140,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE5A93C), // Amber
+                  color: Color(0xFFE8A020), // Amber
                   shape: BoxShape.circle,
                 ),
               ),
@@ -260,7 +260,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 130,
                 height: 130,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0099FF), // Cyan/Blue
+                  color: Color(0xFF007ACC), // Real Figma Blue
                   shape: BoxShape.circle,
                 ),
               ),
@@ -274,7 +274,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 160,
                 height: 160,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0099FF),
+                  color: Color(0xFF007ACC),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -286,7 +286,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 145,
                 height: 145,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE5A93C),
+                  color: Color(0xFFE8A020),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -298,7 +298,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 150,
                 height: 150,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0099FF),
+                  color: Color(0xFF007ACC),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -310,7 +310,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 width: 155,
                 height: 155,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE5A93C),
+                  color: Color(0xFFE8A020),
                   shape: BoxShape.circle,
                 ),
               ),

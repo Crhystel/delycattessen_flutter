@@ -152,11 +152,11 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
                   child: IntrinsicHeight(
                     child: Row(
                       children: [
-                        // Cyan left accent bar
+                        // Cyan/Blue left accent bar
                         Container(
                           width: 4,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF0099FF),
+                            color: Color(0xFF007ACC),
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(4),
                               bottomLeft: Radius.circular(4),
@@ -172,7 +172,7 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
                             child: Text(
                               helpNoticeText,
                               style: GoogleFonts.nunito(
-                                color: const Color(0xFF0099FF),
+                                color: const Color(0xFF007ACC),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 height: 1.35,

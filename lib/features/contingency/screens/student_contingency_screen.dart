@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/floating_bubbles.dart';
+import '../../auth/screens/login_screen.dart';
+import '../../auth/services/auth_service.dart';
 import '../models/qr_token_model.dart';
 import '../services/qr_service.dart';
 
@@ -92,6 +96,28 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
     return 'Hoy es $dayName';
   }
 
+  Future<void> _confirmLogout() async {
+    await AppNotificationDialog.show(
+      context,
+      type: NotificationType.danger,
+      icon: Icons.logout,
+      title: 'Cerrar sesión',
+      message: '¿Estás seguro de que deseas salir de tu cuenta de estudiante?',
+      primaryButtonLabel: 'Cerrar sesión',
+      onPrimaryPressed: () async {
+        Navigator.of(context).pop();
+        await AuthService().logout();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      },
+      secondaryButtonLabel: 'Cancelar',
+      onSecondaryPressed: () => Navigator.of(context).pop(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayName = _qrData?.fullName.isNotEmpty == true
@@ -106,43 +132,25 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFF1E293B)),
+            tooltip: 'Cerrar sesión',
+            onPressed: _confirmLogout,
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Top Decorative Bubbles (Amber & Blue) - Exact design from Image
-          Positioned(
-            top: -40,
-            right: -30,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 130,
-                  height: 130,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE5A93C), // Amber
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Transform.translate(
-                  offset: const Offset(-40, 20),
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0080DF), // Blue
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Top Decorative Bubbles - Exact uniform widget
+          const FloatingBubbles(corner: BubbleCorner.topRight),
 
           // Bottom Decorative Bubbles (Blue & Amber) - Exact design from Image
           Positioned(

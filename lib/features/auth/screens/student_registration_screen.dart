@@ -152,16 +152,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: _currentStep == 0 ? Colors.white : AppColors.teal500,
+        backgroundColor: AppColors.teal500,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: _currentStep == 0 ? AppColors.ink900 : Colors.white,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
         ),
         title: Text(
           'Registro',
           style: GoogleFonts.nunito(
-            color: _currentStep == 0 ? AppColors.ink900 : Colors.white,
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
           ),
         ),
         leading: IconButton(
@@ -381,15 +382,26 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         Center(
           child: GestureDetector(
             onTap: _pickPhoto,
-            child: CircleAvatar(
-              radius: 42,
-              backgroundColor: AppColors.ink50,
-              backgroundImage: _photo != null ? FileImage(_photo!) : null,
+            child: Container(
+              width: 147,
+              height: 147,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.ink50,
+                image: _photo != null
+                    ? DecorationImage(
+                        image: FileImage(_photo!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
               child: _photo == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: AppColors.secondary500,
+                  ? const Center(
+                      child: Icon(
+                        Icons.person,
+                        size: 70,
+                        color: AppColors.secondary500,
+                      ),
                     )
                   : null,
             ),

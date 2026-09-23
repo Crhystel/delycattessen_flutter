@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/custom_bottom_nav.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
@@ -21,6 +23,7 @@ class ChildrenListScreen extends StatefulWidget {
 class _ChildrenListScreenState extends State<ChildrenListScreen> {
   final _authService = AuthService();
   List<Child> _children = [];
+  String _userName = '';
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -30,6 +33,20 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     _loadChildren();
   }
 
+  String _getTodaySpanish() {
+    final now = DateTime.now();
+    const days = [
+      'lunes',
+      'martes',
+      'miércoles',
+      'jueves',
+      'viernes',
+      'sábado',
+      'domingo',
+    ];
+    return days[now.weekday - 1];
+  }
+
   Future<void> _loadChildren() async {
     setState(() {
       _isLoading = true;
@@ -37,11 +54,24 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     });
     try {
       final children = await _authService.getChildren();
+      try {
+        final me = await _authService.getMe();
+        if (mounted) {
+          _userName = me.firstName.isNotEmpty
+              ? me.firstName
+              : (me.email != null && me.email!.isNotEmpty
+                  ? me.email!.split('@').first
+                  : 'Usuario');
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
       setState(() {
         _children = children;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
@@ -97,6 +127,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
                   name: '${c.firstName} ${c.lastName}',
                   currentBalance: c.balance ?? 0,
                   profilePictureUrl: c.profilePictureUrl,
+                  studentId: c.id,
                 ),
               )
               .toList(),
@@ -141,132 +172,133 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadChildren,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Stack(
+        children: [
+          const FloatingBubbles(corner: BubbleCorner.topRight),
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _loadChildren,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '¡Hola!',
-                          style: GoogleFonts.nunito(
-                            fontSize: 15,
-                            color: AppColors.ink900.withValues(alpha: 0.6),
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hola ${_userName.isNotEmpty ? _userName : "Usuario"}!',
+                              style: GoogleFonts.nunito(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Hoy es ${_getTodaySpanish()}',
+                              style: GoogleFonts.nunito(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.ink900.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Tus hijos',
-                          style: GoogleFonts.nunito(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink900,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: AppColors.ink900),
+                          tooltip: 'Cerrar sesión',
+                          onPressed: _confirmLogout,
                         ),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: AppColors.ink900),
-                      onPressed: _confirmLogout,
+                    const SizedBox(height: 24),
+                    Text(
+                      'Tus hijos',
+                      style: GoogleFonts.nunito(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink900,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.secondary500,
+                          ),
+                        ),
+                      )
+                    else if (_errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          _errorMessage!,
+                          style: GoogleFonts.nunito(color: AppColors.danger700),
+                        ),
+                      )
+                    else if (_children.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'Aún no has registrado ningún hijo.',
+                          style: GoogleFonts.nunito(
+                            color: AppColors.ink900.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      )
+                    else
+                      ..._children.map((c) => _buildChildCard(c)),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const StudentRegistrationScreen(),
+                            ),
+                          );
+                          _loadChildren();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary500,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: Text(
+                          'Añadir hijo/a',
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.secondary500,
-                      ),
-                    ),
-                  )
-                else if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(
-                      _errorMessage!,
-                      style: GoogleFonts.nunito(color: AppColors.danger700),
-                    ),
-                  )
-                else if (_children.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(
-                      'Aún no has registrado ningún hijo.',
-                      style: GoogleFonts.nunito(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  )
-                else
-                  ..._children.map((c) => _buildChildCard(c)),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const StudentRegistrationScreen(),
-                        ),
-                      );
-                      _loadChildren();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary500,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: Text(
-                      'Añadir hijo/a',
-                      style: GoogleFonts.nunito(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
-      bottomNavigationBar: Container(
-        color: AppColors.brand500,
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.home, color: Colors.white),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.restaurant_menu, color: Colors.white),
-                onPressed: _openMenu,
-              ),
-              IconButton(
-                icon: const Icon(Icons.attach_money, color: Colors.white),
-                onPressed: () => _openWallet(),
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 1) _openMenu();
+          if (index == 2) _openWallet();
+        },
       ),
     );
   }

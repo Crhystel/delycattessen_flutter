@@ -10,6 +10,7 @@ import 'parent_register_screen.dart';
 import '../../children/screens/children_list_screen.dart';
 import 'student_registration_screen.dart';
 import '../../pos/screens/pos_home_screen.dart';
+import '../../contingency/screens/student_contingency_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -55,6 +56,19 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) => PosHomeScreen(userName: displayName),
+          ),
+          (route) => false,
+        );
+      } else if (me.role == 'STUDENT') {
+        final displayName = me.firstName.isNotEmpty
+            ? '${me.firstName} ${me.lastName}'.trim()
+            : (_usernameController.text.trim().isNotEmpty
+                ? _usernameController.text.trim()
+                : 'Estudiante');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) =>
+                StudentContingencyScreen(initialUserName: displayName),
           ),
           (route) => false,
         );
