@@ -482,21 +482,21 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Icon Box (Figma style)
                 Container(
-                  width: 68,
-                  height: 68,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     color: iconBgColor,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 38),
+                  child: Icon(icon, color: Colors.white, size: 32),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
 
                 // Texts
                 Expanded(
@@ -504,20 +504,24 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.nunito(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: titleColor,
-                          height: 1.25,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title,
+                          style: GoogleFonts.nunito(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: titleColor,
+                            height: 1.25,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         subtitle,
                         style: GoogleFonts.nunito(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF9CA3AF),
                         ),
@@ -530,7 +534,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                 const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFFD4D4D8),
-                  size: 34,
+                  size: 26,
                 ),
               ],
             ),
