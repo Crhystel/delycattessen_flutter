@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
 import '../models/pos_identification_model.dart';
@@ -233,6 +234,9 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final scale = screenWidth / 402.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SizedBox.expand(
@@ -240,39 +244,16 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
           fit: StackFit.expand,
           clipBehavior: Clip.hardEdge,
           children: [
-            // Top Decorative Shapes (Figma: Amber & Blue curves in the top-right corner)
-            Positioned(
-              top: -50,
-              right: 25,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8A020), // Amber
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned(
-              top: -20,
-              right: -45,
-              child: Container(
-                width: 130,
-                height: 130,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF007ACC), // Real Figma Blue
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
+            // Top Decorative Shapes (Figma: FloatingBubbles top-right)
+            const FloatingBubbles(corner: BubbleCorner.topRight),
 
-            // Bottom Decorative Shapes (Figma: Blue & Amber overlapping curves pinned to screen bottom)
+            // Bottom Decorative Shapes (Figma: Blue & Amber overlapping gentle domes pinned to bottom)
             Positioned(
-              bottom: -45,
-              left: -35,
+              bottom: -110 * scale,
+              left: -35 * scale,
               child: Container(
-                width: 160,
-                height: 160,
+                width: 155 * scale,
+                height: 155 * scale,
                 decoration: const BoxDecoration(
                   color: Color(0xFF007ACC),
                   shape: BoxShape.circle,
@@ -280,11 +261,11 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
               ),
             ),
             Positioned(
-              bottom: -60,
-              left: 65,
+              bottom: -105 * scale,
+              left: 65 * scale,
               child: Container(
-                width: 145,
-                height: 145,
+                width: 150 * scale,
+                height: 150 * scale,
                 decoration: const BoxDecoration(
                   color: Color(0xFFE8A020),
                   shape: BoxShape.circle,
@@ -292,11 +273,11 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
               ),
             ),
             Positioned(
-              bottom: -50,
-              left: 155,
+              bottom: -95 * scale,
+              left: 155 * scale,
               child: Container(
-                width: 150,
-                height: 150,
+                width: 155 * scale,
+                height: 155 * scale,
                 decoration: const BoxDecoration(
                   color: Color(0xFF007ACC),
                   shape: BoxShape.circle,
@@ -304,11 +285,11 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
               ),
             ),
             Positioned(
-              bottom: -45,
-              right: -35,
+              bottom: -105 * scale,
+              right: -35 * scale,
               child: Container(
-                width: 155,
-                height: 155,
+                width: 155 * scale,
+                height: 155 * scale,
                 decoration: const BoxDecoration(
                   color: Color(0xFFE8A020),
                   shape: BoxShape.circle,
@@ -358,11 +339,11 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: Colors.black.withValues(alpha: 0.06),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -393,26 +374,34 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
 
                   const SizedBox(height: 28),
 
-                  // Card 1: Reconocimiento Facial (Figma)
-                  _buildOptionCard(
-                    iconBgColor: const Color(0xFF5932EA), // Vibrant purple
-                    icon: Icons.face_retouching_natural_rounded,
-                    title: 'Reconocimiento\nFacial',
-                    titleColor: const Color(0xFF5932EA),
-                    subtitle: 'Identifica por rostro',
-                    onTap: _navigateToFaceScan,
+                  // Card 1: Reconocimiento Facial (Figma: 304 x 169)
+                  Center(
+                    child: _buildOptionCard(
+                      width: 304 * scale,
+                      height: 169 * scale,
+                      iconBgColor: const Color(0xFF5932EA), // Vibrant purple
+                      icon: Icons.face_retouching_natural_rounded,
+                      title: 'Reconocimiento\nFacial',
+                      titleColor: const Color(0xFF5932EA),
+                      subtitle: 'Identifica por rostro',
+                      onTap: _navigateToFaceScan,
+                    ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Card 2: Escanear Código QR (Figma)
-                  _buildOptionCard(
-                    iconBgColor: const Color(0xFFE5A93C), // Amber
-                    icon: Icons.qr_code_2_rounded,
-                    title: 'Escanear Código\nQR',
-                    titleColor: const Color(0xFFE5A93C),
-                    subtitle: 'Escanea el código QR del usuario',
-                    onTap: _navigateToQrScan,
+                  // Card 2: Escanear Código QR (Figma: 304 x 169)
+                  Center(
+                    child: _buildOptionCard(
+                      width: 304 * scale,
+                      height: 169 * scale,
+                      iconBgColor: const Color(0xFFE5A93C), // Amber
+                      icon: Icons.qr_code_2_rounded,
+                      title: 'Escanear Código\nQR',
+                      titleColor: const Color(0xFFE5A93C),
+                      subtitle: 'Escanea el código QR del usuario',
+                      onTap: _navigateToQrScan,
+                    ),
                   ),
 
                   const SizedBox(height: 28),
@@ -470,6 +459,8 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
   }
 
   Widget _buildOptionCard({
+    required double width,
+    required double height,
     required Color iconBgColor,
     required IconData icon,
     required String title,
@@ -478,6 +469,8 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
     required VoidCallback onTap,
   }) {
     return Container(
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -489,40 +482,42 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Icon Box (Figma style)
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     color: iconBgColor,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 34),
+                  child: Icon(icon, color: Colors.white, size: 38),
                 ),
-                const SizedBox(width: 18),
+                const SizedBox(width: 16),
 
                 // Texts
                 Expanded(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
                         style: GoogleFonts.nunito(
-                          fontSize: 17,
+                          fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: titleColor,
-                          height: 1.2,
+                          height: 1.25,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         subtitle,
                         style: GoogleFonts.nunito(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF9CA3AF),
                         ),
