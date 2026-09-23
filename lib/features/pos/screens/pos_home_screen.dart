@@ -235,92 +235,95 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Top Decorative Shapes (Figma: Amber & Blue curves in the top-right corner)
-          Positioned(
-            top: -50,
-            right: 25,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE5A93C), // Amber
-                shape: BoxShape.circle,
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
+          children: [
+            // Top Decorative Shapes (Figma: Amber & Blue curves in the top-right corner)
+            Positioned(
+              top: -50,
+              right: 25,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE5A93C), // Amber
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            top: -20,
-            right: -45,
-            child: Container(
-              width: 130,
-              height: 130,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0099FF), // Cyan/Blue
-                shape: BoxShape.circle,
+            Positioned(
+              top: -20,
+              right: -45,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0099FF), // Cyan/Blue
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
 
-          // Bottom Decorative Shapes (Figma: Blue & Amber overlapping curves)
-          Positioned(
-            bottom: -40,
-            left: -35,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0099FF),
-                shape: BoxShape.circle,
+            // Bottom Decorative Shapes (Figma: Blue & Amber overlapping curves pinned to screen bottom)
+            Positioned(
+              bottom: -45,
+              left: -35,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0099FF),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -55,
-            left: 55,
-            child: Container(
-              width: 135,
-              height: 135,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE5A93C),
-                shape: BoxShape.circle,
+            Positioned(
+              bottom: -60,
+              left: 65,
+              child: Container(
+                width: 145,
+                height: 145,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE5A93C),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -45,
-            left: 145,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0099FF),
-                shape: BoxShape.circle,
+            Positioned(
+              bottom: -50,
+              left: 155,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0099FF),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -40,
-            right: -35,
-            child: Container(
-              width: 145,
-              height: 145,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE5A93C),
-                shape: BoxShape.circle,
+            Positioned(
+              bottom: -45,
+              right: -35,
+              child: Container(
+                width: 155,
+                height: 155,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE5A93C),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
 
-          // Main Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 28),
+            // Main Content
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
 
                   // Greetings
                   Row(
@@ -455,14 +458,15 @@ class _PosHomeScreenState extends State<PosHomeScreen> {
                     ),
                   ),
 
-                  const Spacer(flex: 3),
+                  const SizedBox(height: 60),
                 ],
               ),
             ),
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildOptionCard({
