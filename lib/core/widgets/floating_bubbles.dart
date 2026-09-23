@@ -20,8 +20,10 @@ class _FloatingBubblesState extends State<FloatingBubbles>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
-  static const double _bubbleWidth = 144.0;
-  static const double _bubbleHeight = 123.0;
+  // Figma reference canvas: 402w x 874h
+  static const double _figmaFrameWidth = 402.0;
+  static const double _baseBubbleWidth = 144.0;
+  static const double _baseBubbleHeight = 123.0;
 
   @override
   void initState() {
@@ -38,14 +40,18 @@ class _FloatingBubblesState extends State<FloatingBubbles>
     super.dispose();
   }
 
-  Widget _buildBubble({required Color color}) {
+  Widget _buildBubble({
+    required Color color,
+    required double width,
+    required double height,
+  }) {
     return Container(
-      width: _bubbleWidth,
-      height: _bubbleHeight,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: const BorderRadius.all(
-          Radius.elliptical(_bubbleWidth / 2, _bubbleHeight / 2),
+        borderRadius: BorderRadius.all(
+          Radius.elliptical(width / 2, height / 2),
         ),
       ),
     );
@@ -53,42 +59,52 @@ class _FloatingBubblesState extends State<FloatingBubbles>
 
   @override
   Widget build(BuildContext context) {
-    // Exact Figma coordinates:
-    // Dimensions: W 144, H 123
+    // Proportional scaling according to Figma 402w frame
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final scale = screenWidth / _figmaFrameWidth;
+    final bubbleWidth = _baseBubbleWidth * scale;
+    final bubbleHeight = _baseBubbleHeight * scale;
+
+    // Exact Figma coordinates (Figma frame: 402 x 874, Bubble: W 144, H 123):
     // Dorado (0xFFE8A020) sits on top of Azul (0xFF007ACC)
     double? azulLeft, azulRight, azulTop, azulBottom;
     double? doradoLeft, doradoRight, doradoTop, doradoBottom;
 
     switch (widget.corner) {
       case BubbleCorner.topRight:
-        // Figma: Dorado X: 236, Y: -90 | Azul X: 325, Y: -77 (Ref 360w)
-        azulRight = -109;
-        azulTop = -77;
-        doradoRight = -20;
-        doradoTop = -90;
+        // Figma: Dorado X: 236, Y: -90 | Azul X: 325, Y: -77
+        // Offsets from right edge in 402 frame:
+        // Dorado right = 402 - (236 + 144) = 22
+        // Azul right = 402 - (325 + 144) = -67
+        azulRight = -67 * scale;
+        azulTop = -77 * scale;
+        doradoRight = 22 * scale;
+        doradoTop = -90 * scale;
         break;
 
       case BubbleCorner.topLeft:
         // Figma: Dorado X: 20, Y: -80 | Azul X: -91, Y: -39
-        azulLeft = -91;
-        azulTop = -39;
-        doradoLeft = 20;
-        doradoTop = -80;
+        azulLeft = -91 * scale;
+        azulTop = -39 * scale;
+        doradoLeft = 20 * scale;
+        doradoTop = -80 * scale;
         break;
 
       case BubbleCorner.bottomRight:
-        // Figma: Dorado X: 312, Y: 774 | Azul X: 201, Y: 815 (Ref 360w x 800h)
-        azulRight = 15;
-        azulBottom = -138;
-        doradoRight = -96;
-        doradoBottom = -97;
+        // Figma: Dorado X: 312, Y: 774 | Azul X: 201, Y: 815 (Figma frame 402w x 874h)
+        // Dorado: right = 402 - (312 + 144) = -54; bottom = 874 - (774 + 123) = -23
+        // Azul: right = 402 - (201 + 144) = 57; bottom = 874 - (815 + 123) = -64
+        azulRight = 57 * scale;
+        azulBottom = -64 * scale;
+        doradoRight = -54 * scale;
+        doradoBottom = -23 * scale;
         break;
 
       case BubbleCorner.bottomLeft:
-        azulLeft = 15;
-        azulBottom = -138;
-        doradoLeft = -96;
-        doradoBottom = -97;
+        azulLeft = 57 * scale;
+        azulBottom = -64 * scale;
+        doradoLeft = -54 * scale;
+        doradoBottom = -23 * scale;
         break;
     }
 
@@ -111,7 +127,11 @@ class _FloatingBubblesState extends State<FloatingBubbles>
                   right: azulRight,
                   top: azulTop,
                   bottom: azulBottom,
-                  child: _buildBubble(color: AppColors.teal500), // 0xFF007ACC
+                  child: _buildBubble(
+                    color: AppColors.teal500, // 0xFF007ACC
+                    width: bubbleWidth,
+                    height: bubbleHeight,
+                  ),
                 ),
                 // 2. Dorado (on top of Azul)
                 Positioned(
@@ -119,7 +139,11 @@ class _FloatingBubblesState extends State<FloatingBubbles>
                   right: doradoRight,
                   top: doradoTop,
                   bottom: doradoBottom,
-                  child: _buildBubble(color: AppColors.brand500), // 0xFFE8A020
+                  child: _buildBubble(
+                    color: AppColors.brand500, // 0xFFE8A020
+                    width: bubbleWidth,
+                    height: bubbleHeight,
+                  ),
                 ),
               ],
             ),
