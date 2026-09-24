@@ -110,7 +110,7 @@ class PasswordResetConfirm {
 
 class MeResponse {
   final int id;
-  final String email;
+  final String? email;
   final String firstName;
   final String lastName;
   final String role;
@@ -119,7 +119,7 @@ class MeResponse {
 
   MeResponse({
     required this.id,
-    required this.email,
+    this.email,
     required this.firstName,
     required this.lastName,
     required this.role,
@@ -130,12 +130,12 @@ class MeResponse {
   factory MeResponse.fromJson(Map<String, dynamic> json) {
     return MeResponse(
       id: json['id'] as int,
-      email: json['email'] as String,
+      email: json['email'] as String?,
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
-      role: json['role'] as String,
-      hasChildren: json['has_children'] as bool,
-      hasPaymentPin: json['has_payment_pin'] as bool,
+      role: json['role'] as String? ?? 'STUDENT',
+      hasChildren: json['has_children'] as bool? ?? false,
+      hasPaymentPin: json['has_payment_pin'] as bool? ?? false,
     );
   }
 }

@@ -20,11 +20,18 @@ class ApiConfig {
       '$baseUrl/wallet/$walletId/transactions/';
   static const String me = '$baseUrl/users/me/';
   static const String children = '$baseUrl/users/children/';
+  static String childPhoto(int studentId) =>
+      '$baseUrl/users/children/$studentId/photo/';
   static const String allergens = '$baseUrl/users/allergens/';
   static const String allergies = '$baseUrl/users/allergies/';
   static String studentAllergies(int studentId) =>
       '$baseUrl/users/students/$studentId/allergies/';
   static const String setPaymentPin = '$baseUrl/users/set-payment-pin/';
   static const String verifyPaymentPin = '$baseUrl/users/verify-payment-pin/';
-  static const String allergenCreate = '$baseUrl/catalog/allergens/create/';
+
+  // POS & Biometrics & Dynamic QR
+  static const String posIdentifyFace = '$baseUrl/pos/identify/face/';
+  static const String posIdentifyQr = '$baseUrl/pos/identify/qr/';
+  static const String userQrToken = '$baseUrl/users/qr/token/';
+  static const String registerBiometric = '$baseUrl/users/biometrics/register/';
 }

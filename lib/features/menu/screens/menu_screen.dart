@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_header_shape.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
+import '../../auth/services/auth_service.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import 'cart_screen.dart';
@@ -11,9 +12,9 @@ import 'product_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class MenuScreen extends StatefulWidget {
-  final int studentId;
+  final int? studentId;
 
-  const MenuScreen({super.key, required this.studentId});
+  const MenuScreen({Key? key, this.studentId}) : super(key: key);
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -21,6 +22,8 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final MenuService _menuService = MenuService();
+  final AuthService _authService = AuthService();
+  int? _resolvedStudentId;
   bool _isLoading = true;
   List<MenuItem> _menuItems = [];
   final Map<int, int> _cart = {}; // itemId -> quantity
@@ -36,6 +39,17 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
+    _resolvedStudentId = widget.studentId;
+    if (_resolvedStudentId == null) {
+      _authService
+          .getChildren()
+          .then((children) {
+            if (children.isNotEmpty && mounted) {
+              setState(() => _resolvedStudentId = children.first.id);
+            }
+          })
+          .catchError((_) {});
+    }
     _fetchMenu();
   }
 
@@ -91,7 +105,7 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNav(),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
     );
   }
 
@@ -374,7 +388,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => CartScreen(
-                    studentId: widget.studentId,
+                    studentId: _resolvedStudentId ?? widget.studentId ?? 0,
                     cart: _cart,
                     menuItems: _menuItems,
                   ),

@@ -2,13 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/photo_source_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../../children/screens/children_list_screen.dart';
+import 'login_screen.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -94,11 +95,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
+    final picked = await PhotoSourceDialog.show(
+      context,
+      title: 'Foto del Estudiante',
     );
-    if (picked != null) setState(() => _photo = File(picked.path));
+    if (picked != null && mounted) {
+      setState(() => _photo = picked);
+    }
   }
 
   Future<void> _submit() async {
@@ -169,16 +172,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: _currentStep == 0 ? Colors.white : AppColors.teal500,
+        backgroundColor: AppColors.teal500,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: _currentStep == 0 ? AppColors.ink900 : Colors.white,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
         ),
         title: Text(
           'Registro',
           style: GoogleFonts.nunito(
-            color: _currentStep == 0 ? AppColors.ink900 : Colors.white,
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
           ),
         ),
         leading: IconButton(
@@ -187,7 +191,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
             if (_currentStep == 1) {
               setState(() => _currentStep = 0);
             } else {
-              Navigator.of(context).pop();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             }
           },
         ),
@@ -391,38 +402,76 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         Center(
           child: GestureDetector(
             onTap: _pickPhoto,
-            child: CircleAvatar(
-              radius: 42,
-              backgroundColor: AppColors.ink50,
-              backgroundImage: _photo != null ? FileImage(_photo!) : null,
-              child: _photo == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 40,
+            child: Stack(
+              children: [
+                Container(
+                  width: 147,
+                  height: 147,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.ink50,
+                    border: Border.all(
+                      color: _photo != null ? AppColors.secondary500 : const Color(0xFFE2E8F0),
+                      width: 2,
+                    ),
+                    image: _photo != null
+                        ? DecorationImage(
+                            image: FileImage(_photo!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _photo == null
+                      ? const Center(
+                          child: Icon(
+                            Icons.person,
+                            size: 70,
+                            color: AppColors.secondary500,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
                       color: AppColors.secondary500,
-                    )
-                  : null,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Center(
-          child: TextButton(
+          child: TextButton.icon(
             onPressed: _pickPhoto,
-            child: Text(
-              'Tomar Foto',
+            icon: const Icon(Icons.photo_camera_rounded, color: AppColors.secondary500, size: 20),
+            label: Text(
+              _photo == null ? 'Tomar o Elegir Foto' : 'Cambiar Foto',
               style: GoogleFonts.nunito(
                 color: AppColors.secondary500,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
               ),
             ),
           ),
         ),
         Center(
           child: Text(
-            'Puedes tomar una foto o elegir de la galería',
+            'Puedes usar la cámara a pantalla completa o elegir de tu galería',
             style: GoogleFonts.nunito(
-              fontSize: 11,
+              fontSize: 12,
               color: AppColors.ink900.withValues(alpha: 0.5),
             ),
           ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
@@ -107,7 +107,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
       return const Scaffold(
         backgroundColor: AppColors.ink50,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.secondary500),
+          child: CircularProgressIndicator(color: AppColors.brand500),
         ),
       );
     }
@@ -153,7 +153,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         value: _dailyLimitEnabled,
                         onChanged: (val) =>
                             setState(() => _dailyLimitEnabled = val),
-                        activeColor: AppColors.secondary500,
+                        activeColor: AppColors.brand500,
                       ),
                     ],
                   ),
@@ -203,7 +203,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         value: _allowedDaysEnabled,
                         onChanged: (val) =>
                             setState(() => _allowedDaysEnabled = val),
-                        activeColor: AppColors.secondary500,
+                        activeColor: AppColors.brand500,
                       ),
                     ],
                   ),
@@ -211,10 +211,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Selecciona los días en los que el estudiante puede comprar en el bar:',
-                      style: TextStyle(
-                        color: AppColors.ink900.withValues(alpha: 0.5),
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -226,12 +223,12 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                           label: Text(_weekDays[index]),
                           selected: isSelected,
                           onSelected: (_) => _toggleDay(index),
-                          selectedColor: AppColors.warningBg,
+                          selectedColor: AppColors.brand50,
                           backgroundColor: Colors.white,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? AppColors.warning700
-                                : AppColors.ink900.withValues(alpha: 0.5),
+                                ? AppColors.brand700
+                                : Colors.black54,
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -240,8 +237,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(
                               color: isSelected
-                                  ? AppColors.warning700
-                                  : AppColors.ink900.withValues(alpha: 0.15),
+                                  ? AppColors.brand500
+                                  : Colors.black26,
                             ),
                           ),
                         );
@@ -261,27 +258,21 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary500,
+                backgroundColor: AppColors.brand500,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              onPressed: _isSaving ? null : _saveData,
               child: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
                       'Guardar Cambios',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
             ),

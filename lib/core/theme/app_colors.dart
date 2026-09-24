@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color brand50 = Color(0xFFFEF8EC);
-  static const Color brand500 = Color(0xFFF5B551);
+  static const Color brand500 = Color(0xFFE8A020);
   static const Color brand700 = Color(0xFFA87028);
 
   static const Color teal50 = Color(0xFFE5F3FF);
-  static const Color teal500 = Color(0xFF0099FF);
+  static const Color teal500 = Color(0xFF007ACC);
   static const Color teal700 = Color(0xFF005C99);
+
+  static const Color navActiveCircle = Color(0xFFE8B862);
 
   static const Color secondary50 = Color(0xFFF0EBFB);
   static const Color secondary500 = Color(0xFF6F42C9);

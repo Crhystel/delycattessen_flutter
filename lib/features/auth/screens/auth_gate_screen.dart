@@ -5,6 +5,8 @@ import '../../children/screens/children_list_screen.dart';
 import '../services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/screens/student_registration_screen.dart';
+import '../../pos/screens/pos_home_screen.dart';
+import '../../contingency/screens/student_contingency_screen.dart';
 
 /// Shown on app start. Checks whether a valid session already exists
 /// (refreshing the access token if needed) and routes accordingly, so the
@@ -38,6 +40,22 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     try {
       final me = await _authService.getMe();
       if (!mounted) return;
+      if (me.role == 'OPERATIONS_STAFF') {
+        final displayName = me.firstName.isNotEmpty
+            ? me.firstName
+            : (me.email != null && me.email!.isNotEmpty
+                ? me.email!.split('@').first
+                : 'Usuario');
+        _goTo(PosHomeScreen(userName: displayName));
+        return;
+      }
+      if (me.role == 'STUDENT') {
+        final displayName = me.firstName.isNotEmpty
+            ? '${me.firstName} ${me.lastName}'.trim()
+            : 'Estudiante';
+        _goTo(StudentContingencyScreen(initialUserName: displayName));
+        return;
+      }
       _goTo(
         me.hasChildren
             ? const ChildrenListScreen()

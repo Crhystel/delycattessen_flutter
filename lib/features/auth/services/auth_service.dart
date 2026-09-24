@@ -102,6 +102,16 @@ class AuthService extends BaseApiService {
         .toList();
   }
 
+  Future<Child> updateChildPhoto(int studentId, String photoPath) async {
+    final response = await performMultipartPatchRequest(
+      ApiConfig.childPhoto(studentId),
+      {},
+      'profile_picture',
+      photoPath,
+    );
+    return Child.fromJson(response as Map<String, dynamic>);
+  }
+
   Future<List<Allergen>> getAllergens() async {
     final response = await performGetRequest(ApiConfig.allergens);
     return (response as List)
