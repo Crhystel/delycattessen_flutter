@@ -128,7 +128,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Daily Limit Section
+            // Daily limit section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -153,7 +153,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         value: _dailyLimitEnabled,
                         onChanged: (val) =>
                             setState(() => _dailyLimitEnabled = val),
-                        activeColor: AppColors.brand500,
+                        activeThumbColor: AppColors.brand500,
                       ),
                     ],
                   ),
@@ -178,7 +178,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Allowed Days Section
+            // Allowed days section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -203,7 +203,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         value: _allowedDaysEnabled,
                         onChanged: (val) =>
                             setState(() => _allowedDaysEnabled = val),
-                        activeColor: AppColors.brand500,
+                        activeThumbColor: AppColors.brand500,
                       ),
                     ],
                   ),
@@ -211,7 +211,10 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Selecciona los días en los que el estudiante puede comprar en el bar:',
-                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                      style: TextStyle(
+                        color: AppColors.ink900.withValues(alpha: 0.6),
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -228,7 +231,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                           labelStyle: TextStyle(
                             color: isSelected
                                 ? AppColors.brand700
-                                : Colors.black54,
+                                : AppColors.ink900.withValues(alpha: 0.6),
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -237,8 +240,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(
                               color: isSelected
-                                  ? AppColors.brand500
-                                  : Colors.black26,
+                                  ? AppColors.brand700
+                                  : AppColors.ink900.withValues(alpha: 0.15),
                             ),
                           ),
                         );
@@ -258,21 +261,27 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
+              onPressed: _isSaving ? null : _saveData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brand500,
+                backgroundColor: AppColors.secondary500,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(25),
                 ),
               ),
-              onPressed: _isSaving ? null : _saveData,
               child: _isSaving
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text(
                       'Guardar Cambios',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
             ),

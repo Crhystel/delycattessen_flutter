@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_header_shape.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../auth/services/auth_service.dart';
+import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import 'cart_screen.dart';
@@ -77,6 +78,18 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  void _onBottomNavTap(int index) {
+    if (index == 1) return; // ya estamos en Menú
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const WalletRechargeScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double total = _cart.entries.fold(0, (sum, entry) {
@@ -106,7 +119,10 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 1,
+        onTap: _onBottomNavTap,
+      ),
     );
   }
 
