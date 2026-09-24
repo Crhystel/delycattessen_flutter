@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/config/password_policy.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/password_requirements.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'student_registration_screen.dart';
@@ -15,8 +17,7 @@ class ParentRegisterScreen extends StatefulWidget {
   State<ParentRegisterScreen> createState() => _ParentRegisterScreenState();
 }
 
-class _ParentRegisterScreenState extends State<ParentRegisterScreen>
-    with NotificationMixin {
+class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
   final _authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -34,10 +35,22 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
   }
 
   Future<void> _next() async {
+    if (!PasswordPolicy.isValid(_passwordController.text)) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Contraseña insegura',
+        message:
+            'A tu contraseña le falta:\n${PasswordPolicy.missingSummary(_passwordController.text)}',
+      );
+      return;
+    }
     if (_passwordController.text != _confirmController.text) {
-      showWarningSnackBar(
-        'Verifica que ambas contraseñas sean iguales.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
         title: 'Las contraseñas no coinciden',
+        message: 'Verifica que ambas contraseñas sean iguales.',
       );
       return;
     }
@@ -56,9 +69,11 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
         title: 'No se pudo completar el registro',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -67,6 +82,10 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
 
   @override
   Widget build(BuildContext context) {
+    final passwordsMismatch =
+        _confirmController.text.isNotEmpty &&
+        _confirmController.text != _passwordController.text;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -104,19 +123,39 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
                             _passwordController,
                             'Contraseña',
                             obscure: _obscurePassword,
+                            onChanged: (_) => setState(() {}),
                             onToggleObscure: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),
+                          ),
+                          PasswordRequirements(
+                            password: _passwordController.text,
                           ),
                           const SizedBox(height: 12),
                           _field(
                             _confirmController,
                             'Confirmar Contraseña',
                             obscure: _obscureConfirm,
+                            onChanged: (_) => setState(() {}),
                             onToggleObscure: () => setState(
                               () => _obscureConfirm = !_obscureConfirm,
                             ),
                           ),
+                          if (passwordsMismatch)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Las contraseñas no coinciden',
+                                  style: GoogleFonts.nunito(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
                           const SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
@@ -166,10 +205,12 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen>
     String hint, {
     bool obscure = false,
     VoidCallback? onToggleObscure,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      onChanged: onChanged,
       style: GoogleFonts.nunito(color: AppColors.ink900),
       decoration: InputDecoration(
         hintText: hint,

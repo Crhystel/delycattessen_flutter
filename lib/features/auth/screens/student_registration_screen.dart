@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/config/password_policy.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/password_requirements.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -19,8 +21,7 @@ class StudentRegistrationScreen extends StatefulWidget {
       _StudentRegistrationScreenState();
 }
 
-class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
-    with NotificationMixin {
+class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   final _authService = AuthService();
 
   int _currentStep = 0; // 0 = datos del hijo, 1 = crear cuenta
@@ -71,18 +72,23 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     if (_firstNameController.text.isEmpty ||
         _firstLastNameController.text.isEmpty ||
         _selectedInstitution == null) {
-      showWarningSnackBar(
-        'Completa primer nombre, primer apellido e institución.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
         title: 'Faltan datos',
+        message: 'Completa primer nombre, primer apellido e institución.',
       );
       return;
     }
     if (_existingChildren.isNotEmpty) {
       final existingInstitution = _existingChildren.first.institutionName;
       if (existingInstitution != _selectedInstitution!.name) {
-        showWarningSnackBar(
-          'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
+        AppNotificationDialog.show(
+          context,
+          type: NotificationType.warning,
           title: 'Institución diferente',
+          message:
+              'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
         );
         return;
       }
@@ -102,24 +108,39 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   Future<void> _submit() async {
     if (_photo == null) {
-      showWarningSnackBar(
-        'La foto es obligatoria.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
         title: 'Falta la foto',
+        message: 'La foto es obligatoria.',
       );
       return;
     }
-    if (_usernameController.text.isEmpty ||
-        _passwordController.text.length < 6) {
-      showWarningSnackBar(
-        'Usuario requerido y contraseña mínimo 6 caracteres.',
+    if (_usernameController.text.trim().isEmpty) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
         title: 'Datos incompletos',
+        message: 'El usuario es requerido.',
+      );
+      return;
+    }
+    if (!PasswordPolicy.isValid(_passwordController.text)) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Contraseña insegura',
+        message:
+            'A la contraseña le falta:\n${PasswordPolicy.missingSummary(_passwordController.text)}',
       );
       return;
     }
     if (!_acceptedTerms) {
-      showWarningSnackBar(
-        'Debes aceptar los Términos y Condiciones.',
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
         title: 'Términos y condiciones',
+        message: 'Debes aceptar los Términos y Condiciones.',
       );
       return;
     }
@@ -146,9 +167,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
         title: 'No se pudo crear la cuenta',
+        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -162,9 +185,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       appBar: AppBar(
         backgroundColor: AppColors.teal500,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           'Registro',
           style: GoogleFonts.nunito(
@@ -399,7 +420,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     shape: BoxShape.circle,
                     color: AppColors.ink50,
                     border: Border.all(
-                      color: _photo != null ? AppColors.secondary500 : const Color(0xFFE2E8F0),
+                      color: _photo != null
+                          ? AppColors.secondary500
+                          : const Color(0xFFE2E8F0),
                       width: 2,
                     ),
                     image: _photo != null
@@ -444,7 +467,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         Center(
           child: TextButton.icon(
             onPressed: _pickPhoto,
-            icon: const Icon(Icons.photo_camera_rounded, color: AppColors.secondary500, size: 20),
+            icon: const Icon(
+              Icons.photo_camera_rounded,
+              color: AppColors.secondary500,
+              size: 20,
+            ),
             label: Text(
               _photo == null ? 'Tomar o Elegir Foto' : 'Cambiar Foto',
               style: GoogleFonts.nunito(
@@ -476,9 +503,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         TextField(
           controller: _passwordController,
           obscureText: _obscurePassword,
+          onChanged: (_) => setState(() {}),
           style: GoogleFonts.nunito(color: AppColors.ink900),
           decoration: _decoration(
-            'Mínimo 6 caracteres',
+            'Crea una contraseña segura',
             icon: Icons.lock_outline,
             suffix: IconButton(
               icon: Icon(
@@ -489,6 +517,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             ),
           ),
         ),
+        PasswordRequirements(password: _passwordController.text),
         const SizedBox(height: 10),
         Row(
           children: [
