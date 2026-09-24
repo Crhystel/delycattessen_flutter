@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
+import '../../auth/services/auth_service.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
 import '../../users/screens/allergy_management_screen.dart';
@@ -23,6 +26,16 @@ class ChildDetailScreen extends StatefulWidget {
 }
 
 class _ChildDetailScreenState extends State<ChildDetailScreen> {
+  late Child _currentChild;
+  bool _isUpdatingPhoto = false;
+  bool _hasUpdatedPhoto = false;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentChild = widget.child;
+  }
   void _goToWallet(BuildContext context) async {
     final withWallet = widget.allChildren
         .where((c) => c.walletId != null)
@@ -83,64 +96,169 @@ void _goToParentalControl(BuildContext context) async {
     }
   }
 
+  Future<void> _updateProfilePicture() async {
+    final photo = await PhotoSourceDialog.show(
+      context,
+      title: 'Foto de ${_currentChild.firstName}',
+    );
+    if (photo == null || !mounted) return;
+
+    setState(() => _isUpdatingPhoto = true);
+    try {
+      final updated =
+          await _authService.updateChildPhoto(_currentChild.id, photo.path);
+      if (!mounted) return;
+      setState(() {
+        _currentChild = updated;
+        _isUpdatingPhoto = false;
+        _hasUpdatedPhoto = true;
+      });
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.success,
+        title: 'Foto actualizada',
+        message:
+            'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUpdatingPhoto = false);
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'Error al actualizar',
+        message: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final child = widget.child;
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 12,
-                bottom: 46,
+    final child = _currentChild;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {},
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 12,
+                  bottom: 40,
+                ),
+                decoration: const BoxDecoration(color: AppColors.secondary500),
+                child: Column(
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(_hasUpdatedPhoto),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _isUpdatingPhoto ? null : _updateProfilePicture,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 46,
+                            backgroundColor: Colors.white24,
+                            backgroundImage: child.profilePictureUrl != null
+                                ? NetworkImage(child.profilePictureUrl!)
+                                : null,
+                            child: child.profilePictureUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 46,
+                                  )
+                                : null,
+                          ),
+                          if (_isUpdatingPhoto)
+                            Container(
+                              width: 92,
+                              height: 92,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black45,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8A020),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: _isUpdatingPhoto ? null : _updateProfilePicture,
+                      icon: const Icon(Icons.edit, color: Colors.white70, size: 14),
+                      label: Text(
+                        'Cambiar foto de perfil',
+                        style: GoogleFonts.nunito(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white70,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${child.firstName} ${child.lastName}',
+                      style: GoogleFonts.nunito(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      child.institutionName,
+                      style: GoogleFonts.nunito(
+                        fontSize: 13,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              decoration: const BoxDecoration(color: AppColors.secondary500),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white24,
-                    backgroundImage: child.profilePictureUrl != null
-                        ? NetworkImage(child.profilePictureUrl!)
-                        : null,
-                    child: child.profilePictureUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 40,
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${child.firstName} ${child.lastName}',
-                    style: GoogleFonts.nunito(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    child.institutionName,
-                    style: GoogleFonts.nunito(
-                      fontSize: 13,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             Transform.translate(
               offset: const Offset(0, -30),
               child: Padding(
@@ -296,7 +414,8 @@ void _goToParentalControl(BuildContext context) async {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSettingRow({

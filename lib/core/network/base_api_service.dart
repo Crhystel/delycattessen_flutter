@@ -97,4 +97,31 @@ abstract class BaseApiService with ErrorHandlerMixin {
       throw handleNetworkError(e);
     }
   }
+
+  Future<dynamic> performMultipartPatchRequest(
+    String url,
+    Map<String, String> fields,
+    String fileFieldName,
+    String filePath, {
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final token = requiresAuth ? await TokenStorage.getAccessToken() : null;
+      final request = http.MultipartRequest('PATCH', Uri.parse(url));
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.fields.addAll(fields);
+      request.files.add(
+        await http.MultipartFile.fromPath(fileFieldName, filePath),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return handleResponse(response);
+    } catch (e) {
+      if (e is Exception && !e.toString().contains('Error de conexión')) {
+        rethrow;
+      }
+      throw handleNetworkError(e);
+    }
+  }
 }
