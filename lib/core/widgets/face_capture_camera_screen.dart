@@ -229,64 +229,6 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
             ),
           ),
 
-          // 4. Floating White Card with UX/UI Guidance (only when not reviewing)
-          if (_capturedFile == null)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  margin: const EdgeInsets.only(top: 56, left: 18, right: 18),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.lightbulb_rounded,
-                              color: Color(0xFF007ACC),
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Recomendaciones para una buena foto:',
-                            style: GoogleFonts.nunito(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildBulletItem('Fondo blanco, liso o neutro sin sombras.'),
-                      _buildBulletItem('Buena iluminación frontal sobre el rostro.'),
-                      _buildBulletItem('Rostro centrado mirando directamente a la cámara.'),
-                      _buildBulletItem('Sin accesorios que tapen el rostro (gorras, gafas).'),
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
           // 5. Bottom Controls Bar
           SafeArea(
@@ -328,28 +270,6 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
     );
   }
 
-  Widget _buildBulletItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(color: Color(0xFF007ACC), fontWeight: FontWeight.bold)),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.nunito(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF475569),
-                height: 1.25,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCaptureControls() {
     return Row(

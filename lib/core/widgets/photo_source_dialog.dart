@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'face_capture_camera_screen.dart';
+import 'photo_guidelines_screen.dart';
 
 class PhotoSourceDialog {
   static Future<File?> show(
@@ -169,7 +170,7 @@ class PhotoSourceDialog {
     if (source == 'camera' && context.mounted) {
       return Navigator.of(context).push<File?>(
         MaterialPageRoute(
-          builder: (_) => FaceCaptureCameraScreen(title: title),
+          builder: (_) => PhotoGuidelinesScreen(title: title),
         ),
       );
     } else if (source == 'gallery') {
