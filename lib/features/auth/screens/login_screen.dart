@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -19,7 +19,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
   final _authService = AuthService();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -85,11 +85,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo iniciar sesión',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

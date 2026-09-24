@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/custom_header_shape.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
@@ -23,7 +23,7 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen> with NotificationMixin {
   final MenuService _menuService = MenuService();
   bool _isLoading = false;
 
@@ -45,35 +45,24 @@ class _CartScreenState extends State<CartScreen> {
       await _menuService.createPreOrder(preOrder);
 
       if (!mounted) return;
-      await _showSuccessDialog();
+      _showSuccessNotification();
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo procesar el pedido',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _showSuccessDialog() async {
-    await AppNotificationDialog.show(
-      context,
-      type: NotificationType.success,
+  void _showSuccessNotification() {
+    showSuccessSnackBar(
+      'Tu pedido ha sido registrado (-\$${_total.toStringAsFixed(2)})',
       title: '¡Pago Exitoso!',
-      message: 'Tu pedido ha sido registrado',
-      highlightValue: '-\$${_total.toStringAsFixed(2)}',
-      primaryButtonLabel: 'Volver al inicio',
-      onPrimaryPressed: () {
-        Navigator.of(context).pop(); // cierra el diálogo
-        Navigator.of(
-          context,
-        ).pop(true); // vuelve al menú, avisando que limpie el carrito
-      },
     );
+    Navigator.of(context).pop(true);
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 
@@ -11,7 +12,8 @@ class ParentalControlScreen extends StatefulWidget {
   State<ParentalControlScreen> createState() => _ParentalControlScreenState();
 }
 
-class _ParentalControlScreenState extends State<ParentalControlScreen> {
+class _ParentalControlScreenState extends State<ParentalControlScreen>
+    with NotificationMixin {
   final _service = ParentalControlService();
   bool _isLoading = true;
   bool _isSaving = false;
@@ -56,9 +58,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar controles parentales: $e')),
-        );
+        showErrorSnackBar('Error al cargar controles parentales: $e');
         Navigator.pop(context);
       }
     }
@@ -76,16 +76,12 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
       );
       await _service.updateParentalControl(widget.studentId, control);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Configuración guardada exitosamente')),
-        );
+        showSuccessSnackBar('Configuración guardada exitosamente');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+        showErrorSnackBar('Error al guardar: $e');
         setState(() => _isSaving = false);
       }
     }

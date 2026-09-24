@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/allergy_models.dart';
 import '../../auth/services/auth_service.dart';
@@ -22,7 +22,8 @@ class AllergyManagementScreen extends StatefulWidget {
       _AllergyManagementScreenState();
 }
 
-class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
+class _AllergyManagementScreenState extends State<AllergyManagementScreen>
+    with NotificationMixin {
   final _authService = AuthService();
   final _newAllergenController = TextEditingController();
 
@@ -91,11 +92,9 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo agregar',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isCreatingAllergen = false);
@@ -110,21 +109,16 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
         _selectedAllergens.map((a) => a.id).toList(),
       );
       if (!mounted) return;
-      await AppNotificationDialog.show(
-        context,
-        type: NotificationType.success,
+      showSuccessSnackBar(
+        'El registro de alergias de ${widget.personName} se guardó correctamente.',
         title: 'Alergias actualizadas',
-        message:
-            'El registro de alergias de ${widget.personName} se guardó correctamente.',
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo guardar',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);

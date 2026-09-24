@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/custom_header_shape.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../auth/services/auth_service.dart';
@@ -15,7 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 class MenuScreen extends StatefulWidget {
   final int? studentId;
 
-  const MenuScreen({Key? key, this.studentId}) : super(key: key);
+  const MenuScreen({super.key, this.studentId});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -61,11 +62,9 @@ class _MenuScreenState extends State<MenuScreen> {
       setState(() => _menuItems = items);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: AppColors.danger500,
-        ),
+      AppNotificationMessenger.showError(
+        context,
+        e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

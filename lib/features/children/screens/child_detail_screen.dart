@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
@@ -22,7 +24,19 @@ class ChildDetailScreen extends StatefulWidget {
   State<ChildDetailScreen> createState() => _ChildDetailScreenState();
 }
 
-class _ChildDetailScreenState extends State<ChildDetailScreen> {
+class _ChildDetailScreenState extends State<ChildDetailScreen>
+    with NotificationMixin {
+  late Child _currentChild;
+  bool _isUpdatingPhoto = false;
+  bool _hasUpdatedPhoto = false;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentChild = widget.child;
+  }
+
   void _goToWallet(BuildContext context) async {
     final withWallet = widget.allChildren
         .where((c) => c.walletId != null)
@@ -78,6 +92,39 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
       Navigator.of(
         context,
       ).pop(true); // avisa a ChildrenListScreen que refresque
+    }
+  }
+
+  Future<void> _updateProfilePicture() async {
+    final photo = await PhotoSourceDialog.show(
+      context,
+      title: 'Foto de ${_currentChild.firstName}',
+    );
+    if (photo == null || !mounted) return;
+
+    setState(() => _isUpdatingPhoto = true);
+    try {
+      final updated = await _authService.updateChildPhoto(
+        _currentChild.id,
+        photo.path,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentChild = updated;
+        _isUpdatingPhoto = false;
+        _hasUpdatedPhoto = true;
+      });
+      showSuccessSnackBar(
+        'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
+        title: 'Foto actualizada',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUpdatingPhoto = false);
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
+        title: 'Error al actualizar',
+      );
     }
   }
 

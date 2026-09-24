@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -19,7 +19,8 @@ class StudentRegistrationScreen extends StatefulWidget {
       _StudentRegistrationScreenState();
 }
 
-class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
+class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
+    with NotificationMixin {
   final _authService = AuthService();
 
   int _currentStep = 0; // 0 = datos del hijo, 1 = crear cuenta
@@ -70,23 +71,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     if (_firstNameController.text.isEmpty ||
         _firstLastNameController.text.isEmpty ||
         _selectedInstitution == null) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Completa primer nombre, primer apellido e institución.',
         title: 'Faltan datos',
-        message: 'Completa primer nombre, primer apellido e institución.',
       );
       return;
     }
     if (_existingChildren.isNotEmpty) {
       final existingInstitution = _existingChildren.first.institutionName;
       if (existingInstitution != _selectedInstitution!.name) {
-        AppNotificationDialog.show(
-          context,
-          type: NotificationType.warning,
+        showWarningSnackBar(
+          'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
           title: 'Institución diferente',
-          message:
-              'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
         );
         return;
       }
@@ -106,30 +102,24 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
   Future<void> _submit() async {
     if (_photo == null) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'La foto es obligatoria.',
         title: 'Falta la foto',
-        message: 'La foto es obligatoria.',
       );
       return;
     }
     if (_usernameController.text.isEmpty ||
         _passwordController.text.length < 6) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Usuario requerido y contraseña mínimo 6 caracteres.',
         title: 'Datos incompletos',
-        message: 'Usuario requerido y contraseña mínimo 6 caracteres.',
       );
       return;
     }
     if (!_acceptedTerms) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Debes aceptar los Términos y Condiciones.',
         title: 'Términos y condiciones',
-        message: 'Debes aceptar los Términos y Condiciones.',
       );
       return;
     }
@@ -156,11 +146,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo crear la cuenta',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

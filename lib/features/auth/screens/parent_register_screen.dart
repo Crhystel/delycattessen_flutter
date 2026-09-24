@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -15,7 +15,8 @@ class ParentRegisterScreen extends StatefulWidget {
   State<ParentRegisterScreen> createState() => _ParentRegisterScreenState();
 }
 
-class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
+class _ParentRegisterScreenState extends State<ParentRegisterScreen>
+    with NotificationMixin {
   final _authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -34,11 +35,9 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
 
   Future<void> _next() async {
     if (_passwordController.text != _confirmController.text) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Verifica que ambas contraseñas sean iguales.',
         title: 'Las contraseñas no coinciden',
-        message: 'Verifica que ambas contraseñas sean iguales.',
       );
       return;
     }
@@ -57,11 +56,9 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo completar el registro',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
