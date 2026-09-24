@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
+import '../../auth/services/auth_service.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
 import '../../users/screens/allergy_management_screen.dart';
@@ -41,7 +42,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     final withWallet = widget.allChildren
         .where((c) => c.walletId != null)
         .toList();
-    if (widget.child.walletId == null) {
+    if (_currentChild.walletId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Este hijo aún no tiene billetera activa.'),
@@ -62,7 +63,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 ),
               )
               .toList(),
-          initialWalletId: widget.child.walletId!,
+          initialWalletId: _currentChild.walletId!,
         ),
       ),
     );
@@ -74,7 +75,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   void _goToParentalControl(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ParentalControlScreen(studentId: widget.child.id),
+        builder: (_) => ParentalControlScreen(studentId: _currentChild.id),
       ),
     );
   }
@@ -83,8 +84,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AllergyManagementScreen(
-          studentId: widget.child.id,
-          personName: '${widget.child.firstName} ${widget.child.lastName}',
+          studentId: _currentChild.id,
+          personName: '${_currentChild.firstName} ${_currentChild.lastName}',
         ),
       ),
     );
@@ -130,7 +131,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final child = widget.child;
+    final child = _currentChild;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -149,22 +150,53 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () =>
+                          Navigator.of(context).pop(_hasUpdatedPhoto),
                     ),
                   ),
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white24,
-                    backgroundImage: child.profilePictureUrl != null
-                        ? NetworkImage(child.profilePictureUrl!)
-                        : null,
-                    child: child.profilePictureUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 40,
-                          )
-                        : null,
+                  GestureDetector(
+                    onTap: _isUpdatingPhoto ? null : _updateProfilePicture,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.white24,
+                          backgroundImage: child.profilePictureUrl != null
+                              ? NetworkImage(child.profilePictureUrl!)
+                              : null,
+                          child: _isUpdatingPhoto
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : (child.profilePictureUrl == null
+                                    ? const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 40,
+                                      )
+                                    : null),
+                        ),
+                        if (!_isUpdatingPhoto)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.brand500,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
