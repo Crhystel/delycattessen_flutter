@@ -30,7 +30,8 @@ class _MenuScreenState extends State<MenuScreen> {
   int _selectedCategoryIndex = 0;
 
   final List<Map<String, dynamic>> _categories = [
-    {'name': 'General', 'icon': Icons.restaurant_menu},
+    {'name': 'Bar', 'icon': Icons.local_bar},
+    {'name': 'Almuerzo', 'icon': Icons.restaurant_menu},
     {'name': 'Snacks', 'icon': Icons.lunch_dining},
     {'name': 'Bebidas', 'icon': Icons.local_drink},
     {'name': 'Postres', 'icon': Icons.icecream},
@@ -227,6 +228,11 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildProductList() {
+    final categoryName = _categories[_selectedCategoryIndex]['name'] as String;
+    final filteredItems = _menuItems
+        .where((item) => item.category == categoryName)
+        .toList();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -241,14 +247,25 @@ class _MenuScreenState extends State<MenuScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _categories[_selectedCategoryIndex]['name'],
+                categoryName,
                 style: GoogleFonts.nunito(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 16),
-              ..._menuItems.map((item) => _buildProductCard(item)),
+              if (filteredItems.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    'No hay productos en esta categoría.',
+                    style: GoogleFonts.nunito(
+                      color: AppColors.ink900.withValues(alpha: 0.5),
+                    ),
+                  ),
+                )
+              else
+                ...filteredItems.map((item) => _buildProductCard(item)),
             ],
           ),
         ),

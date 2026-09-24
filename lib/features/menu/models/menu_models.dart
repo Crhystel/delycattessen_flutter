@@ -1,4 +1,3 @@
-
 class Ingredient {
   final int id;
   final String name;
@@ -6,10 +5,7 @@ class Ingredient {
   Ingredient({required this.id, required this.name});
 
   factory Ingredient.fromJson(Map<String, dynamic> json) {
-    return Ingredient(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Ingredient(id: json['id'], name: json['name']);
   }
 }
 
@@ -30,6 +26,7 @@ class MenuItem {
   final String description;
   final double price;
   final String? imageUrl;
+  final String category;
   final List<Ingredient> ingredients;
   final List<Allergen> allergens;
 
@@ -39,6 +36,7 @@ class MenuItem {
     required this.description,
     required this.price,
     this.imageUrl,
+    required this.category,
     required this.ingredients,
     required this.allergens,
   });
@@ -52,6 +50,7 @@ class MenuItem {
       description: json['description'] ?? '',
       price: double.parse(json['price'].toString()),
       imageUrl: json['image'] as String?,
+      category: json['category'] as String? ?? '',
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
     );

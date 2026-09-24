@@ -7,9 +7,7 @@ class ParentalControlService extends BaseApiService {
       '${ApiConfig.baseUrl}/users/students/$studentId/parental-control/';
 
   Future<ParentalControl> getParentalControl(int studentId) async {
-    final response = await performGetRequest(
-      '${ApiConfig.baseUrl}/users/students/$studentId/parental-control/',
-    );
+    final response = await performGetRequest(_endpoint(studentId));
     return ParentalControl.fromJson(response as Map<String, dynamic>);
   }
 
@@ -18,7 +16,7 @@ class ParentalControlService extends BaseApiService {
     ParentalControl control,
   ) async {
     final response = await performPutRequest(
-      '${ApiConfig.baseUrl}/users/students/$studentId/parental-control/',
+      _endpoint(studentId),
       control.toJson(),
     );
     return ParentalControl.fromJson(response as Map<String, dynamic>);

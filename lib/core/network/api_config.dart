@@ -28,6 +28,7 @@ class ApiConfig {
       '$baseUrl/users/students/$studentId/allergies/';
   static const String setPaymentPin = '$baseUrl/users/set-payment-pin/';
   static const String verifyPaymentPin = '$baseUrl/users/verify-payment-pin/';
+  static const String allergenCreate = '$baseUrl/catalog/allergens/create/';
 
   // POS & Biometrics & Dynamic QR
   static const String posIdentifyFace = '$baseUrl/pos/identify/face/';

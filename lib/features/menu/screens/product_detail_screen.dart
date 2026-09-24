@@ -113,6 +113,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               )
                               .toList(),
                         ),
+                        if (widget.item.allergens.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Contiene alérgenos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink900,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: widget.item.allergens
+                                .map(
+                                  (allergen) =>
+                                      _buildIngredientChip(allergen.name),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../features/menu/screens/menu_screen.dart';
-import '../../features/wallet/screens/wallet_recharge_screen.dart';
 import '../theme/app_colors.dart';
 
 class CustomBottomNav extends StatelessWidget {
@@ -13,20 +11,12 @@ class CustomBottomNav extends StatelessWidget {
   void _handleDefaultNavigation(BuildContext context, int index) {
     if (index == currentIndex) return;
 
-    switch (index) {
-      case 0:
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        break;
-      case 1:
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const MenuScreen()));
-        break;
-      case 2:
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const WalletRechargeScreen()));
-        break;
+    // Only "home" has a safe default (no extra context needed). Menu and
+    // wallet require studentId/wallet data that this generic widget
+    // doesn't have — screens that show this bar MUST pass their own
+    // onTap for indices 1 and 2, or those taps do nothing.
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
@@ -34,7 +24,7 @@ class CustomBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.brand500, // 0xFFE8A020
+        color: AppColors.brand500,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: SafeArea(
@@ -81,9 +71,7 @@ class CustomBottomNav extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.navActiveCircle
-              : Colors.transparent, // 0xFFE8B862
+          color: isSelected ? AppColors.brand700 : Colors.transparent,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
