@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import '../services/kushki_service.dart';
@@ -95,7 +95,8 @@ class RechargeCardFormScreen extends StatefulWidget {
   State<RechargeCardFormScreen> createState() => _RechargeCardFormScreenState();
 }
 
-class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
+class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
+    with NotificationMixin {
   final _walletService = WalletService();
   final _cardNumberController = TextEditingController();
   final _holderNameController = TextEditingController();
@@ -206,18 +207,11 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
   }
 
   void _showSuccess() {
-    AppNotificationDialog.show(
-      context,
-      type: NotificationType.success,
+    showSuccessSnackBar(
+      'Tu recarga de \$${widget.amount.toStringAsFixed(2)} ha sido registrada con éxito.',
       title: '¡Pago Exitoso!',
-      message: 'Tu recarga ha sido registrada',
-      highlightValue: '-\$${widget.amount.toStringAsFixed(2)}',
-      primaryButtonLabel: 'Volver al inicio',
-      onPrimaryPressed: () {
-        Navigator.of(context).pop();
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
     );
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

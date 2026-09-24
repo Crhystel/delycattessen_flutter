@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
@@ -97,25 +97,23 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
   }
 
   Future<void> _confirmLogout() async {
-    await AppNotificationDialog.show(
+    final confirmed = await AppConfirmationDialog.show(
       context,
-      type: NotificationType.danger,
       icon: Icons.logout,
       title: 'Cerrar sesión',
       message: '¿Estás seguro de que deseas salir de tu cuenta de estudiante?',
-      primaryButtonLabel: 'Cerrar sesión',
-      onPrimaryPressed: () async {
-        Navigator.of(context).pop();
-        await AuthService().logout();
-        if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      },
-      secondaryButtonLabel: 'Cancelar',
-      onSecondaryPressed: () => Navigator.of(context).pop(),
+      confirmLabel: 'Cerrar sesión',
+      cancelLabel: 'Cancelar',
+      confirmColor: AppColors.danger500,
     );
+    if (confirmed) {
+      await AuthService().logout();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override

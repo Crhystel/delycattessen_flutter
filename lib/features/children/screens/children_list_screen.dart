@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/models/auth_models.dart';
@@ -20,7 +21,8 @@ class ChildrenListScreen extends StatefulWidget {
   State<ChildrenListScreen> createState() => _ChildrenListScreenState();
 }
 
-class _ChildrenListScreenState extends State<ChildrenListScreen> {
+class _ChildrenListScreenState extends State<ChildrenListScreen>
+    with NotificationMixin {
   final _authService = AuthService();
   List<Child> _children = [];
   String _userName = '';
@@ -80,20 +82,18 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   }
 
   Future<void> _confirmLogout() async {
-    await AppNotificationDialog.show(
+    final confirmed = await AppConfirmationDialog.show(
       context,
-      type: NotificationType.danger,
       icon: Icons.logout,
       title: 'Cerrar sesión',
       message: '¿Estás seguro de que quieres cerrar tu sesión?',
-      primaryButtonLabel: 'Cerrar sesión',
-      onPrimaryPressed: () {
-        Navigator.of(context).pop();
-        _logout();
-      },
-      secondaryButtonLabel: 'Cancelar',
-      onSecondaryPressed: () => Navigator.of(context).pop(),
+      confirmLabel: 'Cerrar sesión',
+      cancelLabel: 'Cancelar',
+      confirmColor: AppColors.danger500,
     );
+    if (confirmed) {
+      _logout();
+    }
   }
 
   Future<void> _logout() async {
@@ -108,11 +108,9 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   void _openWallet([Child? preselected]) async {
     final withWallet = _children.where((c) => c.walletId != null).toList();
     if (withWallet.isEmpty) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Ningún hijo tiene billetera activa todavía.',
         title: 'Sin billetera activa',
-        message: 'Ningún hijo tiene billetera activa todavía.',
       );
       return;
     }
@@ -140,11 +138,9 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
 
   void _openMenu() {
     if (_children.isEmpty) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Registra al menos un hijo para ver el menú.',
         title: 'Sin hijos registrados',
-        message: 'Registra al menos un hijo para ver el menú.',
       );
       return;
     }

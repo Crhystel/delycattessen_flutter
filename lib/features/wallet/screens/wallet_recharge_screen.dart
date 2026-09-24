@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
@@ -43,7 +43,8 @@ class WalletRechargeScreen extends StatefulWidget {
   State<WalletRechargeScreen> createState() => _WalletRechargeScreenState();
 }
 
-class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
+class _WalletRechargeScreenState extends State<WalletRechargeScreen>
+    with NotificationMixin {
   final TextEditingController _amountController = TextEditingController();
   final WalletService _walletService = WalletService();
   final AuthService _authService = AuthService();
@@ -130,37 +131,31 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
   Future<void> _proceedToRecharge() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Ingresa un monto válido para recargar.',
         title: 'Monto inválido',
-        message: 'Ingresa un monto válido para recargar.',
       );
       return;
     }
 
     if (amount < 1.0) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'El monto mínimo de recarga es \$1.00.',
         title: 'Monto muy bajo',
-        message: 'El monto mínimo de recarga es \$1.00.',
       );
       return;
     }
 
     if (_selectedChild == null) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
+      showWarningSnackBar(
+        'Debes seleccionar a quién recargar saldo.',
         title: 'Selecciona un hijo',
-        message: 'Debes seleccionar a quién recargar saldo.',
       );
       return;
     }
 
     final confirmed = await _confirmWithPin();
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
 
     if (amount < _gatewayThreshold) {
       await _rechargeViaPayphone(amount);
@@ -193,21 +188,17 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen> {
         ),
       );
       if (result == true && mounted) {
-        await AppNotificationDialog.show(
-          context,
-          type: NotificationType.success,
+        showSuccessSnackBar(
+          'El saldo se acreditó correctamente.',
           title: '¡Recarga exitosa!',
-          message: 'El saldo se acreditó correctamente.',
         );
         if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (!mounted) return;
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'No se pudo procesar la recarga',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

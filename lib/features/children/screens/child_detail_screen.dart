@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
@@ -25,7 +25,8 @@ class ChildDetailScreen extends StatefulWidget {
   State<ChildDetailScreen> createState() => _ChildDetailScreenState();
 }
 
-class _ChildDetailScreenState extends State<ChildDetailScreen> {
+class _ChildDetailScreenState extends State<ChildDetailScreen>
+    with NotificationMixin {
   late Child _currentChild;
   bool _isUpdatingPhoto = false;
   bool _hasUpdatedPhoto = false;
@@ -111,21 +112,16 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
         _isUpdatingPhoto = false;
         _hasUpdatedPhoto = true;
       });
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.success,
+      showSuccessSnackBar(
+        'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
         title: 'Foto actualizada',
-        message:
-            'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUpdatingPhoto = false);
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
         title: 'Error al actualizar',
-        message: e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }
