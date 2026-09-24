@@ -8,8 +8,11 @@ class ProductDetailScreen extends StatefulWidget {
   final MenuItem item;
   final Function(int) onAdd;
 
-  const ProductDetailScreen({Key? key, required this.item, required this.onAdd})
-    : super(key: key);
+  const ProductDetailScreen({
+    super.key,
+    required this.item,
+    required this.onAdd,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -40,12 +43,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           width: double.infinity,
                           height: 250,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => const Center(
+                          placeholder: (_, _) => const Center(
                             child: CircularProgressIndicator(
                               color: AppColors.secondary500,
                             ),
                           ),
-                          errorWidget: (_, __, ___) => const Icon(
+                          errorWidget: (_, _, _) => const Icon(
                             Icons.fastfood,
                             size: 100,
                             color: Color(0xFF8A8686),
@@ -90,23 +93,50 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             color: AppColors.brand700,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Ingredientes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.ink900,
+                        if (widget.item.ingredients.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Ingredientes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink900,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                                                      children: widget.menuItem.ingredients
-                                .map((ingredient) => _buildIngredientChip(ingredient.name))
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: widget.item.ingredients
+                                .map(
+                                  (ingredient) =>
+                                      _buildIngredientChip(ingredient.name),
+                                )
                                 .toList(),
-                        ),
+                          ),
+                        ],
+                        if (widget.item.allergens.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Contiene alérgenos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink900,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: widget.item.allergens
+                                .map(
+                                  (allergen) =>
+                                      _buildIngredientChip(allergen.name),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),

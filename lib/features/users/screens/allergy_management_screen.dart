@@ -24,11 +24,15 @@ class AllergyManagementScreen extends StatefulWidget {
 
 class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
   final _authService = AuthService();
+  final _newAllergenController = TextEditingController();
+
   List<Allergen> _allAllergens = [];
   List<Allergen> _selectedAllergens = [];
   Allergen? _dropdownValue;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isCreatingAllergen = false;
+  bool _showNewAllergenField = false;
 
   List<Allergen> get _availableToAdd => _allAllergens
       .where((a) => !_selectedAllergens.any((s) => s.id == a.id))
@@ -38,6 +42,12 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _newAllergenController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -64,6 +74,32 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
 
   void _removeAllergen(Allergen allergen) {
     setState(() => _selectedAllergens.removeWhere((a) => a.id == allergen.id));
+  }
+
+  Future<void> _createNewAllergen() async {
+    final name = _newAllergenController.text.trim();
+    if (name.isEmpty) return;
+
+    setState(() => _isCreatingAllergen = true);
+    try {
+      final created = await _authService.createAllergen(name);
+      setState(() {
+        _allAllergens.add(created);
+        _selectedAllergens.add(created);
+        _newAllergenController.clear();
+        _showNewAllergenField = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'No se pudo agregar',
+        message: e.toString().replaceFirst('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isCreatingAllergen = false);
+    }
   }
 
   Future<void> _save() async {
@@ -205,7 +241,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
                         ),
                         const SizedBox(height: 10),
                         DropdownButtonFormField<Allergen>(
-                          value: _dropdownValue,
+                          initialValue: _dropdownValue,
                           items: _availableToAdd
                               .map(
                                 (a) => DropdownMenuItem(
@@ -240,7 +276,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
                           height: 46,
@@ -263,6 +299,119 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        if (!_showNewAllergenField)
+                          TextButton.icon(
+                            onPressed: () =>
+                                setState(() => _showNewAllergenField = true),
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              size: 18,
+                              color: AppColors.secondary500,
+                            ),
+                            label: Text(
+                              '¿No encuentras la alergia? Agrégala',
+                              style: GoogleFonts.nunito(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.secondary500,
+                              ),
+                            ),
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nueva alergia',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink900.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _newAllergenController,
+                                style: GoogleFonts.nunito(
+                                  color: AppColors.ink900,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Ej. Arroz, Kiwi, Sésamo...',
+                                  filled: true,
+                                  fillColor: AppColors.ink50,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => setState(() {
+                                        _showNewAllergenField = false;
+                                        _newAllergenController.clear();
+                                      }),
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            23,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Cancelar',
+                                        style: GoogleFonts.nunito(
+                                          color: AppColors.ink900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _isCreatingAllergen
+                                          ? null
+                                          : _createNewAllergen,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.secondary500,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            23,
+                                          ),
+                                        ),
+                                      ),
+                                      child: _isCreatingAllergen
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : Text(
+                                              'Agregar',
+                                              style: GoogleFonts.nunito(
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 24),
                         Container(
                           padding: const EdgeInsets.all(14),

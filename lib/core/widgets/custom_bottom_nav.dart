@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class CustomBottomNav extends StatelessWidget {
-  const CustomBottomNav({Key? key}) : super(key: key);
+  const CustomBottomNav({super.key});
 
   @override
   Widget build(BuildContext context) {

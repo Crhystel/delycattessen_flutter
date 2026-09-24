@@ -13,7 +13,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 class MenuScreen extends StatefulWidget {
   final int studentId;
 
-  const MenuScreen({Key? key, required this.studentId}) : super(key: key);
+  const MenuScreen({super.key, required this.studentId});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -234,7 +234,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              ..._menuItems.map((item) => _buildProductCard(item)).toList(),
+              ..._menuItems.map((item) => _buildProductCard(item)),
             ],
           ),
         ),
@@ -314,7 +314,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: CachedNetworkImage(
                         imageUrl: item.imageUrl!,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => const Center(
+                        placeholder: (_, _) => const Center(
                           child: SizedBox(
                             width: 16,
                             height: 16,
@@ -324,7 +324,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             ),
                           ),
                         ),
-                        errorWidget: (_, __, ___) => const Icon(
+                        errorWidget: (_, _, _) => const Icon(
                           Icons.fastfood,
                           color: Color(0xFF8A8686),
                         ),

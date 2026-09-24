@@ -23,7 +23,8 @@ class ApiConfig {
   static const String allergens = '$baseUrl/users/allergens/';
   static const String allergies = '$baseUrl/users/allergies/';
   static String studentAllergies(int studentId) =>
-      '$baseUrl/users/students/$studentId/allergies';
+      '$baseUrl/users/students/$studentId/allergies/';
   static const String setPaymentPin = '$baseUrl/users/set-payment-pin/';
   static const String verifyPaymentPin = '$baseUrl/users/verify-payment-pin/';
+  static const String allergenCreate = '$baseUrl/catalog/allergens/create/';
 }

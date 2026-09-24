@@ -28,6 +28,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   final _secondNameController = TextEditingController();
   final _firstLastNameController = TextEditingController();
   final _secondLastNameController = TextEditingController();
+  List<Child> _existingChildren = [];
   List<Institution> _institutions = [];
   Institution? _selectedInstitution;
   bool _isLoadingInstitutions = true;
@@ -49,9 +50,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
   Future<void> _loadInstitutions() async {
     try {
-      final institutions = await _authService.getInstitutions();
+      final results = await Future.wait([
+        _authService.getInstitutions(),
+        _authService.getChildren(),
+      ]);
       setState(() {
-        _institutions = institutions;
+        _institutions = results[0] as List<Institution>;
+        _existingChildren = results[1] as List<Child>;
         _isLoadingInstitutions = false;
       });
     } catch (e) {
@@ -71,6 +76,19 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         message: 'Completa primer nombre, primer apellido e institución.',
       );
       return;
+    }
+    if (_existingChildren.isNotEmpty) {
+      final existingInstitution = _existingChildren.first.institutionName;
+      if (existingInstitution != _selectedInstitution!.name) {
+        AppNotificationDialog.show(
+          context,
+          type: NotificationType.warning,
+          title: 'Institución diferente',
+          message:
+              'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
+        );
+        return;
+      }
     }
     setState(() => _currentStep = 1);
   }

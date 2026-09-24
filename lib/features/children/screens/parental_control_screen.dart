@@ -1,6 +1,5 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/custom_button.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 
@@ -22,7 +21,13 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
   bool _allowedDaysEnabled = false;
   List<int> _allowedDays = [];
 
-  final List<String> _weekDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+  final List<String> _weekDays = [
+    'Lunes',
+    'Martes',
+    'Miércoles',
+    'Jueves',
+    'Viernes',
+  ];
   late TextEditingController _amountController;
 
   @override
@@ -78,9 +83,9 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
         setState(() => _isSaving = false);
       }
     }
@@ -100,18 +105,23 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        backgroundColor: AppColors.ink50,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.secondary500),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.ink50,
       appBar: AppBar(
-        title: const Text('Control Parental', style: TextStyle(color: AppColors.ink)),
-        backgroundColor: AppColors.background,
+        title: const Text(
+          'Control Parental',
+          style: TextStyle(color: AppColors.ink900),
+        ),
+        backgroundColor: AppColors.ink50,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.ink),
+        iconTheme: const IconThemeData(color: AppColors.ink900),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -136,13 +146,14 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.ink,
+                          color: AppColors.ink900,
                         ),
                       ),
                       Switch(
                         value: _dailyLimitEnabled,
-                        onChanged: (val) => setState(() => _dailyLimitEnabled = val),
-                        activeColor: AppColors.primary,
+                        onChanged: (val) =>
+                            setState(() => _dailyLimitEnabled = val),
+                        activeColor: AppColors.secondary500,
                       ),
                     ],
                   ),
@@ -150,7 +161,9 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Monto máximo (\$) / día',
                         border: OutlineInputBorder(
@@ -183,21 +196,25 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.ink,
+                          color: AppColors.ink900,
                         ),
                       ),
                       Switch(
                         value: _allowedDaysEnabled,
-                        onChanged: (val) => setState(() => _allowedDaysEnabled = val),
-                        activeColor: AppColors.primary,
+                        onChanged: (val) =>
+                            setState(() => _allowedDaysEnabled = val),
+                        activeColor: AppColors.secondary500,
                       ),
                     ],
                   ),
                   if (_allowedDaysEnabled) ...[
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Selecciona los días en los que el estudiante puede comprar en el bar:',
-                      style: TextStyle(color: AppColors.ink200, fontSize: 14),
+                      style: TextStyle(
+                        color: AppColors.ink900.withValues(alpha: 0.5),
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -209,16 +226,22 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                           label: Text(_weekDays[index]),
                           selected: isSelected,
                           onSelected: (_) => _toggleDay(index),
-                          selectedColor: AppColors.warning100,
+                          selectedColor: AppColors.warningBg,
                           backgroundColor: Colors.white,
                           labelStyle: TextStyle(
-                            color: isSelected ? AppColors.warning : AppColors.ink200,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.warning700
+                                : AppColors.ink900.withValues(alpha: 0.5),
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(
-                              color: isSelected ? AppColors.warning : AppColors.ink200.withOpacity(0.3),
+                              color: isSelected
+                                  ? AppColors.warning700
+                                  : AppColors.ink900.withValues(alpha: 0.15),
                             ),
                           ),
                         );
@@ -234,10 +257,34 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: CustomButton(
-            text: 'Guardar Cambios',
-            onPressed: _isSaving ? () {} : _saveData,
-            isLoading: _isSaving,
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _saveData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary500,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Guardar Cambios',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
           ),
         ),
       ),

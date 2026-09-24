@@ -627,7 +627,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen> {
 
   Widget _buildDocumentTypeDropdown() {
     return DropdownButtonFormField<DocumentType>(
-      value: _documentType,
+      initialValue: _documentType,
       items: DocumentType.values
           .map(
             (type) => DropdownMenuItem(

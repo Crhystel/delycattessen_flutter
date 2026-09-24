@@ -13,11 +13,11 @@ class CartScreen extends StatefulWidget {
   final List<MenuItem> menuItems;
 
   const CartScreen({
-    Key? key,
+    super.key,
     required this.studentId,
     required this.cart,
     required this.menuItems,
-  }) : super(key: key);
+  });
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -194,7 +194,7 @@ class _CartScreenState extends State<CartScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                       const SizedBox(height: 24),
                       Text(
                         'Método de pago',

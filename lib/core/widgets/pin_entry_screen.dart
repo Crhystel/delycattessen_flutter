@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
-import 'app_notification_dialog.dart';
 
 /// Reusable PIN screen. In "create" mode, asks the user to type a 4-digit
 /// PIN twice (confirmation). In "verify" mode, asks for the existing PIN

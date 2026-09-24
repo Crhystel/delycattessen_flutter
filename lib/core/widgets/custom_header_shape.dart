@@ -4,7 +4,7 @@ import '../theme/app_colors.dart';
 class CustomHeaderShape extends StatelessWidget {
   final double height;
 
-  const CustomHeaderShape({Key? key, this.height = 100}) : super(key: key);
+  const CustomHeaderShape({super.key, this.height = 100});
 
   @override
   Widget build(BuildContext context) {

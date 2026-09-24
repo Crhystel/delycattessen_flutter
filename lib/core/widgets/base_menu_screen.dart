@@ -9,12 +9,12 @@ class BaseMenuScreen extends StatelessWidget {
   final Widget? floatingActionButton;
 
   const BaseMenuScreen({
-    Key? key,
+    super.key,
     required this.title,
     required this.bodyContent,
     this.isLoading = false,
     this.floatingActionButton,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

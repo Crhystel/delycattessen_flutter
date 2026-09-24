@@ -141,4 +141,11 @@ class AuthService extends BaseApiService {
   Future<void> logout() async {
     await TokenStorage.clear();
   }
+
+  Future<Allergen> createAllergen(String name) async {
+    final response = await performPostRequest(ApiConfig.allergenCreate, {
+      'name': name,
+    });
+    return Allergen.fromJson(response as Map<String, dynamic>);
+  }
 }

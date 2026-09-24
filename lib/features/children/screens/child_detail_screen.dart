@@ -57,17 +57,15 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
     }
   }
 
-void _goToParentalControl(BuildContext context) async {
+  void _goToParentalControl(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ParentalControlScreen(
-          studentId: widget.child.id,
-        ),
+        builder: (_) => ParentalControlScreen(studentId: widget.child.id),
       ),
     );
   }
 
-  void _goToAllergies(BuildContext context) async { {
+  void _goToAllergies(BuildContext context) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AllergyManagementScreen(
@@ -271,19 +269,19 @@ void _goToParentalControl(BuildContext context) async {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  _buildSettingRow(
+                  buildSettingRow(
                     icon: Icons.shield_outlined,
                     title: 'Límite de gasto diario',
                     subtitle: 'Toca para configurar',
                     onTap: () => _goToParentalControl(context),
                   ),
-                  _buildSettingRow(
+                  buildSettingRow(
                     icon: Icons.shield_outlined,
                     title: 'Días permitidos de gasto',
                     subtitle: 'Toca para configurar',
                     onTap: () => _goToParentalControl(context),
                   ),
-                  _buildSettingRow(
+                  buildSettingRow(
                     icon: Icons.warning_amber_outlined,
                     title: 'Alergias registradas',
                     subtitle: 'Toca para registrar o editar',
@@ -299,7 +297,7 @@ void _goToParentalControl(BuildContext context) async {
     );
   }
 
-  Widget _buildSettingRow({
+  Widget buildSettingRow({
     required IconData icon,
     required String title,
     required String subtitle,

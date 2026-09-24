@@ -83,7 +83,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                           16 + MediaQuery.of(context).padding.bottom,
                         ),
                         itemCount: _transactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) =>
                             _buildTransactionRow(_transactions[index]),
                       ),
