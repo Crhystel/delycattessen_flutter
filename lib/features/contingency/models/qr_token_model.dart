@@ -20,7 +20,7 @@ class QrTokenModel {
   factory QrTokenModel.fromJson(Map<String, dynamic> json) {
     return QrTokenModel(
       token: json['token'] ?? '',
-      expiresIn: json['expires_in'] ?? 60,
+      expiresIn: json['expires_in'] ?? 300,
       issuedAt: json['issued_at'] ?? '',
       userId: json['user_id'] ?? 0,
       fullName: json['full_name'] ?? '',

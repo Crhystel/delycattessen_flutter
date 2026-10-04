@@ -26,7 +26,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
   String? _errorMessage;
 
   Timer? _countdownTimer;
-  int _secondsLeft = 60;
+  int _secondsLeft = 300;
 
   @override
   void initState() {
@@ -38,6 +38,15 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
   void dispose() {
     _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  String _formatTimer(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    if (m > 0) {
+      return '$m:${s.toString().padLeft(2, '0')} min';
+    }
+    return '${s}s';
   }
 
   void _startTimer(int totalSeconds) {
@@ -69,7 +78,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
           _qrData = data;
           _isLoading = false;
         });
-        _startTimer(data.expiresIn > 0 ? data.expiresIn : 60);
+        _startTimer(data.expiresIn > 0 ? data.expiresIn : 300);
       }
     } catch (e) {
       if (mounted) {
@@ -413,7 +422,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Se actualiza en ${_secondsLeft}s',
+                                          'Se actualiza en ${_formatTimer(_secondsLeft)}',
                                           style: GoogleFonts.nunito(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,

@@ -59,12 +59,13 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
           ),
           (route) => false,
         );
-      } else if (me.role == 'STUDENT') {
+      } else if (me.role == 'STUDENT' || me.role == 'TEACHER') {
+        final fallbackName = me.role == 'TEACHER' ? 'Docente' : 'Estudiante';
         final displayName = me.firstName.isNotEmpty
             ? '${me.firstName} ${me.lastName}'.trim()
             : (_usernameController.text.trim().isNotEmpty
                 ? _usernameController.text.trim()
-                : 'Estudiante');
+                : fallbackName);
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) =>

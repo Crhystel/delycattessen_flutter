@@ -49,10 +49,10 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
         _goTo(PosHomeScreen(userName: displayName));
         return;
       }
-      if (me.role == 'STUDENT') {
+      if (me.role == 'STUDENT' || me.role == 'TEACHER') {
         final displayName = me.firstName.isNotEmpty
             ? '${me.firstName} ${me.lastName}'.trim()
-            : 'Estudiante';
+            : (me.role == 'TEACHER' ? 'Docente' : 'Estudiante');
         _goTo(StudentContingencyScreen(initialUserName: displayName));
         return;
       }
