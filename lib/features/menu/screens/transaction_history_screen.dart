@@ -144,62 +144,198 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final isRecharge = transaction.type == 'recharge';
     final isFailed = transaction.status == 'failed';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
+    return GestureDetector(
+      onTap: () => _showTransactionDetail(transaction),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEFEFEF)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: isRecharge ? AppColors.successBg : AppColors.brand50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isRecharge ? Icons.add : Icons.restaurant,
+                color: isRecharge ? AppColors.success700 : AppColors.brand700,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.displayName,
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    transaction.time,
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      color: AppColors.ink900.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              isFailed
+                  ? 'Fallida'
+                  : '${isRecharge ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: isFailed
+                    ? AppColors.ink900.withValues(alpha: 0.4)
+                    : (isRecharge ? AppColors.success700 : AppColors.danger700),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: isRecharge ? AppColors.successBg : AppColors.brand50,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isRecharge ? Icons.add : Icons.restaurant,
-              color: isRecharge ? AppColors.success700 : AppColors.brand700,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+    );
+  }
+
+  void _showTransactionDetail(TransactionModel transaction) {
+    final isRecharge = transaction.type == 'recharge';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   transaction.displayName,
                   style: GoogleFonts.nunito(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.ink900,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   transaction.time,
                   style: GoogleFonts.nunito(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppColors.ink900.withValues(alpha: 0.5),
                   ),
                 ),
+                const Divider(height: 28),
+                if (isRecharge) ...[
+                  _buildDetailRow(
+                    'Método',
+                    transaction.gateway.isNotEmpty
+                        ? transaction.gateway
+                        : 'No especificado',
+                  ),
+                  _buildDetailRow(
+                    'Estado',
+                    transaction.status == 'failed' ? 'Fallida' : 'Exitosa',
+                  ),
+                ] else if (transaction.items.isNotEmpty) ...[
+                  ...transaction.items.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${item.quantity}x ${item.menuItemName}',
+                              style: GoogleFonts.nunito(fontSize: 14),
+                            ),
+                          ),
+                          Text(
+                            '\$${(item.priceAtPurchase * item.quantity).toStringAsFixed(2)}',
+                            style: GoogleFonts.nunito(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 24),
+                ] else
+                  Text(
+                    'No hay detalle disponible para este movimiento.',
+                    style: GoogleFonts.nunito(
+                      fontSize: 13,
+                      color: AppColors.ink900.withValues(alpha: 0.5),
+                    ),
+                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total',
+                      style: GoogleFonts.nunito(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${isRecharge ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+                      style: GoogleFonts.nunito(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isRecharge
+                            ? AppColors.success700
+                            : AppColors.danger700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Text(
-            isFailed
-                ? 'Fallida'
-                : '${isRecharge ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+            label,
             style: GoogleFonts.nunito(
               fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: isFailed
-                  ? AppColors.ink900.withValues(alpha: 0.4)
-                  : (isRecharge ? AppColors.success700 : AppColors.danger700),
+              color: AppColors.ink900.withValues(alpha: 0.6),
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.nunito(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

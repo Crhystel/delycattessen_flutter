@@ -81,3 +81,79 @@ class PreOrder {
     };
   }
 }
+
+class PreOrderItemDetail {
+  final int id;
+  final int menuItemId;
+  final String menuItemName;
+  final int quantity;
+  final double priceAtPurchase;
+
+  PreOrderItemDetail({
+    required this.id,
+    required this.menuItemId,
+    required this.menuItemName,
+    required this.quantity,
+    required this.priceAtPurchase,
+  });
+
+  factory PreOrderItemDetail.fromJson(Map<String, dynamic> json) {
+    return PreOrderItemDetail(
+      id: json['id'],
+      menuItemId: json['menu_item'],
+      menuItemName: json['menu_item_name'] ?? '',
+      quantity: json['quantity'],
+      priceAtPurchase: double.parse(json['price_at_purchase'].toString()),
+    );
+  }
+}
+
+enum PreOrderStatus { pending, delivered, canceled }
+
+PreOrderStatus _preOrderStatusFromString(String value) {
+  switch (value) {
+    case 'DELIVERED':
+      return PreOrderStatus.delivered;
+    case 'CANCELED':
+      return PreOrderStatus.canceled;
+    case 'PENDING':
+    default:
+      return PreOrderStatus.pending;
+  }
+}
+
+class PreOrderSummary {
+  final int id;
+  final int studentId;
+  final String studentName;
+  final PreOrderStatus status;
+  final String statusDisplay;
+  final double totalAmount;
+  final DateTime createdAt;
+  final List<PreOrderItemDetail> items;
+
+  PreOrderSummary({
+    required this.id,
+    required this.studentId,
+    required this.studentName,
+    required this.status,
+    required this.statusDisplay,
+    required this.totalAmount,
+    required this.createdAt,
+    required this.items,
+  });
+
+  factory PreOrderSummary.fromJson(Map<String, dynamic> json) {
+    final itemsList = json['items'] as List? ?? [];
+    return PreOrderSummary(
+      id: json['id'],
+      studentId: json['student'],
+      studentName: json['student_name'] ?? '',
+      status: _preOrderStatusFromString(json['status']),
+      statusDisplay: json['status_display'] ?? json['status'],
+      totalAmount: double.parse(json['total_amount'].toString()),
+      createdAt: DateTime.parse(json['created_at']),
+      items: itemsList.map((i) => PreOrderItemDetail.fromJson(i)).toList(),
+    );
+  }
+}

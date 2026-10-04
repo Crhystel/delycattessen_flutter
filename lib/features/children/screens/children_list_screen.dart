@@ -62,8 +62,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
           _userName = me.firstName.isNotEmpty
               ? me.firstName
               : (me.email != null && me.email!.isNotEmpty
-                  ? me.email!.split('@').first
-                  : 'Usuario');
+                    ? me.email!.split('@').first
+                    : 'Usuario');
         }
       } catch (_) {}
 
@@ -144,11 +144,13 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       );
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MenuScreen(studentId: _children.first.id),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => MenuScreen(studentId: _children.first.id),
+          ),
+        )
+        .then((_) => _loadChildren());
   }
 
   void _openChildDetail(Child child) {
@@ -176,8 +178,10 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
               onRefresh: _loadChildren,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -208,7 +212,10 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(Icons.logout, color: AppColors.ink900),
+                          icon: const Icon(
+                            Icons.logout,
+                            color: AppColors.ink900,
+                          ),
                           tooltip: 'Cerrar sesión',
                           onPressed: _confirmLogout,
                         ),

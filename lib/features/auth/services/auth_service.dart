@@ -128,13 +128,18 @@ class AuthService extends BaseApiService {
         .toList();
   }
 
-  Future<void> saveStudentAllergies(
+  Future<List<String>> saveStudentAllergies(
     int studentId,
     List<int> allergenIds,
   ) async {
-    await performPutRequest(ApiConfig.studentAllergies(studentId), {
-      'allergen_ids': allergenIds,
-    });
+    final response = await performPutRequest(
+      ApiConfig.studentAllergies(studentId),
+      {'allergen_ids': allergenIds},
+    );
+    final map = response as Map<String, dynamic>;
+    return (map['unprotected_allergens'] as List? ?? [])
+        .map((e) => e as String)
+        .toList();
   }
 
   Future<void> setPaymentPin(String pin) async {

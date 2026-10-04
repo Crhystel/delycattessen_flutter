@@ -45,6 +45,26 @@ class RechargeResponse {
   bool get isProcessingAsync => paymentUrl == null;
 }
 
+class TransactionItemDetail {
+  final String menuItemName;
+  final int quantity;
+  final double priceAtPurchase;
+
+  TransactionItemDetail({
+    required this.menuItemName,
+    required this.quantity,
+    required this.priceAtPurchase,
+  });
+
+  factory TransactionItemDetail.fromJson(Map<String, dynamic> json) {
+    return TransactionItemDetail(
+      menuItemName: json['menu_item_name'] as String,
+      quantity: json['quantity'] as int,
+      priceAtPurchase: double.parse(json['price_at_purchase'].toString()),
+    );
+  }
+}
+
 class TransactionModel {
   final int id;
   final String displayName;
@@ -54,6 +74,7 @@ class TransactionModel {
   final String type;
   final String time;
   final DateTime createdAt;
+  final List<TransactionItemDetail> items;
 
   TransactionModel({
     required this.id,
@@ -64,9 +85,11 @@ class TransactionModel {
     required this.type,
     required this.time,
     required this.createdAt,
+    required this.items,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    final itemsList = json['items'] as List? ?? [];
     return TransactionModel(
       id: json['id'] as int,
       displayName: json['display_name'] as String,
@@ -76,6 +99,9 @@ class TransactionModel {
       type: json['type'] as String,
       time: json['time'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      items: itemsList
+          .map((i) => TransactionItemDetail.fromJson(i as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

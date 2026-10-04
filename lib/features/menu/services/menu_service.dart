@@ -20,4 +20,17 @@ class MenuService extends BaseApiService {
     );
     return response as Map<String, dynamic>;
   }
+
+  /// Lista las preórdenes de los hijos del padre autenticado.
+  /// [studentId] es opcional: si se pasa, filtra solo ese hijo.
+  Future<List<PreOrderSummary>> getPreOrders({int? studentId}) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/pos/preorders/').replace(
+      queryParameters: studentId != null
+          ? {'student_id': studentId.toString()}
+          : null,
+    );
+    final response = await performGetRequest(uri.toString());
+    final data = response as List;
+    return data.map((json) => PreOrderSummary.fromJson(json)).toList();
+  }
 }

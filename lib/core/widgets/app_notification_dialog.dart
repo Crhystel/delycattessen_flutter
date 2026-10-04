@@ -3,8 +3,6 @@ import 'app_notification_messenger.dart';
 
 export 'app_notification_messenger.dart';
 
-/// Compatibilidad hacia atrás: Redirige llamadas heredadas de
-/// AppNotificationDialog hacia el nuevo patrón estándar de ScaffoldMessenger.
 class AppNotificationDialog {
   AppNotificationDialog._();
 
@@ -21,6 +19,7 @@ class AppNotificationDialog {
     VoidCallback? onSecondaryPressed,
     bool barrierDismissible = true,
     IconData? icon,
+    Duration? duration,
   }) async {
     final fullMessage = highlightValue != null
         ? '$message ($highlightValue)'
@@ -31,11 +30,9 @@ class AppNotificationDialog {
       type: type,
       title: title,
       message: fullMessage,
-      icon: icon,
-      actionLabel: onPrimaryPressed != null && primaryButtonLabel != 'Aceptar'
-          ? primaryButtonLabel
-          : null,
-      onAction: onPrimaryPressed,
+      duration: duration,
     );
+
+    onPrimaryPressed?.call();
   }
 }

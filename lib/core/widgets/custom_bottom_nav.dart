@@ -11,10 +11,10 @@ class CustomBottomNav extends StatelessWidget {
   void _handleDefaultNavigation(BuildContext context, int index) {
     if (index == currentIndex) return;
 
-    // Only "home" has a safe default (no extra context needed). Menu and
-    // wallet require studentId/wallet data that this generic widget
-    // doesn't have — screens that show this bar MUST pass their own
-    // onTap for indices 1 and 2, or those taps do nothing.
+    // Only "home" has a safe default (no extra context needed). Menu,
+    // wallet and orders require studentId/wallet data that this generic
+    // widget doesn't have — screens that show this bar MUST pass their
+    // own onTap for indices 1, 2 and 3, or those taps do nothing.
     if (index == 0) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -44,6 +44,11 @@ class CustomBottomNav extends StatelessWidget {
                 context: context,
                 index: 2,
                 icon: Icons.attach_money,
+              ),
+              _buildNavItem(
+                context: context,
+                index: 3,
+                icon: Icons.receipt_long,
               ),
             ],
           ),

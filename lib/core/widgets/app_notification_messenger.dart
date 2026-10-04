@@ -1,175 +1,382 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
-/// Tipos de notificación disponibles en el sistema Delycattessen.
 enum NotificationType { success, danger, warning, info }
 
-/// ============================================================================
-/// PATRÓN TEMPLATE METHOD:
-/// Define el esqueleto del algoritmo de construcción del SnackBar para
-/// ScaffoldMessenger. Las subclases concretas definen los colores, iconos
-/// e indicadores visuales específicos según el tipo de notificación.
-/// ============================================================================
+/// Template Method: cada tipo define su color de header, ícono y acento.
+/// La estructura (header con círculos + ícono + título + mensaje + X) es
+/// común a todas.
 abstract class NotificationSnackBarTemplate {
   final String message;
   final String? title;
   final Duration? duration;
-  final IconData? customIcon;
-  final SnackBarAction? action;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
   const NotificationSnackBarTemplate({
     required this.message,
     this.title,
     this.duration,
-    this.customIcon,
-    this.action,
-    this.actionLabel,
-    this.onAction,
   });
 
-  /// Métodos abstractos/primitivos que cada subclase concreta debe implementar:
+  Color get headerBackground;
   Color get accentColor;
-  Color get iconBackgroundColor;
-  Color get iconColor;
-  IconData get defaultIcon;
+  IconData get icon;
 
-  /// Hook para el contenedor o borde (por defecto blanco con sombra suave y borde temático)
-  Color get cardBackgroundColor => Colors.white;
-
-  /// Icono final a mostrar
-  IconData get resolvedIcon => customIcon ?? defaultIcon;
-
-  /// Template Method: Orquesta y construye el SnackBar inmutable para ScaffoldMessenger
-  SnackBar buildSnackBar(BuildContext context) {
-    return SnackBar(
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      padding: EdgeInsets.zero,
-      duration: duration ?? const Duration(seconds: 4),
-      action: action,
-      content: buildContent(context),
-    );
-  }
-
-  /// Construye el contenido visual tipo tarjeta flotante
-  Widget buildContent(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: cardBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.35),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          buildLeadingIcon(),
-          const SizedBox(width: 12),
-          Expanded(child: buildBody()),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(width: 8),
-            buildAction(context),
+  /// Header decorativo: fondo suave del tipo + círculos flotantes en los
+  /// tres colores de marca, con el ícono de estado centrado como badge.
+  Widget buildHeader() {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: Container(
+        height: 96,
+        width: double.infinity,
+        color: headerBackground,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: -26,
+              top: -26,
+              child: _floatingCircle(76, AppColors.brand500, 0.55),
+            ),
+            Positioned(
+              right: -16,
+              top: -6,
+              child: _floatingCircle(50, AppColors.teal500, 0.55),
+            ),
+            Positioned(
+              right: 16,
+              bottom: -26,
+              child: _floatingCircle(60, AppColors.secondary500, 0.5),
+            ),
+            Positioned(
+              left: 36,
+              bottom: -18,
+              child: _floatingCircle(32, AppColors.teal500, 0.4),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: accentColor, size: 26),
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  /// Paso del template: Construcción del icono circular con badge de color
-  Widget buildLeadingIcon() {
+  Widget _floatingCircle(double size, Color color, double opacity) {
     return Container(
-      width: 38,
-      height: 38,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: iconBackgroundColor,
         shape: BoxShape.circle,
-      ),
-      child: Icon(
-        resolvedIcon,
-        color: iconColor,
-        size: 22,
+        color: color.withValues(alpha: opacity),
       ),
     );
   }
 
-  /// Paso del template: Construcción de textos (título opcional + mensaje)
   Widget buildBody() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (title != null && title!.isNotEmpty) ...[
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (title != null && title!.isNotEmpty)
+            Text(
+              title!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: AppColors.ink900,
+              ),
+            ),
+          if (title != null && title!.isNotEmpty) const SizedBox(height: 6),
           Text(
-            title!,
+            message,
+            textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppColors.ink900,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.ink900.withValues(alpha: 0.65),
             ),
           ),
-          const SizedBox(height: 2),
         ],
-        Text(
-          message,
-          style: GoogleFonts.nunito(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.ink900.withValues(alpha: 0.75),
+      ),
+    );
+  }
+
+  Widget buildCloseButton(VoidCallback onDismiss) {
+    return Positioned(
+      top: 8,
+      right: 8,
+      child: InkWell(
+        onTap: onDismiss,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.close_rounded,
+            size: 16,
+            color: AppColors.ink900,
           ),
         ),
-      ],
+      ),
     );
   }
 
-  /// Paso del template: Construcción del botón de acción lateral
-  Widget buildAction(BuildContext context) {
-    return TextButton(
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  Widget buildContent(BuildContext context, {required VoidCallback onDismiss}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      onPressed: () {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        onAction?.call();
-      },
-      child: Text(
-        actionLabel!,
-        style: GoogleFonts.nunito(
-          color: accentColor,
-          fontWeight: FontWeight.w800,
-          fontSize: 13,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [buildHeader(), buildBody()],
+      ),
+    );
+  }
+}
+
+class SuccessNotificationTemplate extends NotificationSnackBarTemplate {
+  SuccessNotificationTemplate({
+    required super.message,
+    super.title,
+    super.duration,
+  });
+
+  @override
+  Color get headerBackground => AppColors.successBg;
+
+  @override
+  Color get accentColor => AppColors.success500;
+
+  @override
+  IconData get icon => Icons.check_rounded;
+}
+
+class DangerNotificationTemplate extends NotificationSnackBarTemplate {
+  DangerNotificationTemplate({
+    required super.message,
+    super.title,
+    super.duration,
+  });
+
+  @override
+  Color get headerBackground => AppColors.dangerBg;
+
+  @override
+  Color get accentColor => AppColors.danger500;
+
+  @override
+  IconData get icon => Icons.close_rounded;
+}
+
+class WarningNotificationTemplate extends NotificationSnackBarTemplate {
+  WarningNotificationTemplate({
+    required super.message,
+    super.title,
+    super.duration,
+  });
+
+  @override
+  Color get headerBackground => AppColors.warningBg;
+
+  @override
+  Color get accentColor => AppColors.warning500;
+
+  @override
+  IconData get icon => Icons.priority_high_rounded;
+}
+
+class InfoNotificationTemplate extends NotificationSnackBarTemplate {
+  InfoNotificationTemplate({
+    required super.message,
+    super.title,
+    super.duration,
+  });
+
+  @override
+  Color get headerBackground => AppColors.teal50;
+
+  @override
+  Color get accentColor => AppColors.teal500;
+
+  @override
+  IconData get icon => Icons.info_rounded;
+}
+
+/// Tarjeta flotante centrada, con animación simple de entrada/salida y
+/// auto-cierre (además del botón X manual).
+class _FloatingNotificationCard extends StatefulWidget {
+  final NotificationSnackBarTemplate template;
+  final VoidCallback onDismiss;
+
+  const _FloatingNotificationCard({
+    required this.template,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_FloatingNotificationCard> createState() =>
+      _FloatingNotificationCardState();
+}
+
+class _FloatingNotificationCardState extends State<_FloatingNotificationCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
+  Timer? _autoDismissTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      reverseDuration: const Duration(milliseconds: 150),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.95,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+    _autoDismissTimer = Timer(
+      widget.template.duration ?? const Duration(seconds: 4),
+      _dismiss,
+    );
+  }
+
+  void _dismiss() {
+    _autoDismissTimer?.cancel();
+    if (!mounted) return;
+    _controller.reverse().then((_) {
+      if (mounted) widget.onDismiss();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoDismissTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _dismiss,
+        child: Align(
+          alignment: Alignment.center,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 36),
+                child: Material(
+                  color: Colors.transparent,
+                  child: widget.template.buildContent(
+                    context,
+                    onDismiss: _dismiss,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+}
 
-  /// Factoría para instanciar la plantilla correcta según [NotificationType]
-  static NotificationSnackBarTemplate of({
+/// Punto único de entrada para mostrar notificaciones en toda la app.
+class AppNotificationMessenger {
+  static OverlayEntry? _currentEntry;
+
+  static void show(
+    BuildContext context, {
     required NotificationType type,
     required String message,
     String? title,
     Duration? duration,
-    IconData? customIcon,
-    SnackBarAction? action,
-    String? actionLabel,
-    VoidCallback? onAction,
+  }) {
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    _currentEntry?.remove();
+    _currentEntry = null;
+
+    final template = _templateFor(
+      type,
+      message: message,
+      title: title,
+      duration: duration,
+    );
+
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _FloatingNotificationCard(
+        template: template,
+        onDismiss: () {
+          entry.remove();
+          if (_currentEntry == entry) _currentEntry = null;
+        },
+      ),
+    );
+
+    _currentEntry = entry;
+    overlay.insert(entry);
+  }
+
+  static void hide() {
+    _currentEntry?.remove();
+    _currentEntry = null;
+  }
+
+  static NotificationSnackBarTemplate _templateFor(
+    NotificationType type, {
+    required String message,
+    String? title,
+    Duration? duration,
   }) {
     switch (type) {
       case NotificationType.success:
@@ -177,304 +384,65 @@ abstract class NotificationSnackBarTemplate {
           message: message,
           title: title,
           duration: duration,
-          customIcon: customIcon,
-          action: action,
-          actionLabel: actionLabel,
-          onAction: onAction,
         );
       case NotificationType.danger:
         return DangerNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
-          customIcon: customIcon,
-          action: action,
-          actionLabel: actionLabel,
-          onAction: onAction,
         );
       case NotificationType.warning:
         return WarningNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
-          customIcon: customIcon,
-          action: action,
-          actionLabel: actionLabel,
-          onAction: onAction,
         );
       case NotificationType.info:
         return InfoNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
-          customIcon: customIcon,
-          action: action,
-          actionLabel: actionLabel,
-          onAction: onAction,
         );
     }
   }
 }
 
-/// Template concreto para notificaciones de ÉXITO
-class SuccessNotificationTemplate extends NotificationSnackBarTemplate {
-  const SuccessNotificationTemplate({
-    required super.message,
-    super.title,
-    super.duration,
-    super.customIcon,
-    super.action,
-    super.actionLabel,
-    super.onAction,
-  });
-
-  @override
-  Color get accentColor => AppColors.success500;
-
-  @override
-  Color get iconBackgroundColor => AppColors.successBg;
-
-  @override
-  Color get iconColor => AppColors.success700;
-
-  @override
-  IconData get defaultIcon => Icons.check_circle_rounded;
-}
-
-/// Template concreto para notificaciones de ERROR / PELIGRO
-class DangerNotificationTemplate extends NotificationSnackBarTemplate {
-  const DangerNotificationTemplate({
-    required super.message,
-    super.title,
-    super.duration,
-    super.customIcon,
-    super.action,
-    super.actionLabel,
-    super.onAction,
-  });
-
-  @override
-  Color get accentColor => AppColors.danger500;
-
-  @override
-  Color get iconBackgroundColor => AppColors.dangerBg;
-
-  @override
-  Color get iconColor => AppColors.danger700;
-
-  @override
-  IconData get defaultIcon => Icons.error_rounded;
-}
-
-/// Template concreto para notificaciones de ADVERTENCIA
-class WarningNotificationTemplate extends NotificationSnackBarTemplate {
-  const WarningNotificationTemplate({
-    required super.message,
-    super.title,
-    super.duration,
-    super.customIcon,
-    super.action,
-    super.actionLabel,
-    super.onAction,
-  });
-
-  @override
-  Color get accentColor => AppColors.warning500;
-
-  @override
-  Color get iconBackgroundColor => AppColors.warningBg;
-
-  @override
-  Color get iconColor => AppColors.warning700;
-
-  @override
-  IconData get defaultIcon => Icons.warning_amber_rounded;
-}
-
-/// Template concreto para notificaciones INFORMATIVAS
-class InfoNotificationTemplate extends NotificationSnackBarTemplate {
-  const InfoNotificationTemplate({
-    required super.message,
-    super.title,
-    super.duration,
-    super.customIcon,
-    super.action,
-    super.actionLabel,
-    super.onAction,
-  });
-
-  @override
-  Color get accentColor => AppColors.teal500;
-
-  @override
-  Color get iconBackgroundColor => AppColors.teal50;
-
-  @override
-  Color get iconColor => AppColors.teal700;
-
-  @override
-  IconData get defaultIcon => Icons.info_rounded;
-}
-
-/// ============================================================================
-/// FACHADA / HELPER: AppNotificationMessenger
-/// Permite mostrar notificaciones mediante ScaffoldMessenger de forma estática
-/// y limpia en cualquier lugar donde se tenga acceso a un BuildContext.
-/// ============================================================================
-class AppNotificationMessenger {
-  AppNotificationMessenger._();
-
-  /// Muestra una notificación con ScaffoldMessenger usando la plantilla correspondiente
-  static void show(
-    BuildContext context, {
-    required NotificationType type,
-    required String message,
+/// Mixin con atajos para usar en cualquier State sin repetir boilerplate.
+mixin NotificationMixin<T extends StatefulWidget> on State<T> {
+  void showNotificationSnackBar(
+    NotificationType type,
+    String message, {
     String? title,
     Duration? duration,
-    IconData? icon,
-    SnackBarAction? action,
-    String? actionLabel,
-    VoidCallback? onAction,
   }) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-
-    final template = NotificationSnackBarTemplate.of(
+    AppNotificationMessenger.show(
+      context,
       type: type,
       message: message,
       title: title,
       duration: duration,
-      customIcon: icon,
-      action: action,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(template.buildSnackBar(context));
-  }
-
-  static void showSuccess(
-    BuildContext context,
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    show(
-      context,
-      type: NotificationType.success,
-      message: message,
-      title: title,
-      duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
     );
   }
 
-  static void showError(
-    BuildContext context,
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    show(
-      context,
-      type: NotificationType.danger,
-      message: message,
-      title: title,
-      duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-  }
-
-  static void showWarning(
-    BuildContext context,
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    show(
-      context,
-      type: NotificationType.warning,
-      message: message,
-      title: title,
-      duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-  }
-
-  static void showInfo(
-    BuildContext context,
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    show(
-      context,
-      type: NotificationType.info,
-      message: message,
-      title: title,
-      duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-  }
-
-  static void hide(BuildContext context) {
-    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
-  }
-}
-
-/// ============================================================================
-/// PATRÓN MIXIN: NotificationMixin
-/// Permite que cualquier `State<T>` de un StatefulWidget consuma el sistema
-/// de notificaciones ScaffoldMessenger de forma directa y limpia sin
-/// boilerplate.
-/// ============================================================================
-mixin NotificationMixin<T extends StatefulWidget> on State<T> {
   void showSuccessSnackBar(
     String message, {
     String? title,
     Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
   }) {
-    if (!mounted) return;
-    AppNotificationMessenger.showSuccess(
-      context,
+    showNotificationSnackBar(
+      NotificationType.success,
       message,
       title: title,
       duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
     );
   }
 
-  void showErrorSnackBar(
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    if (!mounted) return;
-    AppNotificationMessenger.showError(
-      context,
+  void showErrorSnackBar(String message, {String? title, Duration? duration}) {
+    showNotificationSnackBar(
+      NotificationType.danger,
       message,
       title: title,
       duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
     );
   }
 
@@ -482,57 +450,21 @@ mixin NotificationMixin<T extends StatefulWidget> on State<T> {
     String message, {
     String? title,
     Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
   }) {
-    if (!mounted) return;
-    AppNotificationMessenger.showWarning(
-      context,
+    showNotificationSnackBar(
+      NotificationType.warning,
       message,
       title: title,
       duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
     );
   }
 
-  void showInfoSnackBar(
-    String message, {
-    String? title,
-    Duration? duration,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    if (!mounted) return;
-    AppNotificationMessenger.showInfo(
-      context,
+  void showInfoSnackBar(String message, {String? title, Duration? duration}) {
+    showNotificationSnackBar(
+      NotificationType.info,
       message,
       title: title,
       duration: duration,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-  }
-
-  void showNotificationSnackBar({
-    required NotificationType type,
-    required String message,
-    String? title,
-    Duration? duration,
-    IconData? icon,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    if (!mounted) return;
-    AppNotificationMessenger.show(
-      context,
-      type: type,
-      message: message,
-      title: title,
-      duration: duration,
-      icon: icon,
-      actionLabel: actionLabel,
-      onAction: onAction,
     );
   }
 }

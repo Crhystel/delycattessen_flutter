@@ -104,15 +104,23 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      await _authService.saveStudentAllergies(
+      final unprotected = await _authService.saveStudentAllergies(
         widget.studentId,
         _selectedAllergens.map((a) => a.id).toList(),
       );
       if (!mounted) return;
-      showSuccessSnackBar(
-        'El registro de alergias de ${widget.personName} se guardó correctamente.',
-        title: 'Alergias actualizadas',
-      );
+      if (unprotected.isNotEmpty) {
+        showWarningSnackBar(
+          'Aún no hay productos marcados con: ${unprotected.join(', ')}. '
+          'Infórmaselo al personal del comedor mientras se etiquetan los productos.',
+          title: 'Guardado, pero sin protección automática todavía',
+        );
+      } else {
+        showSuccessSnackBar(
+          'El registro de alergias de ${widget.personName} se guardó correctamente.',
+          title: 'Alergias actualizadas',
+        );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;

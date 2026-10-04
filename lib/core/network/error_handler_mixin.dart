@@ -23,20 +23,31 @@ mixin ErrorHandlerMixin {
         '------------------',
       );
 
-      // Try to decode the error message coming from Django
       String errorMessage = 'Error desconocido en el servidor';
       try {
         final decodedError = jsonDecode(response.body);
-        if (decodedError is Map && decodedError.containsKey('mensaje')) {
+        if (decodedError is List && decodedError.isNotEmpty) {
+          // DRF envuelve un ValidationError('texto') lanzado directo en una
+          // vista (no desde un serializer) como un array JSON plano.
+          errorMessage = decodedError.first.toString();
+        } else if (decodedError is Map && decodedError.containsKey('mensaje')) {
           errorMessage = decodedError['mensaje'];
-        } else if (decodedError is Map && decodedError.containsKey('non_field_errors')) {
-          errorMessage = decodedError['non_field_errors'][0];
-        } else if (decodedError is Map) {
-          // If Django returns per-field errors (e.g.: {"email": ["Ya existe"]})
-          errorMessage = decodedError.values.first.toString();
+        } else if (decodedError is Map && decodedError.containsKey('detail')) {
+          errorMessage = decodedError['detail'].toString();
+        } else if (decodedError is Map &&
+            decodedError.containsKey('non_field_errors')) {
+          final nfe = decodedError['non_field_errors'];
+          errorMessage = (nfe is List && nfe.isNotEmpty)
+              ? nfe.first.toString()
+              : nfe.toString();
+        } else if (decodedError is Map && decodedError.isNotEmpty) {
+          // Errores por campo, ej. {"ingredients": ["mensaje"]}
+          final firstValue = decodedError.values.first;
+          errorMessage = (firstValue is List && firstValue.isNotEmpty)
+              ? firstValue.first.toString()
+              : firstValue.toString();
         }
       } catch (e) {
-        // Fallback if the response is not valid JSON
         errorMessage = 'Error $statusCode: ${response.reasonPhrase}';
       }
 
@@ -46,6 +57,8 @@ mixin ErrorHandlerMixin {
 
   /// Processes network errors (SocketException, etc.) or internal errors during the request.
   Exception handleNetworkError(dynamic error) {
-    return Exception('Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error');
+    return Exception(
+      'Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error',
+    );
   }
 }
