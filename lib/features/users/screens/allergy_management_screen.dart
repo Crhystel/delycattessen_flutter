@@ -110,7 +110,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
       );
       if (!mounted) return;
       if (unprotected.isNotEmpty) {
-        showWarningSnackBar(
+        showCriticalWarningSnackBar(
           'Aún no hay productos marcados con: ${unprotected.join(', ')}. '
           'Infórmaselo al personal del comedor mientras se etiquetan los productos.',
           title: 'Guardado, pero sin protección automática todavía',

@@ -14,15 +14,32 @@ abstract class NotificationSnackBarTemplate {
   final String? title;
   final Duration? duration;
 
+  /// Cuando es true, desactiva el auto-dismiss por temporizador y el
+  /// tap-anywhere-to-dismiss: solo se cierra con el botón X. Reservado para
+  /// avisos que el usuario no debe poder descartar sin darse cuenta.
+  final bool requireManualDismiss;
+
+  /// Overrides opcionales de color para casos puntuales (p. ej. un aviso de
+  /// advertencia que necesita verse más crítico) sin crear un tipo nuevo.
+  final Color? headerBackgroundOverride;
+  final Color? accentColorOverride;
+
   const NotificationSnackBarTemplate({
     required this.message,
     this.title,
     this.duration,
+    this.requireManualDismiss = false,
+    this.headerBackgroundOverride,
+    this.accentColorOverride,
   });
 
-  Color get headerBackground;
-  Color get accentColor;
+  Color get baseHeaderBackground;
+  Color get baseAccentColor;
   IconData get icon;
+
+  Color get headerBackground =>
+      headerBackgroundOverride ?? baseHeaderBackground;
+  Color get accentColor => accentColorOverride ?? baseAccentColor;
 
   /// Header decorativo: fondo suave del tipo + círculos flotantes en los
   /// tres colores de marca, con el ícono de estado centrado como badge.
@@ -160,9 +177,15 @@ abstract class NotificationSnackBarTemplate {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [buildHeader(), buildBody()],
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [buildHeader(), buildBody()],
+          ),
+          if (requireManualDismiss) buildCloseButton(onDismiss),
+        ],
       ),
     );
   }
@@ -173,13 +196,16 @@ class SuccessNotificationTemplate extends NotificationSnackBarTemplate {
     required super.message,
     super.title,
     super.duration,
+    super.requireManualDismiss,
+    super.headerBackgroundOverride,
+    super.accentColorOverride,
   });
 
   @override
-  Color get headerBackground => AppColors.successBg;
+  Color get baseHeaderBackground => AppColors.successBg;
 
   @override
-  Color get accentColor => AppColors.success500;
+  Color get baseAccentColor => AppColors.success500;
 
   @override
   IconData get icon => Icons.check_rounded;
@@ -190,13 +216,16 @@ class DangerNotificationTemplate extends NotificationSnackBarTemplate {
     required super.message,
     super.title,
     super.duration,
+    super.requireManualDismiss,
+    super.headerBackgroundOverride,
+    super.accentColorOverride,
   });
 
   @override
-  Color get headerBackground => AppColors.dangerBg;
+  Color get baseHeaderBackground => AppColors.dangerBg;
 
   @override
-  Color get accentColor => AppColors.danger500;
+  Color get baseAccentColor => AppColors.danger500;
 
   @override
   IconData get icon => Icons.close_rounded;
@@ -207,13 +236,16 @@ class WarningNotificationTemplate extends NotificationSnackBarTemplate {
     required super.message,
     super.title,
     super.duration,
+    super.requireManualDismiss,
+    super.headerBackgroundOverride,
+    super.accentColorOverride,
   });
 
   @override
-  Color get headerBackground => AppColors.warningBg;
+  Color get baseHeaderBackground => AppColors.warningBg;
 
   @override
-  Color get accentColor => AppColors.warning500;
+  Color get baseAccentColor => AppColors.warning500;
 
   @override
   IconData get icon => Icons.priority_high_rounded;
@@ -224,20 +256,24 @@ class InfoNotificationTemplate extends NotificationSnackBarTemplate {
     required super.message,
     super.title,
     super.duration,
+    super.requireManualDismiss,
+    super.headerBackgroundOverride,
+    super.accentColorOverride,
   });
 
   @override
-  Color get headerBackground => AppColors.teal50;
+  Color get baseHeaderBackground => AppColors.teal50;
 
   @override
-  Color get accentColor => AppColors.teal500;
+  Color get baseAccentColor => AppColors.teal500;
 
   @override
   IconData get icon => Icons.info_rounded;
 }
 
-/// Tarjeta flotante centrada, con animación simple de entrada/salida y
-/// auto-cierre (además del botón X manual).
+/// Tarjeta flotante centrada, con animación simple de entrada/salida.
+/// Se auto-cierra con temporizador y al tocar la pantalla, salvo que el
+/// template exija cierre manual (solo entonces aparece el botón X).
 class _FloatingNotificationCard extends StatefulWidget {
   final NotificationSnackBarTemplate template;
   final VoidCallback onDismiss;
@@ -277,10 +313,12 @@ class _FloatingNotificationCardState extends State<_FloatingNotificationCard>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
-    _autoDismissTimer = Timer(
-      widget.template.duration ?? const Duration(seconds: 4),
-      _dismiss,
-    );
+    if (!widget.template.requireManualDismiss) {
+      _autoDismissTimer = Timer(
+        widget.template.duration ?? const Duration(seconds: 4),
+        _dismiss,
+      );
+    }
   }
 
   void _dismiss() {
@@ -303,7 +341,7 @@ class _FloatingNotificationCardState extends State<_FloatingNotificationCard>
     return Positioned.fill(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: _dismiss,
+        onTap: widget.template.requireManualDismiss ? null : _dismiss,
         child: Align(
           alignment: Alignment.center,
           child: FadeTransition(
@@ -338,6 +376,9 @@ class AppNotificationMessenger {
     required String message,
     String? title,
     Duration? duration,
+    bool requireManualDismiss = false,
+    Color? headerBackgroundOverride,
+    Color? accentColorOverride,
   }) {
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
@@ -350,6 +391,9 @@ class AppNotificationMessenger {
       message: message,
       title: title,
       duration: duration,
+      requireManualDismiss: requireManualDismiss,
+      headerBackgroundOverride: headerBackgroundOverride,
+      accentColorOverride: accentColorOverride,
     );
 
     late final OverlayEntry entry;
@@ -377,6 +421,9 @@ class AppNotificationMessenger {
     required String message,
     String? title,
     Duration? duration,
+    bool requireManualDismiss = false,
+    Color? headerBackgroundOverride,
+    Color? accentColorOverride,
   }) {
     switch (type) {
       case NotificationType.success:
@@ -384,24 +431,36 @@ class AppNotificationMessenger {
           message: message,
           title: title,
           duration: duration,
+          requireManualDismiss: requireManualDismiss,
+          headerBackgroundOverride: headerBackgroundOverride,
+          accentColorOverride: accentColorOverride,
         );
       case NotificationType.danger:
         return DangerNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
+          requireManualDismiss: requireManualDismiss,
+          headerBackgroundOverride: headerBackgroundOverride,
+          accentColorOverride: accentColorOverride,
         );
       case NotificationType.warning:
         return WarningNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
+          requireManualDismiss: requireManualDismiss,
+          headerBackgroundOverride: headerBackgroundOverride,
+          accentColorOverride: accentColorOverride,
         );
       case NotificationType.info:
         return InfoNotificationTemplate(
           message: message,
           title: title,
           duration: duration,
+          requireManualDismiss: requireManualDismiss,
+          headerBackgroundOverride: headerBackgroundOverride,
+          accentColorOverride: accentColorOverride,
         );
     }
   }
@@ -414,6 +473,9 @@ mixin NotificationMixin<T extends StatefulWidget> on State<T> {
     String message, {
     String? title,
     Duration? duration,
+    bool requireManualDismiss = false,
+    Color? headerBackgroundOverride,
+    Color? accentColorOverride,
   }) {
     AppNotificationMessenger.show(
       context,
@@ -421,6 +483,9 @@ mixin NotificationMixin<T extends StatefulWidget> on State<T> {
       message: message,
       title: title,
       duration: duration,
+      requireManualDismiss: requireManualDismiss,
+      headerBackgroundOverride: headerBackgroundOverride,
+      accentColorOverride: accentColorOverride,
     );
   }
 
@@ -456,6 +521,22 @@ mixin NotificationMixin<T extends StatefulWidget> on State<T> {
       message,
       title: title,
       duration: duration,
+    );
+  }
+
+  /// Advertencia que el usuario debe cerrar a propósito con el botón X —
+  /// sin auto-dismiss ni tap-anywhere — y con tonos rojizos para que
+  /// destaque más que una advertencia normal. Pensada para casos puntuales
+  /// (p. ej. alergias sin productos etiquetados) donde no queremos que se
+  /// pierda por accidente.
+  void showCriticalWarningSnackBar(String message, {String? title}) {
+    showNotificationSnackBar(
+      NotificationType.warning,
+      message,
+      title: title,
+      requireManualDismiss: true,
+      headerBackgroundOverride: AppColors.dangerBg,
+      accentColorOverride: AppColors.danger500,
     );
   }
 
