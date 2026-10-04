@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -10,9 +11,8 @@ import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../auth/screens/login_screen.dart';
-import '../../wallet/screens/wallet_recharge_screen.dart';
+import '../providers/children_provider.dart';
 import 'child_detail_screen.dart';
-import '../../menu/screens/menu_screen.dart';
 
 class ChildrenListScreen extends StatefulWidget {
   const ChildrenListScreen({super.key});
@@ -24,15 +24,27 @@ class ChildrenListScreen extends StatefulWidget {
 class _ChildrenListScreenState extends State<ChildrenListScreen>
     with NotificationMixin {
   final _authService = AuthService();
-  List<Child> _children = [];
   String _userName = '';
-  bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadChildren();
+    Future.microtask(() => context.read<ChildrenProvider>().ensureLoaded());
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    try {
+      final me = await _authService.getMe();
+      if (!mounted) return;
+      setState(() {
+        _userName = me.firstName.isNotEmpty
+            ? me.firstName
+            : (me.email != null && me.email!.isNotEmpty
+                  ? me.email!.split('@').first
+                  : 'Usuario');
+      });
+    } catch (_) {}
   }
 
   String _getTodaySpanish() {
@@ -47,38 +59,6 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       'domingo',
     ];
     return days[now.weekday - 1];
-  }
-
-  Future<void> _loadChildren() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    try {
-      final children = await _authService.getChildren();
-      try {
-        final me = await _authService.getMe();
-        if (mounted) {
-          _userName = me.firstName.isNotEmpty
-              ? me.firstName
-              : (me.email != null && me.email!.isNotEmpty
-                    ? me.email!.split('@').first
-                    : 'Usuario');
-        }
-      } catch (_) {}
-
-      if (!mounted) return;
-      setState(() {
-        _children = children;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _confirmLogout() async {
@@ -105,69 +85,19 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     );
   }
 
-  void _openWallet([Child? preselected]) async {
-    final withWallet = _children.where((c) => c.walletId != null).toList();
-    if (withWallet.isEmpty) {
-      showWarningSnackBar(
-        'Ningún hijo tiene billetera activa todavía.',
-        title: 'Sin billetera activa',
-      );
-      return;
-    }
-    final target = preselected ?? withWallet.first;
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => WalletRechargeScreen(
-          children: withWallet
-              .map(
-                (c) => ChildOption(
-                  walletId: c.walletId!,
-                  name: '${c.firstName} ${c.lastName}',
-                  currentBalance: c.balance ?? 0,
-                  profilePictureUrl: c.profilePictureUrl,
-                  studentId: c.id,
-                ),
-              )
-              .toList(),
-          initialWalletId: target.walletId!,
-        ),
-      ),
-    );
-    if (result == true) _loadChildren();
-  }
-
-  void _openMenu() {
-    if (_children.isEmpty) {
-      showWarningSnackBar(
-        'Registra al menos un hijo para ver el menú.',
-        title: 'Sin hijos registrados',
-      );
-      return;
-    }
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (_) => MenuScreen(studentId: _children.first.id),
-          ),
-        )
-        .then((_) => _loadChildren());
-  }
-
   void _openChildDetail(Child child) {
     Navigator.of(context)
         .push(
-          MaterialPageRoute(
-            builder: (_) =>
-                ChildDetailScreen(child: child, allChildren: _children),
-          ),
+          MaterialPageRoute(builder: (_) => ChildDetailScreen(child: child)),
         )
-        .then(
-          (_) => _loadChildren(),
-        ); // refresca saldo al volver, por si recargó desde ahí
+        .then((_) => context.read<ChildrenProvider>().refresh());
   }
 
   @override
   Widget build(BuildContext context) {
+    final childrenProvider = context.watch<ChildrenProvider>();
+    final children = childrenProvider.children;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -175,7 +105,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
           const FloatingBubbles(corner: BubbleCorner.topRight),
           SafeArea(
             child: RefreshIndicator(
-              onRefresh: _loadChildren,
+              onRefresh: () => childrenProvider.refresh(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
@@ -231,7 +161,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (_isLoading)
+                    if (childrenProvider.isLoading &&
+                        !childrenProvider.hasLoadedOnce)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
                         child: Center(
@@ -240,15 +171,15 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                           ),
                         ),
                       )
-                    else if (_errorMessage != null)
+                    else if (childrenProvider.errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          _errorMessage!,
+                          childrenProvider.errorMessage!,
                           style: GoogleFonts.nunito(color: AppColors.danger700),
                         ),
                       )
-                    else if (_children.isEmpty)
+                    else if (children.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         child: Text(
@@ -259,7 +190,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                         ),
                       )
                     else
-                      ..._children.map((c) => _buildChildCard(c)),
+                      ...children.map((c) => _buildChildCard(c)),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -271,7 +202,9 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                               builder: (_) => const StudentRegistrationScreen(),
                             ),
                           );
-                          _loadChildren();
+                          if (mounted) {
+                            context.read<ChildrenProvider>().refresh();
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.secondary500,
@@ -298,9 +231,16 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: 0,
-        onTap: (index) {
-          if (index == 1) _openMenu();
-          if (index == 2) _openWallet();
+        studentId: children.isNotEmpty ? children.first.id : null,
+        onBeforeNavigate: (index) {
+          if (children.isEmpty) {
+            showWarningSnackBar(
+              'Registra al menos un hijo para continuar.',
+              title: 'Sin hijos registrados',
+            );
+            return false;
+          }
+          return true;
         },
       ),
     );

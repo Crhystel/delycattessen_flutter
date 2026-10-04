@@ -1,22 +1,65 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../../features/menu/screens/menu_screen.dart';
+import '../../features/menu/screens/orders_screen.dart';
+import '../../features/wallet/screens/wallet_recharge_screen.dart';
 
+/// Barra de navegación inferior única para toda la app. Centraliza a dónde
+/// lleva cada pestaña (Home/Menú/Billetera/Pedidos) para que agregar o
+/// cambiar un destino se haga en un solo lugar, no en cada pantalla que
+/// la muestra.
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
-  final ValueChanged<int>? onTap;
 
-  const CustomBottomNav({super.key, required this.currentIndex, this.onTap});
+  /// Hijo "activo" para las pantallas que lo necesitan (Menú y Pedidos).
+  /// Puede quedar en null; cada pantalla destino decide qué hacer sin él.
+  final int? studentId;
 
-  void _handleDefaultNavigation(BuildContext context, int index) {
+  final bool Function(int index)? onBeforeNavigate;
+  final void Function(int index)? onReturn;
+
+  const CustomBottomNav({
+    super.key,
+    required this.currentIndex,
+    this.studentId,
+    this.onBeforeNavigate,
+    this.onReturn,
+  });
+
+  void _navigate(BuildContext context, int index) {
     if (index == currentIndex) return;
+    if (onBeforeNavigate != null && !onBeforeNavigate!(index)) return;
 
-    // Only "home" has a safe default (no extra context needed). Menu,
-    // wallet and orders require studentId/wallet data that this generic
-    // widget doesn't have — screens that show this bar MUST pass their
-    // own onTap for indices 1, 2 and 3, or those taps do nothing.
-    if (index == 0) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    switch (index) {
+      case 0:
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        break;
+      case 1:
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder: (_) => MenuScreen(studentId: studentId),
+              ),
+            )
+            .then((_) => onReturn?.call(1));
+        break;
+      case 2:
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(builder: (_) => const WalletRechargeScreen()),
+            )
+            .then((_) => onReturn?.call(2));
+        break;
+      case 3:
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder: (_) => OrdersScreen(studentId: studentId),
+              ),
+            )
+            .then((_) => onReturn?.call(3));
+        break;
     }
   }
 
@@ -64,13 +107,7 @@ class CustomBottomNav extends StatelessWidget {
   }) {
     final isSelected = index == currentIndex;
     return GestureDetector(
-      onTap: () {
-        if (onTap != null) {
-          onTap!(index);
-        } else {
-          _handleDefaultNavigation(context, index);
-        }
-      },
+      onTap: () => _navigate(context, index),
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: 48,

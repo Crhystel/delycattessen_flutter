@@ -107,14 +107,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: 3,
-        onTap: (index) {
-          if (index == 3) return;
-          if (index == 0) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          } else {
-            Navigator.pop(context); // vuelve al menú, que ya maneja 1 y 2
-          }
-        },
+        studentId: widget.studentId,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
@@ -7,13 +8,12 @@ import '../../../core/widgets/custom_header_shape.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
-import '../../wallet/screens/wallet_recharge_screen.dart';
+import '../../children/providers/children_provider.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import 'cart_screen.dart';
 import 'product_detail_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'orders_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   final int? studentId;
@@ -32,9 +32,9 @@ class _MenuScreenState extends State<MenuScreen> {
   final Map<int, int> _cart = {}; // itemId -> quantity
   int _selectedCategoryIndex = 0;
 
-  List<Child> _children = [];
   Child? _selectedChild;
   Set<int> _childAllergenIds = {};
+  bool _hasInitializedSelectedChild = false;
 
   final List<Map<String, dynamic>> _categories = [
     {'name': 'Bar', 'icon': Icons.local_bar},
@@ -47,48 +47,42 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChildrenAndAllergies();
     _fetchMenu();
+    Future.microtask(() async {
+      await context.read<ChildrenProvider>().ensureLoaded();
+      _initializeSelectedChild();
+    });
   }
 
-  Future<void> _loadChildrenAndAllergies() async {
-    try {
-      final children = await _authService.getChildren();
-      if (!mounted || children.isEmpty) return;
+  void _initializeSelectedChild() {
+    if (_hasInitializedSelectedChild || !mounted) return;
+    final children = context.read<ChildrenProvider>().children;
+    if (children.isEmpty) return;
 
-      final initial = widget.studentId != null
-          ? children.firstWhere(
-              (c) => c.id == widget.studentId,
-              orElse: () => children.first,
-            )
-          : children.first;
+    final initial = widget.studentId != null
+        ? children.firstWhere(
+            (c) => c.id == widget.studentId,
+            orElse: () => children.first,
+          )
+        : children.first;
 
-      setState(() {
-        _children = children;
-        _selectedChild = initial;
-      });
-      await _loadChildAllergies(initial.id);
-    } catch (_) {
-      // Si falla la carga de hijos, seguimos mostrando el menú sin filtro
-      // de alérgenos en vez de bloquear toda la pantalla.
-    }
+    setState(() {
+      _selectedChild = initial;
+      _hasInitializedSelectedChild = true;
+    });
+    _loadChildAllergies(initial.id);
   }
 
   Future<void> _refreshSelectedChildBalance() async {
-    try {
-      final children = await _authService.getChildren();
-      if (!mounted || children.isEmpty) return;
-      final updated = children.firstWhere(
-        (c) => c.id == _selectedChild?.id,
-        orElse: () => children.first,
-      );
-      setState(() {
-        _children = children;
-        _selectedChild = updated;
-      });
-    } catch (_) {
-      // Si falla, se queda con el saldo anterior en pantalla.
-    }
+    await context.read<ChildrenProvider>().refresh();
+    if (!mounted) return;
+    final children = context.read<ChildrenProvider>().children;
+    if (children.isEmpty) return;
+    final updated = children.firstWhere(
+      (c) => c.id == _selectedChild?.id,
+      orElse: () => children.first,
+    );
+    setState(() => _selectedChild = updated);
   }
 
   Future<void> _loadChildAllergies(int studentId) async {
@@ -161,8 +155,8 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  void _openChildSwitcher() {
-    if (_children.length <= 1) return;
+  void _openChildSwitcher(List<Child> children) {
+    if (children.length <= 1) return;
 
     showModalBottomSheet(
       context: context,
@@ -185,7 +179,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                 ),
               ),
-              ..._children.map((child) {
+              ...children.map((child) {
                 final isSelected = child.id == _selectedChild?.id;
                 return ListTile(
                   leading: CircleAvatar(
@@ -242,31 +236,9 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-  void _onBottomNavTap(int index) {
-    if (index == _selectedBottomIndex) return;
-    if (index == 0) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const WalletRechargeScreen()),
-      ).then((_) => _refreshSelectedChildBalance());
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              OrdersScreen(studentId: _selectedChild?.id ?? widget.studentId),
-        ),
-      );
-    }
-  }
-
-  // Menu screen is always index 1 in the shared bottom nav.
-  int get _selectedBottomIndex => 1;
-
   @override
   Widget build(BuildContext context) {
+    final children = context.watch<ChildrenProvider>().children;
     double total = _cart.entries.fold(0, (sum, entry) {
       final item = _menuItems.firstWhere((i) => i.id == entry.key);
       return sum + (item.price * entry.value);
@@ -280,7 +252,7 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             const CustomHeaderShape(height: 50),
             _buildHeader(),
-            if (_selectedChild != null) _buildChildBanner(),
+            if (_selectedChild != null) _buildChildBanner(children),
             _buildCategories(),
             Expanded(
               child: _isLoading
@@ -300,8 +272,11 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       ),
       bottomNavigationBar: CustomBottomNav(
-        currentIndex: _selectedBottomIndex,
-        onTap: _onBottomNavTap,
+        currentIndex: 1,
+        studentId: _selectedChild?.id ?? widget.studentId,
+        onReturn: (index) {
+          if (index == 2) _refreshSelectedChildBalance();
+        },
       ),
     );
   }
@@ -362,12 +337,12 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildChildBanner() {
-    final canSwitch = _children.length > 1;
+  Widget _buildChildBanner(List<Child> children) {
+    final canSwitch = children.length > 1;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: GestureDetector(
-        onTap: canSwitch ? _openChildSwitcher : null,
+        onTap: canSwitch ? () => _openChildSwitcher(children) : null,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(

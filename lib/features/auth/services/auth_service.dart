@@ -163,4 +163,8 @@ class AuthService extends BaseApiService {
     });
     return Allergen.fromJson(response as Map<String, dynamic>);
   }
+
+  Future<void> changePassword(ChangePasswordRequest data) async {
+    await performPostRequest(ApiConfig.changePassword, data.toJson());
+  }
 }

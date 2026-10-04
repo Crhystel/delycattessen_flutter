@@ -7,10 +7,8 @@ import '../../../core/widgets/floating_bubbles.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'parent_register_screen.dart';
-import '../../children/screens/children_list_screen.dart';
-import 'student_registration_screen.dart';
-import '../../pos/screens/pos_home_screen.dart';
-import '../../contingency/screens/student_contingency_screen.dart';
+import 'change_password_screen.dart';
+import '../utils/auth_routing.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,43 +45,22 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
       final me = await _authService.getMe();
       if (!mounted) return;
 
-      if (me.role == 'OPERATIONS_STAFF') {
-        final displayName = me.firstName.isNotEmpty
-            ? me.firstName
-            : (_usernameController.text.trim().isNotEmpty
-                ? _usernameController.text.trim().split('@').first
-                : 'Usuario');
+      final usernameFallback = _usernameController.text.trim();
+
+      if (me.mustChangePassword) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => PosHomeScreen(userName: displayName),
+            builder: (_) => ChangePasswordScreen(
+              me: me,
+              usernameFallback: usernameFallback,
+            ),
           ),
           (route) => false,
         );
-      } else if (me.role == 'STUDENT' || me.role == 'TEACHER') {
-        final fallbackName = me.role == 'TEACHER' ? 'Docente' : 'Estudiante';
-        final displayName = me.firstName.isNotEmpty
-            ? '${me.firstName} ${me.lastName}'.trim()
-            : (_usernameController.text.trim().isNotEmpty
-                ? _usernameController.text.trim()
-                : fallbackName);
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) =>
-                StudentContingencyScreen(initialUserName: displayName),
-          ),
-          (route) => false,
-        );
-      } else if (me.hasChildren) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const ChildrenListScreen()),
-          (route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()),
-          (route) => false,
-        );
+        return;
       }
+
+      routeAfterAuth(context, me, usernameFallback: usernameFallback);
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(

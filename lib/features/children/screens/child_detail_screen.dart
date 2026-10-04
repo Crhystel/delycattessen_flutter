@@ -13,13 +13,8 @@ import 'parental_control_screen.dart';
 
 class ChildDetailScreen extends StatefulWidget {
   final Child child;
-  final List<Child> allChildren;
 
-  const ChildDetailScreen({
-    super.key,
-    required this.child,
-    required this.allChildren,
-  });
+  const ChildDetailScreen({super.key, required this.child});
 
   @override
   State<ChildDetailScreen> createState() => _ChildDetailScreenState();
@@ -39,9 +34,6 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   }
 
   void _goToWallet(BuildContext context) async {
-    final withWallet = widget.allChildren
-        .where((c) => c.walletId != null)
-        .toList();
     if (_currentChild.walletId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -52,19 +44,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     }
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => WalletRechargeScreen(
-          children: withWallet
-              .map(
-                (c) => ChildOption(
-                  walletId: c.walletId!,
-                  name: '${c.firstName} ${c.lastName}',
-                  currentBalance: c.balance ?? 0,
-                  profilePictureUrl: c.profilePictureUrl,
-                ),
-              )
-              .toList(),
-          initialWalletId: _currentChild.walletId!,
-        ),
+        builder: (_) =>
+            WalletRechargeScreen(initialWalletId: _currentChild.walletId!),
       ),
     );
     if (result == true && context.mounted) {

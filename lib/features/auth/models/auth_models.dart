@@ -116,6 +116,7 @@ class MeResponse {
   final String role;
   final bool hasChildren;
   final bool hasPaymentPin;
+  final bool mustChangePassword;
 
   MeResponse({
     required this.id,
@@ -125,6 +126,7 @@ class MeResponse {
     required this.role,
     required this.hasChildren,
     required this.hasPaymentPin,
+    required this.mustChangePassword,
   });
 
   factory MeResponse.fromJson(Map<String, dynamic> json) {
@@ -136,6 +138,7 @@ class MeResponse {
       role: json['role'] as String? ?? 'STUDENT',
       hasChildren: json['has_children'] as bool? ?? false,
       hasPaymentPin: json['has_payment_pin'] as bool? ?? false,
+      mustChangePassword: json['must_change_password'] as bool? ?? false,
     );
   }
 }
@@ -172,4 +175,22 @@ class Child {
       walletId: json['wallet_id'] as int?,
     );
   }
+}
+
+class ChangePasswordRequest {
+  final String currentPassword;
+  final String newPassword;
+  final String confirmPassword;
+
+  ChangePasswordRequest({
+    required this.currentPassword,
+    required this.newPassword,
+    required this.confirmPassword,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'current_password': currentPassword,
+    'new_password': newPassword,
+    'confirm_password': confirmPassword,
+  };
 }

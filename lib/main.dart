@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'features/auth/screens/auth_gate_screen.dart';
+import 'features/children/providers/children_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,13 +15,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "D'Elycattessen",
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6F42C9)),
+    return ChangeNotifierProvider(
+      create: (_) => ChildrenProvider(),
+      child: MaterialApp(
+        title: "D'Elycattessen",
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6F42C9)),
+        ),
+        home: const AuthGateScreen(),
       ),
-      home: const AuthGateScreen(),
     );
   }
 }

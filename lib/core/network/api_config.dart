@@ -35,4 +35,5 @@ class ApiConfig {
   static const String posIdentifyQr = '$baseUrl/pos/identify/qr/';
   static const String userQrToken = '$baseUrl/users/qr/token/';
   static const String registerBiometric = '$baseUrl/users/biometrics/register/';
+  static const String changePassword = '$baseUrl/users/change-password/';
 }

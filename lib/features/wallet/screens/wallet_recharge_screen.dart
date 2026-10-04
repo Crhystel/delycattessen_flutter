@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
@@ -7,7 +8,7 @@ import '../../../core/widgets/custom_bottom_nav.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
-import '../../menu/screens/menu_screen.dart';
+import '../../children/providers/children_provider.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import 'payphone_webview_screen.dart';
@@ -30,14 +31,13 @@ class ChildOption {
 }
 
 class WalletRechargeScreen extends StatefulWidget {
+  /// Opcional: si se pasa, la pantalla usa esta lista fija en vez de leer
+  /// del ChildrenProvider (útil si algún día hace falta un flujo con una
+  /// selección ya acotada desde afuera).
   final List<ChildOption>? children;
   final int? initialWalletId;
 
-  const WalletRechargeScreen({
-    super.key,
-    this.children,
-    this.initialWalletId,
-  });
+  const WalletRechargeScreen({super.key, this.children, this.initialWalletId});
 
   @override
   State<WalletRechargeScreen> createState() => _WalletRechargeScreenState();
@@ -49,9 +49,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   final WalletService _walletService = WalletService();
   final AuthService _authService = AuthService();
 
-  List<ChildOption> _children = [];
-  ChildOption? _selectedChild;
-  bool _isLoadingChildren = false;
+  int? _selectedWalletId;
   bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
@@ -60,45 +58,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   @override
   void initState() {
     super.initState();
-    if (widget.children != null && widget.children!.isNotEmpty) {
-      _children = List.from(widget.children!);
-      _selectedChild = _children.firstWhere(
-        (c) => c.walletId == widget.initialWalletId,
-        orElse: () => _children.first,
-      );
-    } else {
-      _loadChildrenFromApi();
-    }
-  }
-
-  Future<void> _loadChildrenFromApi() async {
-    setState(() => _isLoadingChildren = true);
-    try {
-      final children = await _authService.getChildren();
-      final withWallet = children.where((c) => c.walletId != null).toList();
-      if (!mounted) return;
-      setState(() {
-        _children = withWallet
-            .map(
-              (c) => ChildOption(
-                walletId: c.walletId!,
-                name: '${c.firstName} ${c.lastName}',
-                currentBalance: c.balance ?? 0,
-                profilePictureUrl: c.profilePictureUrl,
-                studentId: c.id,
-              ),
-            )
-            .toList();
-        if (_children.isNotEmpty) {
-          _selectedChild = _children.firstWhere(
-            (c) => c.walletId == widget.initialWalletId,
-            orElse: () => _children.first,
-          );
-        }
-        _isLoadingChildren = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingChildren = false);
+    _selectedWalletId = widget.initialWalletId;
+    if (widget.children == null) {
+      Future.microtask(() => context.read<ChildrenProvider>().ensureLoaded());
     }
   }
 
@@ -106,6 +68,34 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  /// Hijos con billetera activa, como ChildOption. Si la pantalla recibió
+  /// una lista fija por constructor la usa tal cual; si no, la deriva del
+  /// ChildrenProvider compartido (sin volver a pedir getChildren()).
+  List<ChildOption> _childrenOptions(BuildContext context) {
+    if (widget.children != null) return widget.children!;
+    final children = context.watch<ChildrenProvider>().children;
+    return children
+        .where((c) => c.walletId != null)
+        .map(
+          (c) => ChildOption(
+            walletId: c.walletId!,
+            name: '${c.firstName} ${c.lastName}',
+            currentBalance: c.balance ?? 0,
+            profilePictureUrl: c.profilePictureUrl,
+            studentId: c.id,
+          ),
+        )
+        .toList();
+  }
+
+  ChildOption? _resolveSelectedChild(List<ChildOption> children) {
+    if (children.isEmpty) return null;
+    return children.firstWhere(
+      (c) => c.walletId == _selectedWalletId,
+      orElse: () => children.first,
+    );
   }
 
   void _setQuickAmount(double amount) {
@@ -129,6 +119,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   }
 
   Future<void> _proceedToRecharge() async {
+    final selectedChild = _resolveSelectedChild(_childrenOptions(context));
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
       showWarningSnackBar(
@@ -146,7 +137,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       return;
     }
 
-    if (_selectedChild == null) {
+    if (selectedChild == null) {
       showWarningSnackBar(
         'Debes seleccionar a quién recargar saldo.',
         title: 'Selecciona un hijo',
@@ -158,13 +149,13 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     if (!confirmed || !mounted) return;
 
     if (amount < _gatewayThreshold) {
-      await _rechargeViaPayphone(amount);
+      await _rechargeViaPayphone(selectedChild, amount);
     } else {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => RechargeCardFormScreen(
-            walletId: _selectedChild!.walletId,
-            childName: _selectedChild!.name,
+            walletId: selectedChild.walletId,
+            childName: selectedChild.name,
             amount: amount,
           ),
         ),
@@ -172,12 +163,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     }
   }
 
-  Future<void> _rechargeViaPayphone(double amount) async {
-    if (_selectedChild == null) return;
+  Future<void> _rechargeViaPayphone(
+    ChildOption selectedChild,
+    double amount,
+  ) async {
     setState(() => _isSubmitting = true);
     try {
       final response = await _walletService.recharge(
-        RechargeRequest(walletId: _selectedChild!.walletId, amount: amount),
+        RechargeRequest(walletId: selectedChild.walletId, amount: amount),
       );
       if (!mounted) return;
 
@@ -192,6 +185,10 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
           'El saldo se acreditó correctamente.',
           title: '¡Recarga exitosa!',
         );
+        if (!mounted) return;
+        if (widget.children == null) {
+          await context.read<ChildrenProvider>().refresh();
+        }
         if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -207,6 +204,16 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final childrenProvider = widget.children == null
+        ? context.watch<ChildrenProvider>()
+        : null;
+    final children = _childrenOptions(context);
+    final selectedChild = _resolveSelectedChild(children);
+    final isLoadingChildren =
+        childrenProvider != null &&
+        childrenProvider.isLoading &&
+        !childrenProvider.hasLoadedOnce;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -233,9 +240,13 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                           ),
                         ),
                         const SizedBox(height: 12),
-                        _buildChildSelector(),
+                        _buildChildSelector(
+                          children,
+                          selectedChild,
+                          isLoadingChildren,
+                        ),
                         const SizedBox(height: 20),
-                        _buildBalanceCard(),
+                        _buildBalanceCard(selectedChild),
                         const SizedBox(height: 24),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -265,18 +276,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          } else if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    MenuScreen(studentId: _selectedChild?.studentId),
-              ),
-            );
-          }
-        },
+        studentId: selectedChild?.studentId,
       ),
     );
   }
@@ -311,8 +311,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     );
   }
 
-  Widget _buildChildSelector() {
-    if (_isLoadingChildren) {
+  Widget _buildChildSelector(
+    List<ChildOption> children,
+    ChildOption? selectedChild,
+    bool isLoading,
+  ) {
+    if (isLoading) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
@@ -321,7 +325,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       );
     }
 
-    if (_children.isEmpty) {
+    if (children.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -338,12 +342,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: _children.map((child) {
-        final isSelected = child.walletId == _selectedChild?.walletId;
+      children: children.map((child) {
+        final isSelected = child.walletId == selectedChild?.walletId;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: GestureDetector(
-            onTap: () => setState(() => _selectedChild = child),
+            onTap: () => setState(() => _selectedWalletId = child.walletId),
             child: Container(
               width: 88,
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -391,9 +395,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     );
   }
 
-  Widget _buildBalanceCard() {
-    final balance = _selectedChild?.currentBalance ?? 0.0;
-    final childName = _selectedChild?.name ?? 'Usuario';
+  Widget _buildBalanceCard(ChildOption? selectedChild) {
+    final balance = selectedChild?.currentBalance ?? 0.0;
+    final childName = selectedChild?.name ?? 'Usuario';
 
     return Container(
       width: double.infinity,
