@@ -2,19 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/pos_identification_model.dart';
+import '../services/pos_service.dart';
 
 /// Hoja de confirmación tras identificar al usuario en el POS. Vive como
 /// widget aparte de PosHomeScreen (Single Responsibility) porque es una
-/// pieza de presentación con su propia composición, no lógica de la
-/// pantalla principal.
-class IdentifiedUserSheet extends StatelessWidget {
+/// pieza de presentación con su propia composición y su propio estado
+/// (confirmar entrega de pedidos pendientes).
+class IdentifiedUserSheet extends StatefulWidget {
   final IdentifiedUser user;
 
   const IdentifiedUserSheet({super.key, required this.user});
 
   @override
+  State<IdentifiedUserSheet> createState() => _IdentifiedUserSheetState();
+}
+
+class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
+    with NotificationMixin {
+  final PosService _posService = PosService();
+  final Set<int> _deliveredPreOrderIds = {};
+  int? _submittingPreOrderId;
+
+  Future<void> _markAsDelivered(int preOrderId) async {
+    setState(() => _submittingPreOrderId = preOrderId);
+    try {
+      await _posService.markPreOrderDelivered(preOrderId);
+      if (!mounted) return;
+      setState(() {
+        _deliveredPreOrderIds.add(preOrderId);
+        _submittingPreOrderId = null;
+      });
+      showSuccessSnackBar(
+        'El pedido se marcó como entregado.',
+        title: 'Entrega confirmada',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submittingPreOrderId = null);
+      showErrorSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
+        title: 'No se pudo confirmar la entrega',
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = widget.user;
     final screenHeight = MediaQuery.of(context).size.height;
     return Container(
       height: screenHeight * 0.88,
@@ -141,11 +177,11 @@ class IdentifiedUserSheet extends StatelessWidget {
                   ),
                   if (user.allergies.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    _buildAllergySection(),
+                    _buildAllergySection(user),
                   ],
                   if (user.pendingOrders.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    _buildPendingOrdersSection(),
+                    _buildPendingOrdersSection(user),
                   ],
                   const SizedBox(height: 16),
                   Center(
@@ -190,7 +226,7 @@ class IdentifiedUserSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildAllergySection() {
+  Widget _buildAllergySection(IdentifiedUser user) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -253,7 +289,23 @@ class IdentifiedUserSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPendingOrdersSection() {
+  Widget _buildPendingOrdersSection(IdentifiedUser user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final preOrder in user.pendingOrders)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildPreOrderCard(preOrder),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPreOrderCard(PendingPreOrder preOrder) {
+    final isDelivered = _deliveredPreOrderIds.contains(preOrder.preOrderId);
+    final isSubmitting = _submittingPreOrderId == preOrder.preOrderId;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -272,54 +324,118 @@ class IdentifiedUserSheet extends StatelessWidget {
                 size: 22,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Pedido pendiente por entregar',
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.brand700,
+              Expanded(
+                child: Text(
+                  'Pedido pendiente por entregar',
+                  style: GoogleFonts.nunito(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.brand700,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          for (final preOrder in user.pendingOrders)
-            for (final item in preOrder.items)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.brand500,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${item.quantity}',
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
+          for (final item in preOrder.items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.brand500,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${item.quantity}',
+                      style: GoogleFonts.nunito(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        item.menuItemName,
-                        style: GoogleFonts.nunito(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink900,
-                        ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item.menuItemName,
+                      style: GoogleFonts.nunito(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink900,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: isDelivered
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.successBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success500,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Entregado',
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.success700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: isSubmitting
+                        ? null
+                        : () => _markAsDelivered(preOrder.preOrderId),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brand500,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                    label: Text(
+                      isSubmitting ? 'Confirmando...' : 'Marcar como entregado',
+                      style: GoogleFonts.nunito(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+          ),
         ],
       ),
     );

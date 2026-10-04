@@ -17,11 +17,15 @@ class PosService extends BaseApiService {
 
   /// Identifies a user in POS via dynamic QR token.
   Future<IdentifiedUser> identifyByQr(String qrToken) async {
-    final response = await performPostRequest(
-      ApiConfig.posIdentifyQr,
-      {'token': qrToken},
-      requiresAuth: true,
-    );
+    final response = await performPostRequest(ApiConfig.posIdentifyQr, {
+      'token': qrToken,
+    }, requiresAuth: true);
     return IdentifiedUser.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Marca una preorden pendiente como entregada, una vez que el cajero
+  /// identifica al estudiante en el POS y confirma la entrega del producto.
+  Future<void> markPreOrderDelivered(int preOrderId) async {
+    await performPatchRequest(ApiConfig.preOrderDeliver(preOrderId), {});
   }
 }
