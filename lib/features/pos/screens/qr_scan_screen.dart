@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
-
 
 class QrScanScreen extends BaseScannerScreen {
   const QrScanScreen({super.key});
@@ -13,7 +12,8 @@ class QrScanScreen extends BaseScannerScreen {
   State<QrScanScreen> createState() => _QrScanScreenState();
 }
 
-class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen> {
+class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen>
+    with NotificationMixin {
   final PosService _posService = PosService();
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
@@ -54,15 +54,9 @@ class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFFE0473E),
-            content: Text(
-              'Error al validar QR: ${e.toString().replaceAll("Exception: ", "")}',
-              style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
-            ),
-            duration: const Duration(seconds: 4),
-          ),
+        showErrorSnackBar(
+          e.toString().replaceFirst('Exception: ', ''),
+          title: 'Código QR inválido',
         );
         // Cooldown before scanning again
         await Future.delayed(const Duration(seconds: 2));
