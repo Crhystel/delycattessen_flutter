@@ -4,20 +4,20 @@ import 'package:camera/camera.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_colors.dart';
+import 'app_notification_messenger.dart';
 
 class FaceCaptureCameraScreen extends StatefulWidget {
   final String title;
 
-  const FaceCaptureCameraScreen({
-    super.key,
-    this.title = 'Foto de Perfil',
-  });
+  const FaceCaptureCameraScreen({super.key, this.title = 'Foto de Perfil'});
 
   @override
-  State<FaceCaptureCameraScreen> createState() => _FaceCaptureCameraScreenState();
+  State<FaceCaptureCameraScreen> createState() =>
+      _FaceCaptureCameraScreenState();
 }
 
-class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
+class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen>
+    with NotificationMixin {
   CameraController? _cameraController;
   List<CameraDescription> _availableCameras = [];
   int _selectedCameraIndex = 0;
@@ -36,7 +36,9 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        setState(() => _errorMessage = 'No se encontró ninguna cámara disponible.');
+        setState(
+          () => _errorMessage = 'No se encontró ninguna cámara disponible.',
+        );
         return;
       }
       _availableCameras = cameras;
@@ -83,12 +85,15 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
 
   Future<void> _switchCamera() async {
     if (_availableCameras.length < 2 || _isCapturing) return;
-    _selectedCameraIndex = (_selectedCameraIndex + 1) % _availableCameras.length;
+    _selectedCameraIndex =
+        (_selectedCameraIndex + 1) % _availableCameras.length;
     await _startCameraController(_availableCameras[_selectedCameraIndex]);
   }
 
   Future<void> _takePhoto() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _isCapturing) {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isCapturing) {
       return;
     }
 
@@ -103,8 +108,9 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isCapturing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al capturar la foto: $e')),
+        showErrorSnackBar(
+          e.toString().replaceFirst('Exception: ', ''),
+          title: 'No se pudo capturar la foto',
         );
       }
     }
@@ -121,8 +127,9 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al seleccionar imagen: $e')),
+        showErrorSnackBar(
+          e.toString().replaceFirst('Exception: ', ''),
+          title: 'No se pudo seleccionar la imagen',
         );
       }
     }
@@ -153,10 +160,7 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
         children: [
           // 1. Fullscreen Camera Preview or Captured Image Preview
           if (_capturedFile != null)
-            Image.file(
-              _capturedFile!,
-              fit: BoxFit.cover,
-            )
+            Image.file(_capturedFile!, fit: BoxFit.cover)
           else if (_isCameraReady && _cameraController != null)
             _buildFullscreenCameraPreview()
           else if (_errorMessage != null)
@@ -171,9 +175,7 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
               ),
             )
           else
-            const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
 
           // 2. Oval Guide Silhouette (only when taking live photo)
           if (_capturedFile == null && _isCameraReady)
@@ -196,7 +198,10 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
             child: Align(
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -207,7 +212,11 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
                           color: Colors.black.withValues(alpha: 0.4),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
@@ -229,13 +238,15 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
             ),
           ),
 
-
           // 5. Bottom Controls Bar
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
@@ -264,12 +275,9 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
 
     return Transform.scale(
       scale: scale,
-      child: Center(
-        child: CameraPreview(_cameraController!),
-      ),
+      child: Center(child: CameraPreview(_cameraController!)),
     );
   }
-
 
   Widget _buildCaptureControls() {
     return Row(
@@ -284,7 +292,11 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
               color: Colors.white.withValues(alpha: 0.25),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.photo_library_rounded, color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.photo_library_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           onPressed: _pickFromGallery,
         ),
@@ -321,7 +333,11 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
               color: Colors.white.withValues(alpha: 0.25),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.flip_camera_ios_rounded, color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.flip_camera_ios_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           onPressed: _switchCamera,
         ),
@@ -338,7 +354,9 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               side: const BorderSide(color: Colors.white, width: 2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             onPressed: _retake,
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
@@ -358,19 +376,22 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen> {
         Expanded(
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5932EA),
+              backgroundColor: AppColors.brand500,
+              foregroundColor: AppColors.ink900,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               elevation: 4,
             ),
             onPressed: _confirmAndReturn,
-            icon: const Icon(Icons.check_rounded, color: Colors.white),
+            icon: const Icon(Icons.check_rounded, color: AppColors.ink900),
             label: Text(
               'Usar foto',
               style: GoogleFonts.nunito(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: AppColors.ink900,
               ),
             ),
           ),

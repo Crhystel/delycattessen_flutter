@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/screens/auth_gate_screen.dart';
 import 'features/children/providers/children_provider.dart';
 
@@ -20,9 +21,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: "D'Elycattessen",
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6F42C9)),
-        ),
+        theme: AppTheme.light(),
         home: const AuthGateScreen(),
       ),
     );

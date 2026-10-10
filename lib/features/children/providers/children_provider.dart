@@ -18,6 +18,7 @@ class ChildrenProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _hasLoadedOnce = false;
+  int? _selectedChildId;
 
   List<Child> get children => List.unmodifiable(_children);
   bool get isLoading => _isLoading;
@@ -25,6 +26,22 @@ class ChildrenProvider extends ChangeNotifier {
   bool get hasLoadedOnce => _hasLoadedOnce;
 
   Child? get firstChild => _children.isNotEmpty ? _children.first : null;
+
+  /// Hijo "activo" compartido por Menú, Pedidos y Billetera. Si todavía no
+  /// se eligió uno (o ya no existe tras una recarga) cae en el primero.
+  Child? get selectedChild {
+    if (_children.isEmpty) return null;
+    return _children.firstWhere(
+      (c) => c.id == _selectedChildId,
+      orElse: () => _children.first,
+    );
+  }
+
+  void select(int childId) {
+    if (_selectedChildId == childId) return;
+    _selectedChildId = childId;
+    notifyListeners();
+  }
 
   List<Child> get childrenWithWallet =>
       _children.where((c) => c.walletId != null).toList();

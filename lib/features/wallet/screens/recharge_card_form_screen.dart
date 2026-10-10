@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
@@ -217,20 +217,8 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.ink900),
-        title: Text(
-          'Recarga segura',
-          style: GoogleFonts.nunito(
-            color: AppColors.ink900,
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.ink50,
+      appBar: AppBar(title: const Text('Recarga segura')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
@@ -324,12 +312,12 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
                   value: _acceptedTerms,
                   onChanged: (value) =>
                       setState(() => _acceptedTerms = value ?? false),
-                  activeColor: AppColors.secondary500,
+                  activeColor: AppColors.teal500,
                 ),
                 Expanded(
                   child: Text(
                     'Acepto los Términos y Condiciones',
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       fontSize: 12,
                       color: AppColors.ink900.withValues(alpha: 0.7),
                     ),
@@ -341,40 +329,15 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
               const SizedBox(height: 10),
               Text(
                 _errorMessage!,
-                style: GoogleFonts.nunito(
-                  color: AppColors.danger700,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.danger700, fontSize: 12),
               ),
             ],
             const SizedBox(height: 18),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _confirmPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary500,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        'Confirmar pago',
-                        style: GoogleFonts.nunito(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
+            PrimaryButton(
+              label: 'Confirmar pago',
+              icon: Icons.lock_outline,
+              isLoading: _isSubmitting,
+              onPressed: _confirmPayment,
             ),
             const SizedBox(height: 20),
           ],
@@ -389,7 +352,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.secondary700, AppColors.teal500],
+          colors: [AppColors.teal700, AppColors.teal500],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -439,7 +402,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
             _cardNumberController.text.isEmpty
                 ? '**** **** **** ****'
                 : _cardNumberController.text,
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 17,
               letterSpacing: 2,
               color: Colors.white,
@@ -455,16 +418,13 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
                 children: [
                   Text(
                     'Titular',
-                    style: GoogleFonts.nunito(
-                      fontSize: 9,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 9, color: Colors.white70),
                   ),
                   Text(
                     _holderNameController.text.isEmpty
                         ? 'NOMBRE APELLIDO'
                         : _holderNameController.text.toUpperCase(),
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       fontSize: 12,
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -477,16 +437,13 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
                 children: [
                   Text(
                     'Vence',
-                    style: GoogleFonts.nunito(
-                      fontSize: 9,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 9, color: Colors.white70),
                   ),
                   Text(
                     _expirationController.text.isEmpty
                         ? '00/00'
                         : _expirationController.text,
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       fontSize: 12,
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -519,7 +476,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
           Expanded(
             child: Text(
               widget.childName,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.ink900,
               ),
@@ -531,14 +488,14 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
               Text(
                 'Monto a\nrecargar',
                 textAlign: TextAlign.right,
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 10,
                   color: AppColors.ink900.withValues(alpha: 0.5),
                 ),
               ),
               Text(
                 '\$${widget.amount.toStringAsFixed(2)}',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: AppColors.brand700,
@@ -555,10 +512,10 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       text,
-      style: GoogleFonts.nunito(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: AppColors.secondary500,
+        color: AppColors.teal700,
         letterSpacing: 0.5,
       ),
     ),
@@ -577,44 +534,13 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       keyboardType: keyboardType,
       obscureText: obscure,
       inputFormatters: inputFormatters,
-      style: GoogleFonts.nunito(color: AppColors.ink900),
+      style: TextStyle(color: AppColors.ink900),
       onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.nunito(
-          color: AppColors.ink900.withValues(alpha: 0.35),
-          fontSize: 13,
-        ),
         prefixIcon: icon != null
-            ? Icon(icon, color: AppColors.secondary500, size: 20)
+            ? Icon(icon, color: AppColors.teal700, size: 20)
             : null,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary700,
-            width: 1.8,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
       ),
     );
   }
@@ -628,49 +554,15 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
               value: type,
               child: Text(
                 type.label,
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  color: AppColors.ink900,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.ink900),
               ),
             ),
           )
           .toList(),
       onChanged: (value) =>
           setState(() => _documentType = value ?? DocumentType.cedula),
-      icon: const Icon(
-        Icons.keyboard_arrow_down,
-        color: AppColors.secondary500,
-      ),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary700,
-            width: 1.8,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-      ),
+      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.teal700),
+      decoration: const InputDecoration(),
     );
   }
 }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// Brand roles:
+/// - teal (azul caribe): main color, structure (headers, balance card, selection).
+/// - brand (amarillo): main color, action (primary button, active tab).
+/// - secondary (morado): accompanying accent only, small touches.
 class AppColors {
   static const Color brand50 = Color(0xFFFEF8EC);
   static const Color brand500 = Color(0xFFE8A020);

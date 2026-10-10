@@ -1,16 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/config/password_policy.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/password_requirements.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
-import '../../children/screens/children_list_screen.dart';
+import '../../children/screens/parent_shell.dart';
 import 'login_screen.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
@@ -104,10 +104,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   Future<void> _submit() async {
     if (_photo == null) {
-      showWarningSnackBar(
-        'La foto es obligatoria.',
-        title: 'Falta la foto',
-      );
+      showWarningSnackBar('La foto es obligatoria.', title: 'Falta la foto');
       return;
     }
     if (_usernameController.text.trim().isEmpty) {
@@ -149,7 +146,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const ChildrenListScreen()),
+        MaterialPageRoute(builder: (_) => const ParentShell()),
         (route) => false,
       );
     } catch (e) {
@@ -166,19 +163,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
       appBar: AppBar(
-        backgroundColor: AppColors.teal500,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          'Registro',
-          style: GoogleFonts.nunito(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-        ),
+        title: const Text('Registro'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -205,7 +192,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             children: [
               Text(
                 _currentStep == 0 ? 'Paso 1 de 2' : 'Paso 2 de 2',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 12,
                   color: AppColors.ink900.withValues(alpha: 0.5),
                 ),
@@ -221,42 +208,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               const SizedBox(height: 20),
               if (_currentStep == 0) _buildStep1() else _buildStep2(),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () {
-                          debugPrint(
-                            'Botón presionado, paso actual: $_currentStep',
-                          );
-                          _currentStep == 0 ? _goToStep2() : _submit();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary500,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _currentStep == 0 ? 'Siguiente' : 'Crear cuenta',
-                          style: GoogleFonts.nunito(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
+              PrimaryButton(
+                label: _currentStep == 0 ? 'Siguiente' : 'Crear cuenta',
+                isLoading: _isSubmitting,
+                onPressed: () {
+                  _currentStep == 0 ? _goToStep2() : _submit();
+                },
               ),
               const SizedBox(height: 20),
             ],
@@ -273,7 +230,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         Center(
           child: Text(
             'Datos de tu hijo/a',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
               color: AppColors.ink900,
@@ -285,7 +242,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           child: Text(
             'Ingresa la información para asignar su cuenta',
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 13,
               color: AppColors.ink900.withValues(alpha: 0.6),
             ),
@@ -325,44 +282,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     setState(() => _selectedInstitution = value),
                 icon: const Icon(
                   Icons.keyboard_arrow_down,
-                  color: AppColors.secondary500,
+                  color: AppColors.teal700,
                 ),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Selecciona la institución',
-                  hintStyle: GoogleFonts.nunito(
-                    color: AppColors.ink900.withValues(alpha: 0.35),
-                    fontSize: 13,
-                  ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.account_balance_outlined,
-                    color: AppColors.secondary500,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.secondary500,
-                      width: 1.4,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.secondary500,
-                      width: 1.4,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.secondary700,
-                      width: 1.8,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                    color: AppColors.teal700,
                   ),
                 ),
               ),
@@ -377,7 +303,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         Text(
           'Crea la cuenta',
           textAlign: TextAlign.center,
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: AppColors.ink900,
@@ -387,7 +313,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         Text(
           'Esta cuenta permitirá a tu hijo/a acceder a la aplicación',
           textAlign: TextAlign.center,
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 13,
             color: AppColors.ink900.withValues(alpha: 0.6),
           ),
@@ -407,7 +333,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     border: Border.all(
                       color: _photo != null
                           ? AppColors.secondary500
-                          : const Color(0xFFE2E8F0),
+                          : AppColors.teal50,
                       width: 2,
                     ),
                     image: _photo != null
@@ -433,13 +359,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary500,
+                      color: AppColors.brand500,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2.5),
                     ),
                     child: const Icon(
                       Icons.camera_alt_rounded,
-                      color: Colors.white,
+                      color: AppColors.ink900,
                       size: 20,
                     ),
                   ),
@@ -454,14 +380,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             onPressed: _pickPhoto,
             icon: const Icon(
               Icons.photo_camera_rounded,
-              color: AppColors.secondary500,
+              color: AppColors.teal500,
               size: 20,
             ),
             label: Text(
               _photo == null ? 'Tomar o Elegir Foto' : 'Cambiar Foto',
-              style: GoogleFonts.nunito(
-                color: AppColors.secondary500,
-                fontWeight: FontWeight.w700,
+              style: TextStyle(
+                color: AppColors.teal500,
+                fontWeight: FontWeight.w800,
                 fontSize: 15,
               ),
             ),
@@ -470,7 +396,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         Center(
           child: Text(
             'Puedes usar la cámara a pantalla completa o elegir de tu galería',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 12,
               color: AppColors.ink900.withValues(alpha: 0.5),
             ),
@@ -480,7 +406,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         _label('Usuario'),
         TextField(
           controller: _usernameController,
-          style: GoogleFonts.nunito(color: AppColors.ink900),
+          style: TextStyle(color: AppColors.ink900),
           decoration: _decoration('Ej. usuario123', icon: Icons.person_outline),
         ),
         const SizedBox(height: 16),
@@ -489,7 +415,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           controller: _passwordController,
           obscureText: _obscurePassword,
           onChanged: (_) => setState(() {}),
-          style: GoogleFonts.nunito(color: AppColors.ink900),
+          style: TextStyle(color: AppColors.ink900),
           decoration: _decoration(
             'Crea una contraseña segura',
             icon: Icons.lock_outline,
@@ -510,15 +436,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               value: _acceptedTerms,
               onChanged: (value) =>
                   setState(() => _acceptedTerms = value ?? false),
-              activeColor: AppColors.secondary500,
+              activeColor: AppColors.teal500,
             ),
             Expanded(
               child: Text(
                 'Acepto Términos y Condiciones',
-                style: GoogleFonts.nunito(
-                  fontSize: 12,
-                  color: AppColors.ink900,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.ink900),
               ),
             ),
           ],
@@ -531,10 +454,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       text,
-      style: GoogleFonts.nunito(
+      style: const TextStyle(
         fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: AppColors.secondary500,
+        fontWeight: FontWeight.w800,
+        color: AppColors.teal700,
       ),
     ),
   );
@@ -542,58 +465,15 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   Widget _field(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
-      style: GoogleFonts.nunito(color: AppColors.ink900),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.nunito(
-          color: AppColors.ink900.withValues(alpha: 0.35),
-          fontSize: 13,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary500,
-            width: 1.4,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: AppColors.secondary700,
-            width: 1.8,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 14,
-        ),
-      ),
+      decoration: InputDecoration(hintText: hint),
     );
   }
 
   InputDecoration _decoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: icon != null
-          ? Icon(icon, color: AppColors.ink900.withValues(alpha: 0.4))
-          : null,
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.teal700) : null,
       suffixIcon: suffix,
-      filled: true,
-      fillColor: AppColors.ink50,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
 }

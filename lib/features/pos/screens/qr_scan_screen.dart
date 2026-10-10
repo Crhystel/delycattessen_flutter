@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
@@ -12,8 +12,7 @@ class QrScanScreen extends BaseScannerScreen {
   State<QrScanScreen> createState() => _QrScanScreenState();
 }
 
-class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen>
-    with NotificationMixin {
+class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen> {
   final PosService _posService = PosService();
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
@@ -83,7 +82,7 @@ class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen>
         // Stylized Amber QR Icon Overlay (Figura 26)
         Icon(
           Icons.qr_code_2_rounded,
-          color: const Color(0xFFE5A93C).withValues(alpha: 0.35),
+          color: AppColors.brand500.withValues(alpha: 0.35),
           size: 130,
         ),
 
@@ -91,7 +90,7 @@ class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen>
           Container(
             color: Colors.black54,
             child: const Center(
-              child: CircularProgressIndicator(color: Color(0xFFE5A93C)),
+              child: CircularProgressIndicator(color: AppColors.brand500),
             ),
           ),
       ],

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/custom_header_shape.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 
@@ -34,11 +35,19 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   final MenuService _menuService = MenuService();
   bool _isLoading = false;
 
+  /// Ítems del carrito resueltos contra el menú. Se ignoran ids que ya no
+  /// existan en el menú para no romper la pantalla.
+  List<MapEntry<MenuItem, int>> get _lines {
+    final lines = <MapEntry<MenuItem, int>>[];
+    for (final entry in widget.cart.entries) {
+      final matches = widget.menuItems.where((i) => i.id == entry.key);
+      if (matches.isNotEmpty) lines.add(MapEntry(matches.first, entry.value));
+    }
+    return lines;
+  }
+
   double get _total {
-    return widget.cart.entries.fold(0, (sum, entry) {
-      final item = widget.menuItems.firstWhere((i) => i.id == entry.key);
-      return sum + (item.price * entry.value);
-    });
+    return _lines.fold(0, (sum, line) => sum + (line.key.price * line.value));
   }
 
   /// Ítems del carrito que contienen algún alérgeno registrado para el hijo
@@ -48,8 +57,8 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   /// en MenuScreen.
   List<MenuItem> get _unsafeCartItems {
     if (widget.childAllergenIds.isEmpty) return [];
-    return widget.cart.keys
-        .map((id) => widget.menuItems.firstWhere((i) => i.id == id))
+    return _lines
+        .map((line) => line.key)
         .where(
           (item) =>
               item.allergens.any((a) => widget.childAllergenIds.contains(a.id)),
@@ -119,65 +128,32 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
 
   @override
   Widget build(BuildContext context) {
-    final hasUnsafeItems = _unsafeCartItems.isNotEmpty;
+    final unsafeItems = _unsafeCartItems;
+    final hasUnsafeItems = unsafeItems.isNotEmpty;
+    final lines = _lines;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
+      appBar: AppBar(title: const Text('Mi carrito')),
       body: SafeArea(
         child: Stack(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CustomHeaderShape(height: 50),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
-                        color: AppColors.ink900,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Text(
-                      'Mi carrito',
-                      style: GoogleFonts.nunito(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (hasUnsafeItems) _buildAllergenWarningBanner(),
+                if (hasUnsafeItems) _buildAllergenWarningBanner(unsafeItems),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      ...widget.cart.entries.map((e) {
-                        final item = widget.menuItems.firstWhere(
-                          (i) => i.id == e.key,
-                        );
-                        final isUnsafe = _unsafeCartItems.contains(item);
-                        return _buildCartItemCard(item, e.value, isUnsafe);
-                      }),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Método de pago',
-                        style: GoogleFonts.nunito(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.ink900.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildPaymentOption(
-                        'Billetera Digital',
-                        Icons.account_balance_wallet,
-                        true,
-                      ),
-                    ],
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    itemCount: lines.length,
+                    itemBuilder: (context, index) {
+                      final item = lines[index].key;
+                      return _buildCartItemCard(
+                        item,
+                        lines[index].value,
+                        unsafeItems.contains(item),
+                      );
+                    },
                   ),
                 ),
                 _buildBottomBar(hasUnsafeItems),
@@ -187,9 +163,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.secondary500,
-                  ),
+                  child: CircularProgressIndicator(color: AppColors.brand500),
                 ),
               ),
           ],
@@ -198,29 +172,52 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildAllergenWarningBanner() {
+  /// Único aviso de alérgenos de la pantalla: lista qué producto contiene qué.
+  Widget _buildAllergenWarningBanner(List<MenuItem> unsafeItems) {
+    final textTheme = Theme.of(context).textTheme;
+    final childLabel = widget.childName.isNotEmpty
+        ? widget.childName
+        : 'este hijo';
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.dangerBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.smAll,
         border: Border.all(color: AppColors.danger500),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.warning_amber_rounded, color: AppColors.danger500),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              'Hay productos en tu carrito con alérgenos de '
-              '${widget.childName.isNotEmpty ? widget.childName : "este hijo"}. '
-              'Quítalos antes de pagar.',
-              style: GoogleFonts.nunito(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.danger500,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Quita estos productos antes de pagar ($childLabel tiene alergias):',
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.danger700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...unsafeItems.map(
+                  (item) => Text(
+                    '• ${item.name}: ${_allergenNamesFor(item).join(", ")}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.danger700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -229,128 +226,71 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   }
 
   Widget _buildCartItemCard(MenuItem item, int quantity, bool isUnsafe) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isUnsafe ? AppColors.danger500 : Colors.grey.shade300,
-          width: isUnsafe ? 1.5 : 1,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        color: isUnsafe ? AppColors.dangerBg : Colors.white,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: AppColors.ink50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.fastfood, color: Color(0xFF8A8686)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: GoogleFonts.nunito(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '\$${item.price.toStringAsFixed(2)}',
-                      style: GoogleFonts.nunito(
-                        color: AppColors.brand700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.ink50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: Color(0xFF8A8686),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$quantity',
-                      style: GoogleFonts.nunito(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.add, size: 16, color: Color(0xFF8A8686)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (isUnsafe) ...[
-            const SizedBox(height: 8),
-            Text(
-              '⚠ Contiene: ${_allergenNamesFor(item).join(", ")}',
-              style: GoogleFonts.nunito(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.danger500,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentOption(String title, IconData icon, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isSelected ? AppColors.secondary500 : Colors.grey.shade300,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    final textTheme = Theme.of(context).textTheme;
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      color: isUnsafe ? AppColors.dangerBg : Colors.white,
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.brand50,
-              shape: BoxShape.circle,
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: AppColors.teal50,
+              borderRadius: AppRadius.smAll,
             ),
-            child: Icon(icon, color: AppColors.brand700, size: 20),
+            child: const Icon(Icons.fastfood, color: AppColors.teal500),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(
-              title,
-              style: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '\$${item.price.toStringAsFixed(2)} c/u',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.ink900.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
             ),
           ),
-          Icon(
-            isSelected
-                ? Icons.radio_button_checked
-                : Icons.radio_button_unchecked,
-            color: isSelected
-                ? AppColors.secondary500
-                : const Color(0xFF8A8686),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.brand50,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '×$quantity',
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.brand700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '\$${(item.price * quantity).toStringAsFixed(2)}',
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -358,33 +298,40 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   }
 
   Widget _buildBottomBar(bool hasUnsafeItems) {
+    final textTheme = Theme.of(context).textTheme;
+    final total = _total;
+    final insufficient =
+        widget.childBalance != null && widget.childBalance! < total;
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.ink50),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (widget.childBalance != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Saldo disponible',
-                    style: GoogleFonts.nunito(
-                      fontSize: 13,
+                    widget.childName.isNotEmpty
+                        ? 'Saldo de ${widget.childName}'
+                        : 'Saldo disponible',
+                    style: textTheme.bodyMedium?.copyWith(
                       color: AppColors.ink900.withValues(alpha: 0.6),
                     ),
                   ),
                   Text(
                     '\$${widget.childBalance!.toStringAsFixed(2)}',
-                    style: GoogleFonts.nunito(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: widget.childBalance! < _total
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: insufficient
                           ? AppColors.danger500
-                          : AppColors.ink900.withValues(alpha: 0.6),
+                          : AppColors.success700,
                     ),
                   ),
                 ],
@@ -395,44 +342,51 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
             children: [
               Text(
                 'Total',
-                style: GoogleFonts.nunito(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
-                '\$${_total.toStringAsFixed(2)}',
-                style: GoogleFonts.nunito(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                '\$${total.toStringAsFixed(2)}',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: hasUnsafeItems
-                    ? AppColors.ink900.withValues(alpha: 0.25)
-                    : AppColors.secondary500,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onPressed: _isLoading ? null : _handlePayment,
-              child: Text(
-                hasUnsafeItems ? 'Revisa tu carrito' : 'Ir a pagar',
-                style: GoogleFonts.nunito(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          if (insufficient)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'El saldo no alcanza. Recarga en la pestaña Billetera.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.danger500,
+                  ),
                 ),
               ),
             ),
-          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (hasUnsafeItems)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.ink900.withValues(alpha: 0.2),
+                  foregroundColor: AppColors.ink900,
+                ),
+                onPressed: _isLoading ? null : _handlePayment,
+                child: const Text('Revisa tu carrito'),
+              ),
+            )
+          else
+            PrimaryButton(
+              label: 'Pagar \$${total.toStringAsFixed(2)}',
+              icon: Icons.check_circle_outline,
+              isLoading: false,
+              onPressed: _isLoading ? null : _handlePayment,
+            ),
         ],
       ),
     );

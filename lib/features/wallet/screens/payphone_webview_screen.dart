@@ -38,9 +38,7 @@ class _PayphoneWebViewScreenState extends State<PayphoneWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.teal500,
-        title: const Text('Pago seguro', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Pago seguro'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(false),
@@ -51,7 +49,7 @@ class _PayphoneWebViewScreenState extends State<PayphoneWebViewScreen> {
           WebViewWidget(controller: _controller),
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(color: AppColors.secondary500),
+              child: CircularProgressIndicator(color: AppColors.teal500),
             ),
         ],
       ),

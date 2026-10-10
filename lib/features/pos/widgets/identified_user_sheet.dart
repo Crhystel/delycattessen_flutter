@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/pos_identification_model.dart';
 import '../services/pos_service.dart';
@@ -65,7 +67,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
             width: 44,
             height: 5,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E2E2),
+              color: AppColors.ink900.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -199,26 +201,9 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary500,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Aceptar',
-                  style: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            child: PrimaryButton(
+              label: 'Aceptar',
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
         ],
@@ -409,8 +394,9 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                         : () => _markAsDelivered(preOrder.preOrderId),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.brand500,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      foregroundColor: AppColors.ink900,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                     ),
                     icon: isSubmitting
@@ -419,19 +405,19 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.ink900,
                             ),
                           )
                         : const Icon(
                             Icons.check,
-                            color: Colors.white,
+                            color: AppColors.ink900,
                             size: 18,
                           ),
                     label: Text(
                       isSubmitting ? 'Confirmando...' : 'Marcar como entregado',
                       style: GoogleFonts.nunito(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink900,
                       ),
                     ),
                   ),

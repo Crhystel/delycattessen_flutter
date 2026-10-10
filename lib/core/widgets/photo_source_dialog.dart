@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'face_capture_camera_screen.dart';
+
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import 'app_bottom_sheet.dart';
+import 'app_notification_messenger.dart';
 import 'photo_guidelines_screen.dart';
 
 class PhotoSourceDialog {
@@ -10,168 +14,38 @@ class PhotoSourceDialog {
     BuildContext context, {
     String title = 'Foto de Perfil',
   }) async {
-    final source = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
+    final source = await AppBottomSheet.show<String>(
+      context,
+      title: title,
+      subtitle: 'Selecciona de dónde deseas obtener la fotografía:',
+      builder: (ctx) => Row(
+        children: [
+          Expanded(
+            child: _SourceOption(
+              icon: Icons.camera_alt_rounded,
+              color: AppColors.teal500,
+              label: 'Tomar foto',
+              caption: 'Cámara en vivo',
+              onTap: () => Navigator.of(ctx).pop('camera'),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 48,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: _SourceOption(
+              icon: Icons.photo_library_rounded,
+              color: AppColors.brand500,
+              label: 'Galería',
+              caption: 'Elegir archivo',
+              onTap: () => Navigator.of(ctx).pop('gallery'),
             ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: GoogleFonts.nunito(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Selecciona de dónde deseas obtener la fotografía:',
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 22),
-            Row(
-              children: [
-                // Option 1: Open Camera (Fullscreen)
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.of(ctx).pop('camera'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF5932EA),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Tomar foto',
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Cámara en vivo',
-                            style: GoogleFonts.nunito(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Option 2: Gallery
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.of(ctx).pop('gallery'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF007ACC),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.photo_library_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Galería',
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Elegir archivo',
-                            style: GoogleFonts.nunito(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 
     if (source == 'camera' && context.mounted) {
       return Navigator.of(context).push<File?>(
-        MaterialPageRoute(
-          builder: (_) => PhotoGuidelinesScreen(title: title),
-        ),
+        MaterialPageRoute(builder: (_) => PhotoGuidelinesScreen(title: title)),
       );
     } else if (source == 'gallery') {
       try {
@@ -182,12 +56,78 @@ class PhotoSourceDialog {
         if (picked != null) return File(picked.path);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al abrir galería: $e')),
+          AppNotificationMessenger.show(
+            context,
+            type: NotificationType.danger,
+            title: 'No se pudo abrir la galería',
+            message: e.toString().replaceFirst('Exception: ', ''),
           );
         }
       }
     }
     return null;
+  }
+}
+
+class _SourceOption extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String caption;
+  final VoidCallback onTap;
+
+  const _SourceOption({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.caption,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return InkWell(
+      borderRadius: AppRadius.mdAll,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl - 4),
+        decoration: BoxDecoration(
+          color: AppColors.ink50,
+          borderRadius: AppRadius.mdAll,
+          border: Border.all(color: AppColors.teal50),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(
+                icon,
+                // Dark icon on the yellow circle, white on the blue one.
+                color: color == AppColors.brand500
+                    ? AppColors.ink900
+                    : Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm + 2),
+            Text(
+              label,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              caption,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.ink900.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

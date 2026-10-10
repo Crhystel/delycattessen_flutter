@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 
@@ -48,6 +51,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
   Future<void> _loadData() async {
     try {
       final control = await _service.getParentalControl(widget.studentId);
+      if (!mounted) return;
       setState(() {
         _dailyLimitEnabled = control.dailyLimitEnabled;
         _dailyLimitAmount = control.dailyLimitAmount;
@@ -97,74 +101,93 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
     });
   }
 
+  /// Título + descripción a la izquierda (se ajustan al ancho disponible) y
+  /// el interruptor a la derecha, para que nunca se desborde la fila.
+  Widget _buildSwitchHeader({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.teal500),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.ink900.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppColors.ink900,
+          activeTrackColor: AppColors.brand500,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.ink50,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.brand500),
+          child: CircularProgressIndicator(color: AppColors.teal500),
         ),
       );
     }
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: AppColors.ink50,
-      appBar: AppBar(
-        title: const Text(
-          'Control Parental',
-          style: TextStyle(color: AppColors.ink900),
-        ),
-        backgroundColor: AppColors.ink50,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.ink900),
-      ),
+      appBar: AppBar(title: const Text('Control de gastos')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Daily limit section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
+            AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Límite de gasto diario',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.ink900,
-                        ),
-                      ),
-                      Switch(
-                        value: _dailyLimitEnabled,
-                        onChanged: (val) =>
-                            setState(() => _dailyLimitEnabled = val),
-                        activeThumbColor: AppColors.brand500,
-                      ),
-                    ],
+                  _buildSwitchHeader(
+                    icon: Icons.payments_outlined,
+                    title: 'Límite de gasto diario',
+                    subtitle: 'Máximo que puede gastar por día',
+                    value: _dailyLimitEnabled,
+                    onChanged: (val) =>
+                        setState(() => _dailyLimitEnabled = val),
                   ),
                   if (_dailyLimitEnabled) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     TextField(
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'Monto máximo (\$) / día',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      decoration: const InputDecoration(
+                        labelText: 'Monto máximo por día',
                         prefixText: '\$ ',
                       ),
                     ),
@@ -172,73 +195,53 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Allowed days section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
+            AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Días permitidos para compras',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.ink900,
-                        ),
-                      ),
-                      Switch(
-                        value: _allowedDaysEnabled,
-                        onChanged: (val) =>
-                            setState(() => _allowedDaysEnabled = val),
-                        activeThumbColor: AppColors.brand500,
-                      ),
-                    ],
+                  _buildSwitchHeader(
+                    icon: Icons.event_available_outlined,
+                    title: 'Días permitidos',
+                    subtitle: 'Días en que puede comprar',
+                    value: _allowedDaysEnabled,
+                    onChanged: (val) =>
+                        setState(() => _allowedDaysEnabled = val),
                   ),
                   if (_allowedDaysEnabled) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'Selecciona los días en los que el estudiante puede comprar en el bar:',
-                      style: TextStyle(
+                      'Selecciona los días en los que puede comprar en el bar:',
+                      style: textTheme.bodyMedium?.copyWith(
                         color: AppColors.ink900.withValues(alpha: 0.6),
-                        fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: List.generate(_weekDays.length, (index) {
                         final isSelected = _allowedDays.contains(index);
                         return ChoiceChip(
                           label: Text(_weekDays[index]),
                           selected: isSelected,
+                          showCheckmark: false,
                           onSelected: (_) => _toggleDay(index),
-                          selectedColor: AppColors.brand50,
+                          selectedColor: AppColors.teal500,
                           backgroundColor: Colors.white,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? AppColors.brand700
-                                : AppColors.ink900.withValues(alpha: 0.6),
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                                ? Colors.white
+                                : AppColors.ink900.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w700,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? AppColors.brand700
-                                  : AppColors.ink900.withValues(alpha: 0.15),
-                            ),
+                          shape: const StadiumBorder(),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.teal500
+                                : AppColors.ink900.withValues(alpha: 0.15),
                           ),
                         );
                       }),
@@ -252,35 +255,12 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveData,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary500,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Guardar Cambios',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-            ),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: PrimaryButton(
+            label: 'Guardar cambios',
+            icon: Icons.save_outlined,
+            isLoading: _isSaving,
+            onPressed: _saveData,
           ),
         ),
       ),

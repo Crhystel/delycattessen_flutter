@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../config/password_policy.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
 
 /// Guía en vivo de los requisitos de contraseña: gris (sin escribir),
 /// verde (cumple) o rojo (falta).
@@ -11,8 +11,8 @@ class PasswordRequirements extends StatelessWidget {
 
   final String password;
 
-  static const _met = Color(0xFF2E7D32);
-  static const _unmet = Color(0xFFC62828);
+  static const _met = AppColors.success700;
+  static const _unmet = AppColors.danger700;
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +22,14 @@ class PasswordRequirements extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.ink50,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadius.smAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Tu contraseña debe tener:',
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.ink900,
@@ -65,7 +65,7 @@ class PasswordRequirements extends StatelessWidget {
           Expanded(
             child: Text(
               rule.label,
-              style: GoogleFonts.nunito(fontSize: 12, color: color),
+              style: TextStyle(fontSize: 12, color: color),
             ),
           ),
         ],

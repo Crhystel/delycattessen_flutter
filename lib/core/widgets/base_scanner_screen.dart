@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import 'app_notification_messenger.dart';
+import 'scanner_overlay.dart';
 
 /// Template Method Pattern: Defines the immutable standard scaffold and layout
 /// for dark camera scanner screens (Figura 25 and Figura 26).
@@ -12,7 +16,8 @@ abstract class BaseScannerScreen extends StatefulWidget {
 }
 
 abstract class BaseScannerScreenState<T extends BaseScannerScreen>
-    extends State<T> with SingleTickerProviderStateMixin {
+    extends State<T>
+    with SingleTickerProviderStateMixin, NotificationMixin<T> {
   late AnimationController animController;
   late Animation<double> scanAnimation;
 
@@ -23,7 +28,8 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
   Widget buildScannerContent(BuildContext context);
 
   // Optional hooks:
-  VoidCallback? get onCancelPressed => () => Navigator.of(context).pop();
+  VoidCallback? get onCancelPressed =>
+      () => Navigator.of(context).pop();
 
   @override
   void initState() {
@@ -32,9 +38,10 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    scanAnimation = Tween<double>(begin: 0.15, end: 0.85).animate(
-      CurvedAnimation(parent: animController, curve: Curves.easeInOut),
-    );
+    scanAnimation = Tween<double>(
+      begin: 0.15,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: animController, curve: Curves.easeInOut));
   }
 
   @override
@@ -47,176 +54,72 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final boxSize = (screenSize.width * 0.72).clamp(240.0, 300.0);
+    final noticeWidth = (boxSize * 0.82).clamp(210.0, 250.0);
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
           onPressed: onCancelPressed,
         ),
-        title: Text(
-          screenTitle,
-          style: GoogleFonts.nunito(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: Text(screenTitle),
         centerTitle: false,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
+          ),
           child: Column(
             children: [
               const Spacer(flex: 1),
-
-              // Viewfinder Container with Orange/Golden Border
               Center(
-                child: Container(
-                  width: boxSize,
-                  height: boxSize,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color(0xFFE5A93C), // Amber/Orange border
-                      width: 3.0,
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Concrete Scanner content (Camera preview or scanner feed)
-                      Positioned.fill(child: buildScannerContent(context)),
-
-                      // Animated scanning line (cyan/electric blue)
-                      AnimatedBuilder(
-                        animation: scanAnimation,
-                        builder: (context, child) {
-                          return Positioned(
-                            top: boxSize * scanAnimation.value,
-                            left: 16,
-                            right: 16,
-                            child: Container(
-                              height: 3,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF00B4D8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF00B4D8).withValues(alpha: 0.8),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                child: ScannerFrame(
+                  size: boxSize,
+                  scanAnimation: scanAnimation,
+                  child: buildScannerContent(context),
                 ),
               ),
-
-              const SizedBox(height: 28),
-
-              // Instructional Text
+              const SizedBox(height: AppSpacing.xxl - 4),
               Text(
                 instructionText,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
+                style: textTheme.titleSmall?.copyWith(
                   color: Colors.white,
-                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              const SizedBox(height: 24),
-
-              // Information Notice Box (Dark deep navy with cyan accent bar - Figma)
+              const SizedBox(height: AppSpacing.xl),
               Center(
-                child: Container(
-                  width: (boxSize * 0.82).clamp(210.0, 250.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF03192B), // Deep navy from Figma
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        // Cyan/Blue left accent bar
-                        Container(
-                          width: 4,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF007ACC),
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              bottomLeft: Radius.circular(4),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14.0,
-                              vertical: 12.0,
-                            ),
-                            child: Text(
-                              helpNoticeText,
-                              style: GoogleFonts.nunito(
-                                color: const Color(0xFF007ACC),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: ScannerNotice(text: helpNoticeText, width: noticeWidth),
               ),
-
               const Spacer(flex: 2),
-
-              // "Cancelar" Button (Black background with purple outline - Figma)
               Center(
                 child: SizedBox(
-                  width: (boxSize * 0.82).clamp(210.0, 250.0),
+                  width: noticeWidth,
                   height: 48,
                   child: OutlinedButton(
                     onPressed: onCancelPressed,
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Color(0xFF5932EA), // Purple outline from Figma
-                        width: 2.0,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54, width: 1.5),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Cancelar',
-                      style: GoogleFonts.nunito(
-                        color: const Color(0xFF6F42C9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl - 4),
             ],
           ),
         ),

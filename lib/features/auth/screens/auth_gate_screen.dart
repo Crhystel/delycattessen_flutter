@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../children/screens/children_list_screen.dart';
 import '../services/auth_service.dart';
-import '../../auth/screens/login_screen.dart';
-import '../../auth/screens/student_registration_screen.dart';
-import '../../pos/screens/pos_home_screen.dart';
-import '../../contingency/screens/student_contingency_screen.dart';
+import '../utils/auth_routing.dart';
+import 'change_password_screen.dart';
+import 'login_screen.dart';
 
 /// Shown on app start. Checks whether a valid session already exists
 /// (refreshing the access token if needed) and routes accordingly, so the
@@ -40,27 +38,24 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     try {
       final me = await _authService.getMe();
       if (!mounted) return;
-      if (me.role == 'OPERATIONS_STAFF') {
-        final displayName = me.firstName.isNotEmpty
-            ? me.firstName
-            : (me.email != null && me.email!.isNotEmpty
-                ? me.email!.split('@').first
-                : 'Usuario');
-        _goTo(PosHomeScreen(userName: displayName));
+      final usernameFallback = me.email ?? '';
+
+      // Mismo criterio que el login: una sesión con contraseña temporal
+      // debe pasar por el cambio obligatorio antes de entrar a la app.
+      if (me.mustChangePassword) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => ChangePasswordScreen(
+              me: me,
+              usernameFallback: usernameFallback,
+            ),
+          ),
+          (route) => false,
+        );
         return;
       }
-      if (me.role == 'STUDENT' || me.role == 'TEACHER') {
-        final displayName = me.firstName.isNotEmpty
-            ? '${me.firstName} ${me.lastName}'.trim()
-            : (me.role == 'TEACHER' ? 'Docente' : 'Estudiante');
-        _goTo(StudentContingencyScreen(initialUserName: displayName));
-        return;
-      }
-      _goTo(
-        me.hasChildren
-            ? const ChildrenListScreen()
-            : const StudentRegistrationScreen(),
-      );
+
+      routeAfterAuth(context, me, usernameFallback: usernameFallback);
     } catch (_) {
       if (!mounted) return;
       _goTo(const LoginScreen());
@@ -76,10 +71,8 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: CircularProgressIndicator(color: AppColors.secondary500),
-      ),
+      backgroundColor: AppColors.ink50,
+      body: Center(child: CircularProgressIndicator(color: AppColors.teal500)),
     );
   }
 }

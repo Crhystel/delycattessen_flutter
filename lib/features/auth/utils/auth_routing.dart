@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/auth_models.dart';
-import '../../children/screens/children_list_screen.dart';
+import '../../children/screens/parent_shell.dart';
 import '../screens/student_registration_screen.dart';
 import '../../pos/screens/pos_home_screen.dart';
 import '../../contingency/screens/student_contingency_screen.dart';
@@ -38,7 +38,7 @@ void routeAfterAuth(
     );
   } else if (me.hasChildren) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const ChildrenListScreen()),
+      MaterialPageRoute(builder: (_) => const ParentShell()),
       (route) => false,
     );
   } else {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/menu_models.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/custom_header_shape.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/primary_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -23,151 +25,152 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final item = widget.item;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CustomHeaderShape(height: 50),
-                // Pseudo image container (as per Figma big burger image)
-                Container(
-                  width: double.infinity,
-                  height: 250,
-                  color: AppColors.ink50,
-                  child: widget.item.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: widget.item.imageUrl!,
-                          width: double.infinity,
-                          height: 250,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondary500,
-                            ),
+      backgroundColor: AppColors.ink50,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: 280,
+                color: AppColors.teal50,
+                child: item.imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: item.imageUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 900,
+                        placeholder: (_, _) => const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.teal500,
                           ),
-                          errorWidget: (_, _, _) => const Icon(
-                            Icons.fastfood,
-                            size: 100,
-                            color: Color(0xFF8A8686),
-                          ),
-                        )
-                      : const Icon(
+                        ),
+                        errorWidget: (_, _, _) => const Icon(
                           Icons.fastfood,
                           size: 100,
-                          color: Color(0xFF8A8686),
+                          color: AppColors.teal500,
                         ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.item.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.ink900,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.item.description.isEmpty
-                              ? 'Carne a la parrilla, Queso, Lechuga, Tomate'
-                              : widget.item.description,
-                          style: const TextStyle(
-                            color: Color(0xFF8A8686),
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '\$${widget.item.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.brand700,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Ingredientes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.ink900,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: widget.item.ingredients
-                              .map(
-                                (ingredient) =>
-                                    _buildIngredientChip(ingredient.name),
-                              )
-                              .toList(),
-                        ),
-                        if (widget.item.allergens.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Contiene alérgenos',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.ink900,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: widget.item.allergens
-                                .map(
-                                  (allergen) =>
-                                      _buildIngredientChip(allergen.name),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ],
+                      )
+                    : const Icon(
+                        Icons.fastfood,
+                        size: 100,
+                        color: AppColors.teal500,
+                      ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 18,
+                        color: AppColors.ink900,
+                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                 ),
-                _buildBottomBar(),
-              ],
-            ),
-            Positioned(
-              top: 10,
-              left: 10,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: AppColors.ink900),
-                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.name,
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        '\$${item.price.toStringAsFixed(2)}',
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.brand700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (item.description.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      item.description,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.ink900.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ],
+                  if (item.ingredients.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSectionTitle('Ingredientes'),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: item.ingredients
+                          .map((i) => _buildChip(i.name))
+                          .toList(),
+                    ),
+                  ],
+                  if (item.allergens.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSectionTitle('Contiene alérgenos'),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: item.allergens
+                          .map((a) => _buildChip(a.name, isAllergen: true))
+                          .toList(),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          _buildBottomBar(),
+        ],
       ),
     );
   }
 
-  Widget _buildIngredientChip(String label) {
+  Widget _buildSectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Text(
+        text,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, {bool isAllergen = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.teal50,
-        borderRadius: BorderRadius.circular(12),
+        color: isAllergen ? AppColors.dangerBg : AppColors.teal50,
+        borderRadius: AppRadius.smAll,
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: AppColors.teal700,
-          fontWeight: FontWeight.w600,
+        style: TextStyle(
+          color: isAllergen ? AppColors.danger700 : AppColors.teal700,
+          fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
       ),
@@ -176,65 +179,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.lg),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
             offset: const Offset(0, -2),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove, color: AppColors.ink900),
-                  onPressed: () {
-                    if (_quantity > 1) setState(() => _quantity--);
-                  },
-                ),
-                Text(
-                  '$_quantity',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add, color: AppColors.ink900),
-                  onPressed: () => setState(() => _quantity++),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary500,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.teal500),
+                borderRadius: BorderRadius.circular(30),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: AppColors.teal700),
+                    onPressed: () {
+                      if (_quantity > 1) setState(() => _quantity--);
+                    },
+                  ),
+                  Text(
+                    '$_quantity',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add, color: AppColors.teal700),
+                    onPressed: () => setState(() => _quantity++),
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-              widget.onAdd(_quantity);
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Añadir \$${(widget.item.price * _quantity).toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: PrimaryButton(
+                label:
+                    'Añadir \$${(widget.item.price * _quantity).toStringAsFixed(2)}',
+                onPressed: () {
+                  widget.onAdd(_quantity);
+                  Navigator.pop(context);
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_notification_style.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import 'notification_header.dart';
 
 /// Modal dialog strictly used for user action confirmation (e.g. Logout, Cancel).
+///
+/// Shares its look with the floating notifications (same header, radius and
+/// typography). A destructive confirmation (the default) uses the danger
+/// style and a red button; otherwise it uses the info style and the yellow
+/// primary-action button.
 class AppConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;
   final String confirmLabel;
   final String cancelLabel;
-  final Color confirmColor;
+  final bool isDestructive;
   final IconData? icon;
 
   const AppConfirmationDialog({
@@ -18,7 +26,7 @@ class AppConfirmationDialog extends StatelessWidget {
     required this.message,
     this.confirmLabel = 'Confirmar',
     this.cancelLabel = 'Cancelar',
-    this.confirmColor = AppColors.danger500,
+    this.isDestructive = true,
     this.icon,
   });
 
@@ -28,7 +36,7 @@ class AppConfirmationDialog extends StatelessWidget {
     required String message,
     String confirmLabel = 'Confirmar',
     String cancelLabel = 'Cancelar',
-    Color confirmColor = AppColors.danger500,
+    bool isDestructive = true,
     IconData? icon,
   }) async {
     final result = await showDialog<bool>(
@@ -39,7 +47,7 @@ class AppConfirmationDialog extends StatelessWidget {
         message: message,
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
-        confirmColor: confirmColor,
+        isDestructive: isDestructive,
         icon: icon,
       ),
     );
@@ -48,95 +56,107 @@ class AppConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final style = AppNotificationStyle.of(
+      isDestructive ? NotificationType.danger : NotificationType.info,
+    );
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: AppRadius.mdAll,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-          decoration: const BoxDecoration(color: Colors.white),
+          color: Colors.white,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) ...[
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: confirmColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: confirmColor, size: 28),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink900,
-                ),
+              NotificationHeader(
+                background: style.background,
+                accent: style.accent,
+                icon: icon ?? style.icon,
               ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.ink900.withValues(alpha: 0.65),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
                 ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.ink900.withValues(alpha: 0.2),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text(
-                        cancelLabel,
-                        style: GoogleFonts.nunito(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink900.withValues(alpha: 0.7),
-                        ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: confirmColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        elevation: 0,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: Text(
-                        confirmLabel,
-                        style: GoogleFonts.nunito(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink900.withValues(alpha: 0.65),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.xl),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.teal700,
+                              minimumSize: const Size.fromHeight(48),
+                              side: const BorderSide(
+                                color: AppColors.teal500,
+                                width: 1.5,
+                              ),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: AppRadius.smAll,
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text(
+                              cancelLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: AppRadius.smAll,
+                              ),
+                              elevation: 0,
+                              backgroundColor: isDestructive
+                                  ? AppColors.danger500
+                                  : AppColors.brand500,
+                              foregroundColor: isDestructive
+                                  ? Colors.white
+                                  : AppColors.ink900,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text(
+                              confirmLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

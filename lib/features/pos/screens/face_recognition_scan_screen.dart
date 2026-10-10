@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
-
 
 class FaceRecognitionScanScreen extends BaseScannerScreen {
   const FaceRecognitionScanScreen({super.key});
@@ -87,7 +86,8 @@ class _FaceRecognitionScanScreenState
 
   Future<void> _switchCamera() async {
     if (_availableCameras.length < 2 || _isProcessing) return;
-    _selectedCameraIndex = (_selectedCameraIndex + 1) % _availableCameras.length;
+    _selectedCameraIndex =
+        (_selectedCameraIndex + 1) % _availableCameras.length;
     await _startCameraController(_availableCameras[_selectedCameraIndex]);
   }
 
@@ -114,15 +114,9 @@ class _FaceRecognitionScanScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFFE0473E),
-            content: Text(
-              'Identificación fallida: ${e.toString().replaceAll("Exception: ", "")}',
-              style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
-            ),
-            duration: const Duration(seconds: 4),
-          ),
+        showErrorSnackBar(
+          e.toString().replaceFirst('Exception: ', ''),
+          title: 'Identificación fallida',
         );
         setState(() => _isProcessing = false);
       }
@@ -138,7 +132,7 @@ class _FaceRecognitionScanScreenState
           child: Text(
             _errorMessage!,
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(color: Colors.white70, fontSize: 13),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ),
       );
@@ -146,7 +140,7 @@ class _FaceRecognitionScanScreenState
 
     if (!_isCameraReady || _cameraController == null) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE5A93C)),
+        child: CircularProgressIndicator(color: AppColors.brand500),
       );
     }
 
@@ -168,7 +162,7 @@ class _FaceRecognitionScanScreenState
         // Stylized Orange Face Outline (Figura 25)
         Icon(
           Icons.face_retouching_natural_rounded,
-          color: const Color(0xFFE5A93C).withValues(alpha: 0.7),
+          color: AppColors.brand500.withValues(alpha: 0.7),
           size: 110,
         ),
 
@@ -202,7 +196,7 @@ class _FaceRecognitionScanScreenState
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5A93C),
+                color: AppColors.brand500,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -228,7 +222,7 @@ class _FaceRecognitionScanScreenState
                   const SizedBox(width: 6),
                   Text(
                     _isProcessing ? 'Identificando...' : 'Escanear Rostro',
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,

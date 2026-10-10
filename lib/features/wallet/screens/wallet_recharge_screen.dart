@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/custom_bottom_nav.dart';
-import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/child_avatar_chip.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
@@ -37,7 +36,15 @@ class WalletRechargeScreen extends StatefulWidget {
   final List<ChildOption>? children;
   final int? initialWalletId;
 
-  const WalletRechargeScreen({super.key, this.children, this.initialWalletId});
+  /// true cuando vive dentro del ParentShell: sin flecha atrás ni barra propia.
+  final bool embedded;
+
+  const WalletRechargeScreen({
+    super.key,
+    this.children,
+    this.initialWalletId,
+    this.embedded = false,
+  });
 
   @override
   State<WalletRechargeScreen> createState() => _WalletRechargeScreenState();
@@ -50,6 +57,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   final AuthService _authService = AuthService();
 
   int? _selectedWalletId;
+  ChildrenProvider? _childrenProvider;
   bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
@@ -60,12 +68,27 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     super.initState();
     _selectedWalletId = widget.initialWalletId;
     if (widget.children == null) {
-      Future.microtask(() => context.read<ChildrenProvider>().ensureLoaded());
+      _childrenProvider = context.read<ChildrenProvider>();
+      if (widget.embedded && _selectedWalletId == null) {
+        _selectedWalletId = _childrenProvider!.selectedChild?.walletId;
+      }
+      if (widget.embedded) {
+        _childrenProvider!.addListener(_onSelectedChildChanged);
+      }
+      Future.microtask(() => _childrenProvider!.ensureLoaded());
     }
+  }
+
+  /// La billetera sigue al hijo seleccionado global.
+  void _onSelectedChildChanged() {
+    final walletId = _childrenProvider?.selectedChild?.walletId;
+    if (!mounted || walletId == null || walletId == _selectedWalletId) return;
+    setState(() => _selectedWalletId = walletId);
   }
 
   @override
   void dispose() {
+    _childrenProvider?.removeListener(_onSelectedChildChanged);
     _amountController.dispose();
     super.dispose();
   }
@@ -73,9 +96,16 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   /// Hijos con billetera activa, como ChildOption. Si la pantalla recibió
   /// una lista fija por constructor la usa tal cual; si no, la deriva del
   /// ChildrenProvider compartido (sin volver a pedir getChildren()).
-  List<ChildOption> _childrenOptions(BuildContext context) {
+  List<ChildOption> _childrenOptions(
+    BuildContext context, {
+    bool listen = true,
+  }) {
     if (widget.children != null) return widget.children!;
-    final children = context.watch<ChildrenProvider>().children;
+    final children =
+        (listen
+                ? context.watch<ChildrenProvider>()
+                : context.read<ChildrenProvider>())
+            .children;
     return children
         .where((c) => c.walletId != null)
         .map(
@@ -119,7 +149,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   }
 
   Future<void> _proceedToRecharge() async {
-    final selectedChild = _resolveSelectedChild(_childrenOptions(context));
+    final selectedChild = _resolveSelectedChild(
+      _childrenOptions(context, listen: false),
+    );
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
       showWarningSnackBar(
@@ -215,10 +247,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
         !childrenProvider.hasLoadedOnce;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
       body: Stack(
         children: [
-          const FloatingBubbles(corner: BubbleCorner.topRight),
           SafeArea(
             child: Column(
               children: [
@@ -234,10 +265,10 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                       children: [
                         Text(
                           'Selecciona a quién recargar',
-                          style: GoogleFonts.nunito(
-                            fontSize: 13,
-                            color: AppColors.ink900.withValues(alpha: 0.6),
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.ink900.withValues(alpha: 0.6),
+                              ),
                         ),
                         const SizedBox(height: 12),
                         _buildChildSelector(
@@ -252,11 +283,8 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Monto a recargar',
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink900,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -274,10 +302,6 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: 2,
-        studentId: selectedChild?.studentId,
-      ),
     );
   }
 
@@ -287,23 +311,24 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       color: Colors.transparent,
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-            onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }
-            },
-          ),
-          const SizedBox(width: 4),
+          if (!widget.embedded) ...[
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
-            'Billetera Digital',
-            style: GoogleFonts.nunito(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink900,
+            'Billetera',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.teal700,
             ),
           ),
         ],
@@ -320,7 +345,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
-          child: CircularProgressIndicator(color: AppColors.secondary500),
+          child: CircularProgressIndicator(color: AppColors.teal500),
         ),
       );
     }
@@ -331,7 +356,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Text(
             'No hay hijos con billetera activa.',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 13,
               color: AppColors.ink900.withValues(alpha: 0.6),
             ),
@@ -347,7 +372,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: GestureDetector(
-            onTap: () => setState(() => _selectedWalletId = child.walletId),
+            onTap: () {
+              setState(() => _selectedWalletId = child.walletId);
+              if (widget.embedded && child.studentId != null) {
+                _childrenProvider?.select(child.studentId!);
+              }
+            },
             child: Container(
               width: 88,
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -355,34 +385,20 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.secondary500
-                      : const Color(0xFFE0E0E0),
+                  color: isSelected ? AppColors.teal500 : AppColors.teal50,
                   width: isSelected ? 2 : 1,
                 ),
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.ink50,
-                    backgroundImage: child.profilePictureUrl != null
-                        ? NetworkImage(child.profilePictureUrl!)
-                        : null,
-                    child: child.profilePictureUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            color: AppColors.secondary500,
-                          )
-                        : null,
+                  ChildAvatarChip(
+                    imageUrl: child.profilePictureUrl,
+                    radius: 18,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     child.name,
-                    style: GoogleFonts.nunito(
-                      fontSize: 11,
-                      color: AppColors.ink900,
-                    ),
+                    style: TextStyle(fontSize: 11, color: AppColors.ink900),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
@@ -415,14 +431,14 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
               const SizedBox(width: 6),
               Text(
                 'Saldo Actual de $childName',
-                style: GoogleFonts.nunito(fontSize: 13, color: Colors.white70),
+                style: TextStyle(fontSize: 13, color: Colors.white70),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             '\$${balance.toStringAsFixed(2)}',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -438,28 +454,18 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       controller: _amountController,
       textAlign: TextAlign.center,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: GoogleFonts.nunito(
+      style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: AppColors.ink900,
       ),
       decoration: InputDecoration(
         prefixText: '\$ ',
-        prefixStyle: GoogleFonts.nunito(
+        prefixStyle: TextStyle(
           fontSize: 20,
           color: AppColors.ink900.withValues(alpha: 0.4),
         ),
         hintText: '0.00',
-        filled: true,
-        fillColor: AppColors.ink50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
       ),
     );
   }
@@ -480,7 +486,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
             ),
             child: Text(
               '\$${amount.toStringAsFixed(0)}',
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.brand700,
@@ -493,36 +499,11 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   }
 
   Widget _buildRechargeButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton.icon(
-        onPressed: _isSubmitting ? null : _proceedToRecharge,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.secondary500,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        icon: _isSubmitting
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.lock_outline, size: 18, color: Colors.white),
-        label: Text(
-          'Recargar saldo seguro',
-          style: GoogleFonts.nunito(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ),
+    return PrimaryButton(
+      label: 'Recargar saldo seguro',
+      icon: Icons.lock_outline,
+      isLoading: _isSubmitting,
+      onPressed: _proceedToRecharge,
     );
   }
 }

@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_notification_style.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import 'notification_header.dart';
 
-enum NotificationType { success, danger, warning, info }
+export '../theme/app_notification_style.dart' show NotificationType;
 
-/// Template Method: cada tipo define su color de header, ícono y acento.
-/// La estructura (header con círculos + ícono + título + mensaje + X) es
-/// común a todas.
+/// Template Method: each subclass only declares its [type]; the look (header
+/// colors and icon) comes from [AppNotificationStyle] and the structure
+/// (header + title + message + optional X) is common to all.
 abstract class NotificationSnackBarTemplate {
   final String message;
   final String? title;
@@ -33,85 +36,40 @@ abstract class NotificationSnackBarTemplate {
     this.accentColorOverride,
   });
 
-  Color get baseHeaderBackground;
-  Color get baseAccentColor;
-  IconData get icon;
+  NotificationType get type;
+
+  AppNotificationStyle get _style => AppNotificationStyle.of(type);
+
+  Color get baseHeaderBackground => _style.background;
+  Color get baseAccentColor => _style.accent;
+  IconData get icon => _style.icon;
 
   Color get headerBackground =>
       headerBackgroundOverride ?? baseHeaderBackground;
   Color get accentColor => accentColorOverride ?? baseAccentColor;
 
-  /// Header decorativo: fondo suave del tipo + círculos flotantes en los
-  /// tres colores de marca, con el ícono de estado centrado como badge.
   Widget buildHeader() {
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: Container(
-        height: 96,
-        width: double.infinity,
-        color: headerBackground,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: -26,
-              top: -26,
-              child: _floatingCircle(76, AppColors.brand500, 0.55),
-            ),
-            Positioned(
-              right: -16,
-              top: -6,
-              child: _floatingCircle(50, AppColors.teal500, 0.55),
-            ),
-            Positioned(
-              right: 16,
-              bottom: -26,
-              child: _floatingCircle(60, AppColors.secondary500, 0.5),
-            ),
-            Positioned(
-              left: 36,
-              bottom: -18,
-              child: _floatingCircle(32, AppColors.teal500, 0.4),
-            ),
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(icon, color: accentColor, size: 26),
-              ),
-            ),
-          ],
-        ),
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppRadius.md),
+      ),
+      child: NotificationHeader(
+        background: headerBackground,
+        accent: accentColor,
+        icon: icon,
       ),
     );
   }
 
-  Widget _floatingCircle(double size, Color color, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: opacity),
-      ),
-    );
-  }
-
-  Widget buildBody() {
+  Widget buildBody(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl - 4,
+        AppSpacing.lg,
+        AppSpacing.xl - 4,
+        AppSpacing.xl - 4,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -119,18 +77,16 @@ abstract class NotificationSnackBarTemplate {
             Text(
               title!,
               textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: AppColors.ink900,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
             ),
-          if (title != null && title!.isNotEmpty) const SizedBox(height: 6),
+          if (title != null && title!.isNotEmpty)
+            const SizedBox(height: AppSpacing.xs + 2),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
-              fontSize: 13,
+            style: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.ink900.withValues(alpha: 0.65),
             ),
@@ -168,7 +124,7 @@ abstract class NotificationSnackBarTemplate {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.mdAll,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.18),
@@ -182,7 +138,7 @@ abstract class NotificationSnackBarTemplate {
         children: [
           Column(
             mainAxisSize: MainAxisSize.min,
-            children: [buildHeader(), buildBody()],
+            children: [buildHeader(), buildBody(context)],
           ),
           if (requireManualDismiss) buildCloseButton(onDismiss),
         ],
@@ -202,13 +158,7 @@ class SuccessNotificationTemplate extends NotificationSnackBarTemplate {
   });
 
   @override
-  Color get baseHeaderBackground => AppColors.successBg;
-
-  @override
-  Color get baseAccentColor => AppColors.success500;
-
-  @override
-  IconData get icon => Icons.check_rounded;
+  NotificationType get type => NotificationType.success;
 }
 
 class DangerNotificationTemplate extends NotificationSnackBarTemplate {
@@ -222,13 +172,7 @@ class DangerNotificationTemplate extends NotificationSnackBarTemplate {
   });
 
   @override
-  Color get baseHeaderBackground => AppColors.dangerBg;
-
-  @override
-  Color get baseAccentColor => AppColors.danger500;
-
-  @override
-  IconData get icon => Icons.close_rounded;
+  NotificationType get type => NotificationType.danger;
 }
 
 class WarningNotificationTemplate extends NotificationSnackBarTemplate {
@@ -242,13 +186,7 @@ class WarningNotificationTemplate extends NotificationSnackBarTemplate {
   });
 
   @override
-  Color get baseHeaderBackground => AppColors.warningBg;
-
-  @override
-  Color get baseAccentColor => AppColors.warning500;
-
-  @override
-  IconData get icon => Icons.priority_high_rounded;
+  NotificationType get type => NotificationType.warning;
 }
 
 class InfoNotificationTemplate extends NotificationSnackBarTemplate {
@@ -262,13 +200,7 @@ class InfoNotificationTemplate extends NotificationSnackBarTemplate {
   });
 
   @override
-  Color get baseHeaderBackground => AppColors.teal50;
-
-  @override
-  Color get baseAccentColor => AppColors.teal500;
-
-  @override
-  IconData get icon => Icons.info_rounded;
+  NotificationType get type => NotificationType.info;
 }
 
 /// Tarjeta flotante centrada, con animación simple de entrada/salida.
@@ -349,7 +281,9 @@ class _FloatingNotificationCardState extends State<_FloatingNotificationCard>
             child: ScaleTransition(
               scale: _scaleAnimation,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl + 4,
+                ),
                 child: Material(
                   color: Colors.transparent,
                   child: widget.template.buildContent(
