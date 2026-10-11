@@ -36,6 +36,12 @@ class ApiConfig {
   static const String userQrToken = '$baseUrl/users/qr/token/';
   static const String registerBiometric = '$baseUrl/users/biometrics/register/';
   static const String changePassword = '$baseUrl/users/change-password/';
+  static const String preOrderCreate = '$baseUrl/pos/preorder/';
+  static const String preOrders = '$baseUrl/pos/preorders/';
   static String preOrderDeliver(int preOrderId) =>
       '$baseUrl/pos/preorders/$preOrderId/deliver/';
+
+  // Monthly Menu & Dishes
+  static String studentMonthlyMenu(int studentId) =>
+      '$baseUrl/catalog/students/$studentId/monthly_menu/';
 }

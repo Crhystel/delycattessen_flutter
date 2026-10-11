@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_selector_chip.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
-import 'package:provider/provider.dart';
-import '../../children/providers/children_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
   final int? studentId;
@@ -125,6 +127,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
+  String _formatDeliveryDate(String isoDate) {
+    if (isoDate.isEmpty) return '';
+    try {
+      final parsed = DateFormatter.parseIsoDate(isoDate);
+      return DateFormatter.formatLong(parsed);
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,14 +231,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
 
-    // Se agrupa en "Por retirar" (pendientes) e "Historial" (el resto),
-    // conservando el orden que entrega el backend dentro de cada grupo.
+    // Se agrupa en "Por retirar" (pendientes, ordenadas por fecha de entrega más próxima)
+    // e "Historial" (el resto, ordenadas por creación descendente).
     final pending = _orders
         .where((o) => o.status == PreOrderStatus.pending)
-        .toList();
+        .toList()
+      ..sort((a, b) {
+        if (a.deliveryDate.isNotEmpty && b.deliveryDate.isNotEmpty) {
+          return a.deliveryDate.compareTo(b.deliveryDate);
+        }
+        return a.createdAt.compareTo(b.createdAt);
+      });
+
     final history = _orders
         .where((o) => o.status != PreOrderStatus.pending)
-        .toList();
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     final rows = <Object>[
       if (pending.isNotEmpty) ...['Por retirar', ...pending],
       if (history.isNotEmpty) ...['Historial', ...history],
@@ -275,6 +296,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final textTheme = Theme.of(context).textTheme;
     final accent = _statusAccent(order.status);
     final dateLabel = DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt);
+    final deliveryText = _formatDeliveryDate(order.deliveryDate);
 
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -318,7 +340,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
+          if (deliveryText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 13,
+                    color: AppColors.secondary500,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Entrega: $deliveryText',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary500,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Text(
             dateLabel,
             style: textTheme.bodySmall?.copyWith(
@@ -334,7 +377,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      '${item.quantity}x ${item.menuItemName}',
+                      '${item.quantity}x ${item.dishName}',
                       style: textTheme.bodyMedium,
                     ),
                   ),

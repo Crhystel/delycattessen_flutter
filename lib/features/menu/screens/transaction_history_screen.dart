@@ -210,7 +210,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ] else if (transaction.items.isNotEmpty) ...[
               ...transaction.items.map(
                 (item) => _buildDetailRow(
-                  '${item.quantity}x ${item.menuItemName}',
+                  '${item.quantity}x ${item.dishName}',
                   '\$${(item.priceAtPurchase * item.quantity).toStringAsFixed(2)}',
                 ),
               ),

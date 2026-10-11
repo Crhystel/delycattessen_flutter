@@ -1,17 +1,20 @@
 class PendingPreOrderItem {
-  final String menuItemName;
+  final String dishName;
   final int quantity;
   final double priceAtPurchase;
 
   PendingPreOrderItem({
-    required this.menuItemName,
+    required this.dishName,
     required this.quantity,
     required this.priceAtPurchase,
   });
 
+  // Compatibilidad hacia atrás
+  String get menuItemName => dishName;
+
   factory PendingPreOrderItem.fromJson(Map<String, dynamic> json) {
     return PendingPreOrderItem(
-      menuItemName: json['menu_item_name'] ?? '',
+      dishName: json['dish_name'] ?? (json['menu_item_name'] ?? 'Platillo'),
       quantity: json['quantity'] ?? 1,
       priceAtPurchase:
           double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ??
@@ -24,12 +27,14 @@ class PendingPreOrder {
   final int preOrderId;
   final double totalAmount;
   final String createdAt;
+  final String deliveryDate;
   final List<PendingPreOrderItem> items;
 
   PendingPreOrder({
     required this.preOrderId,
     required this.totalAmount,
     required this.createdAt,
+    this.deliveryDate = '',
     required this.items,
   });
 
@@ -40,6 +45,7 @@ class PendingPreOrder {
       totalAmount:
           double.tryParse((json['total_amount'] ?? '0.00').toString()) ?? 0.0,
       createdAt: json['created_at'] ?? '',
+      deliveryDate: json['delivery_date'] ?? '',
       items: rawItems
           .map((i) => PendingPreOrderItem.fromJson(i as Map<String, dynamic>))
           .toList(),

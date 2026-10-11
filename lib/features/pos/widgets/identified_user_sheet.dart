@@ -310,13 +310,27 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  'Pedido pendiente por entregar',
-                  style: GoogleFonts.nunito(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.brand700,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pedido pendiente por entregar',
+                      style: GoogleFonts.nunito(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.brand700,
+                      ),
+                    ),
+                    if (preOrder.deliveryDate.isNotEmpty)
+                      Text(
+                        'Fecha de entrega: ${preOrder.deliveryDate}',
+                        style: GoogleFonts.nunito(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brand700.withValues(alpha: 0.8),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -347,7 +361,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      item.menuItemName,
+                      item.dishName,
                       style: GoogleFonts.nunito(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

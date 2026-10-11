@@ -3,19 +3,22 @@ import '../../../core/network/base_api_service.dart';
 import '../models/menu_models.dart';
 
 class MenuService extends BaseApiService {
-  /// Obtiene el catálogo de productos activos
-  Future<List<MenuItem>> getMenu() async {
+  /// Obtiene los días del menú mensual publicado para el estudiante.
+  Future<List<MenuDay>> getStudentMonthlyMenu(int studentId) async {
     final response = await performGetRequest(
-      '${ApiConfig.baseUrl}/catalog/menu/', // Asumiendo esta ruta
+      ApiConfig.studentMonthlyMenu(studentId),
     );
     final data = response as List;
-    return data.map((json) => MenuItem.fromJson(json)).toList();
+    return data
+        .map((json) => MenuDay.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Crea una preorden (aplica validación de saldo y alérgenos en el backend)
+  /// Crea una preorden para un estudiante en una fecha determinada.
+  /// (Aplica validaciones de saldo, controles parentales y alérgenos en el backend)
   Future<Map<String, dynamic>> createPreOrder(PreOrder order) async {
     final response = await performPostRequest(
-      '${ApiConfig.baseUrl}/pos/preorder/', // Asumiendo esta ruta
+      ApiConfig.preOrderCreate,
       order.toJson(),
     );
     return response as Map<String, dynamic>;
@@ -24,13 +27,22 @@ class MenuService extends BaseApiService {
   /// Lista las preórdenes de los hijos del padre autenticado.
   /// [studentId] es opcional: si se pasa, filtra solo ese hijo.
   Future<List<PreOrderSummary>> getPreOrders({int? studentId}) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/pos/preorders/').replace(
+    final uri = Uri.parse(ApiConfig.preOrders).replace(
       queryParameters: studentId != null
           ? {'student_id': studentId.toString()}
           : null,
     );
     final response = await performGetRequest(uri.toString());
     final data = response as List;
-    return data.map((json) => PreOrderSummary.fromJson(json)).toList();
+    return data
+        .map((json) => PreOrderSummary.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Catálogo general de productos (por compatibilidad)
+  Future<List<MenuItem>> getMenu() async {
+    final response = await performGetRequest('${ApiConfig.baseUrl}/catalog/menu/');
+    final data = response as List;
+    return data.map((json) => MenuItem.fromJson(json)).toList();
   }
 }

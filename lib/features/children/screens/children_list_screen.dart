@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
@@ -13,6 +15,8 @@ import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../menu/models/menu_models.dart';
+import '../../menu/services/menu_service.dart';
 import '../providers/children_provider.dart';
 import 'child_detail_screen.dart';
 
@@ -22,7 +26,14 @@ class ChildrenListScreen extends StatefulWidget {
   /// Lo llama el ParentShell: elige al hijo y lleva a la pestaña Menú.
   final void Function(int childId)? onOrderForChild;
 
-  const ChildrenListScreen({super.key, this.onOrderForChild});
+  /// Abre la pestaña Menú con un día preseleccionado.
+  final void Function(int childId, DateTime date)? onOpenMenuDay;
+
+  const ChildrenListScreen({
+    super.key,
+    this.onOrderForChild,
+    this.onOpenMenuDay,
+  });
 
   @override
   State<ChildrenListScreen> createState() => _ChildrenListScreenState();
@@ -31,14 +42,51 @@ class ChildrenListScreen extends StatefulWidget {
 class _ChildrenListScreenState extends State<ChildrenListScreen>
     with NotificationMixin {
   final _authService = AuthService();
+  final _menuService = MenuService();
   String _userName = '';
+
+  MenuDay? _firstAvailableMenuDay;
+  bool _isLoadingMenuDay = false;
+  int? _loadedStudentId;
 
   @override
   void initState() {
     super.initState();
     final provider = context.read<ChildrenProvider>();
-    Future.microtask(provider.ensureLoaded);
+    Future.microtask(() async {
+      await provider.ensureLoaded();
+      _syncMenuPreview();
+    });
     _loadUserName();
+  }
+
+  void _syncMenuPreview() {
+    final provider = context.read<ChildrenProvider>();
+    final child = provider.selectedChild ??
+        (provider.children.isNotEmpty ? provider.children.first : null);
+    if (child != null && child.id != _loadedStudentId) {
+      _loadMonthlyMenuPreview(child.id);
+    }
+  }
+
+  Future<void> _loadMonthlyMenuPreview(int studentId) async {
+    _loadedStudentId = studentId;
+    setState(() => _isLoadingMenuDay = true);
+    try {
+      final days = await _menuService.getStudentMonthlyMenu(studentId);
+      if (!mounted) return;
+      final availableDay = days.where((d) => d.dishes.isNotEmpty).firstOrNull;
+      setState(() {
+        _firstAvailableMenuDay = availableDay;
+        _isLoadingMenuDay = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _firstAvailableMenuDay = null;
+        _isLoadingMenuDay = false;
+      });
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -101,16 +149,36 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
         .then((_) => provider.refresh());
   }
 
+  void _navigateToMenu({required int studentId, DateTime? date}) {
+    if (date != null && widget.onOpenMenuDay != null) {
+      widget.onOpenMenuDay!(studentId, date);
+    } else if (widget.onOrderForChild != null) {
+      widget.onOrderForChild!(studentId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final childrenProvider = context.watch<ChildrenProvider>();
     final children = childrenProvider.children;
     final textTheme = Theme.of(context).textTheme;
 
+    // Si cambiaron los hijos o el seleccionado, sincronizar preview
+    final currentTarget = childrenProvider.selectedChild ??
+        (children.isNotEmpty ? children.first : null);
+    if (currentTarget != null && currentTarget.id != _loadedStudentId && !_isLoadingMenuDay) {
+      Future.microtask(() => _loadMonthlyMenuPreview(currentTarget.id));
+    }
+
     return AppScaffold(
       bubbleCorner: BubbleCorner.topRight,
       body: RefreshIndicator(
-        onRefresh: () => childrenProvider.refresh(),
+        onRefresh: () async {
+          await childrenProvider.refresh();
+          if (currentTarget != null) {
+            await _loadMonthlyMenuPreview(currentTarget.id);
+          }
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -210,8 +278,176 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                   ),
                 ),
               ),
+              if (children.isNotEmpty && currentTarget != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                _buildMonthlyMenuSection(currentTarget, textTheme),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyMenuSection(Child child, TextTheme textTheme) {
+    final day = _firstAvailableMenuDay;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Menú Mensual',
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink900,
+          ),
+        ),
+        if (day != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            'Para el ${DateFormatter.formatLong(DateFormatter.parseIsoDate(day.date))}',
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.ink900.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        if (_isLoadingMenuDay)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.secondary500,
+                ),
+              ),
+            ),
+          )
+        else if (day == null || day.dishes.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.ink50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Aún no hay menú publicado.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink900.withValues(alpha: 0.5),
+              ),
+            ),
+          )
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: day.dishes.take(3).map((dish) {
+              final parsedDate = DateFormatter.parseIsoDate(day.date);
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: _buildDishPreviewCard(dish, child.id, parsedDate),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDishPreviewCard(MenuDish dish, int studentId, DateTime date) {
+    return GestureDetector(
+      onTap: () => _navigateToMenu(studentId: studentId, date: date),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEFEFEF)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: dish.imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: dish.imageUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        placeholder: (_, _) => Container(
+                          color: AppColors.ink50,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: AppColors.secondary500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Container(
+                          color: AppColors.ink50,
+                          child: const Icon(
+                            Icons.fastfood,
+                            color: AppColors.secondary500,
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: AppColors.ink50,
+                        child: const Icon(
+                          Icons.fastfood,
+                          color: AppColors.secondary500,
+                          size: 24,
+                        ),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dish.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '\$${dish.price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.brand700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -244,21 +480,18 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                 Text(
                   '${child.firstName} ${child.lastName}',
                   style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   child.institutionName,
                   style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.5),
-                    fontSize: 12,
+                    color: AppColors.ink900.withValues(alpha: 0.55),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.circle,
@@ -272,7 +505,6 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       isLowBalance ? 'Saldo bajo' : 'Activo',
                       style: textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: 11,
                         color: isLowBalance
                             ? AppColors.danger700
                             : AppColors.success700,
@@ -284,10 +516,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: isLowBalance ? AppColors.dangerBg : AppColors.brand50,
               borderRadius: BorderRadius.circular(20),
@@ -296,12 +525,9 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
               child.balance != null
                   ? '\$${child.balance!.toStringAsFixed(2)}'
                   : '—',
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: isLowBalance
-                    ? AppColors.danger700
-                    : AppColors.brand700,
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: isLowBalance ? AppColors.danger700 : AppColors.brand700,
               ),
             ),
           ),
