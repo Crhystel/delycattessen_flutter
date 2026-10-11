@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -147,9 +148,8 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: AppTheme.lightAppBar(
         title: Text('Alergias de ${widget.personName}'),
-        backgroundColor: Colors.white,
       ),
       body: SafeArea(
         child: _isLoading

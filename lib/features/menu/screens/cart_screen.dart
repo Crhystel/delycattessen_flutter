@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -158,7 +159,8 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
+        appBar: AppTheme.lightAppBar(
+          centerTitle: false,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -173,7 +175,6 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
                 ),
             ],
           ),
-          backgroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context, _editableCart),

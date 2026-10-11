@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme.dart';
 import 'primary_button.dart';
 
 /// Reusable PIN screen. In "create" mode, asks the user to type a 4-digit
@@ -84,11 +85,10 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: AppTheme.lightAppBar(
         title: Text(
           widget.isCreating ? 'Crea tu PIN de pago' : 'Confirma tu pago',
         ),
-        backgroundColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),

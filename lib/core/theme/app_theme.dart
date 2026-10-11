@@ -7,6 +7,47 @@ import 'app_radius.dart';
 /// Single source of truth for the app theme.
 /// Roles: teal = structure, brand (yellow) = action, secondary (purple) = accent only.
 class AppTheme {
+  /// Estilo de AppBar clara (fondo blanco, flecha y título en AppColors.ink900)
+  /// según especificaciones del Figma (fuente Nunito, weight 800, tamaño 20).
+  static AppBarTheme get lightAppBarTheme => AppBarTheme(
+    backgroundColor: Colors.white,
+    foregroundColor: AppColors.ink900,
+    elevation: 0,
+    centerTitle: true,
+    iconTheme: const IconThemeData(color: AppColors.ink900),
+    titleTextStyle: GoogleFonts.nunito(
+      color: AppColors.ink900,
+      fontSize: 20,
+      fontWeight: FontWeight.w800,
+    ),
+  );
+
+  /// Helper para construir una AppBar clara estándar del tema sin colores escritos a mano.
+  static AppBar lightAppBar({
+    Widget? title,
+    Widget? leading,
+    List<Widget>? actions,
+    PreferredSizeWidget? bottom,
+    bool centerTitle = true,
+  }) {
+    return AppBar(
+      title: title,
+      leading: leading,
+      actions: actions,
+      bottom: bottom,
+      centerTitle: centerTitle,
+      backgroundColor: Colors.white,
+      foregroundColor: AppColors.ink900,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: AppColors.ink900),
+      titleTextStyle: GoogleFonts.nunito(
+        color: AppColors.ink900,
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.teal500,

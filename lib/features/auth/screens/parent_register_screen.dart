@@ -9,6 +9,7 @@ import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/password_requirements.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
+import 'login_screen.dart';
 import 'student_registration_screen.dart';
 
 class ParentRegisterScreen extends StatefulWidget {
@@ -86,6 +87,16 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
         _confirmController.text != _passwordController.text;
 
     return AuthFormLayout(
+      showBackButton: true,
+      onBack: () {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
+      },
       icon: Icons.person_add_alt_1,
       title: 'Registrarse',
       subtitle: null,
