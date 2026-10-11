@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_radius.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'app_notification_messenger.dart';
 import 'scanner_overlay.dart';
@@ -106,15 +106,22 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
                   child: OutlinedButton(
                     onPressed: onCancelPressed,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white54, width: 1.5),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.smAll,
+                      foregroundColor: AppColors.secondary500,
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(
+                        color: Color(0xFF5932EA),
+                        width: 2.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: const Text(
                       'Cancelar',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),

@@ -146,12 +146,15 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppBar(title: Text('Alergias de ${widget.personName}')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Alergias de ${widget.personName}'),
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: AppColors.teal500),
+                child: CircularProgressIndicator(color: AppColors.secondary500),
               )
             : Column(
                 children: [
@@ -223,26 +226,25 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                                       setState(() => _dropdownValue = value),
                                   decoration: _fieldDecoration('Selecciona'),
                                 ),
-                                const SizedBox(height: AppSpacing.sm),
+                                const SizedBox(height: AppSpacing.md),
                                 SizedBox(
                                   width: double.infinity,
-                                  child: OutlinedButton.icon(
+                                  height: 46,
+                                  child: ElevatedButton.icon(
                                     onPressed: _dropdownValue == null
                                         ? null
                                         : _addSelected,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.teal700,
-                                      minimumSize: const Size.fromHeight(46),
-                                      side: const BorderSide(
-                                        color: AppColors.teal500,
-                                      ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.secondary500,
+                                      foregroundColor: Colors.white,
+                                      disabledBackgroundColor: AppColors.secondary500.withValues(alpha: 0.4),
                                       shape: const RoundedRectangleBorder(
-                                        borderRadius: AppRadius.mdAll,
+                                        borderRadius: AppRadius.fullAll,
                                       ),
                                     ),
-                                    icon: const Icon(Icons.add),
+                                    icon: const Icon(Icons.add, size: 18),
                                     label: const Text(
-                                      'Añadir a la lista',
+                                      'Añadir',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                       ),
@@ -259,7 +261,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                                       '¿No encuentras la alergia? Agrégala',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.teal500,
+                                        color: AppColors.secondary500,
                                       ),
                                     ),
                                   )
@@ -269,27 +271,39 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.info_outline,
-                                size: 18,
-                                color: AppColors.teal500,
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: AppColors.brand50,
+                              borderRadius: AppRadius.smAll,
+                              border: const Border(
+                                left: BorderSide(
+                                  color: AppColors.brand500,
+                                  width: 4,
+                                ),
                               ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  'Los productos con estas alergias se marcarán '
-                                  'automáticamente en el menú de ${widget.personName}.',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: AppColors.ink900.withValues(
-                                      alpha: 0.7,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 20,
+                                  color: AppColors.brand700,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    'Los productos con estas alergias se marcarán '
+                                    'automáticamente en el menú de ${widget.personName}.',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: AppColors.brand700,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -332,6 +346,11 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                   _showNewAllergenField = false;
                   _newAllergenController.clear();
                 }),
+                style: OutlinedButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.fullAll,
+                  ),
+                ),
                 child: const Text('Cancelar'),
               ),
             ),
@@ -341,6 +360,11 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                 onPressed: _isCreatingAllergen ? null : _createNewAllergen,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(40),
+                  backgroundColor: AppColors.secondary500,
+                  foregroundColor: Colors.white,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.fullAll,
+                  ),
                 ),
                 child: _isCreatingAllergen
                     ? const SizedBox(
@@ -348,10 +372,13 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.ink900,
+                          color: Colors.white,
                         ),
                       )
-                    : const Text('Agregar'),
+                    : const Text(
+                        'Agregar',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
               ),
             ),
           ],

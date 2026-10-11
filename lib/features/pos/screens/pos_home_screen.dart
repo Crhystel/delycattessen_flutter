@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -145,42 +143,62 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            _PosOptionCard(
-              iconBackground: AppColors.teal500,
-              iconColor: Colors.white,
-              icon: Icons.face_retouching_natural_rounded,
-              title: 'Reconocimiento facial',
-              subtitle: 'Identifica por rostro',
-              onTap: _navigateToFaceScan,
+            Center(
+              child: _PosOptionCard(
+                iconBackground: const Color(0xFF5932EA),
+                iconColor: Colors.white,
+                icon: Icons.face_retouching_natural_rounded,
+                title: 'Reconocimiento\nFacial',
+                titleColor: const Color(0xFF5932EA),
+                subtitle: 'Identifica por rostro',
+                onTap: _navigateToFaceScan,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            _PosOptionCard(
-              iconBackground: AppColors.brand500,
-              iconColor: AppColors.ink900,
-              icon: Icons.qr_code_2_rounded,
-              title: 'Escanear código QR',
-              subtitle: 'Escanea el código QR del usuario',
-              onTap: _navigateToQrScan,
+            Center(
+              child: _PosOptionCard(
+                iconBackground: const Color(0xFFE5A93C),
+                iconColor: Colors.white,
+                icon: Icons.qr_code_2_rounded,
+                title: 'Escanear Código\nQR',
+                titleColor: const Color(0xFFE5A93C),
+                subtitle: 'Escanea el código QR del usuario',
+                onTap: _navigateToQrScan,
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
             Center(
-              child: OutlinedButton.icon(
-                onPressed: () => showInfoSnackBar(
-                  'Venta Rápida aún no está implementada.',
-                  duration: const Duration(seconds: 2),
+              child: Container(
+                width: 190,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5932EA),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.teal700,
-                  minimumSize: const Size(190, 48),
-                  side: const BorderSide(color: AppColors.teal500, width: 1.5),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: AppRadius.smAll,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => showInfoSnackBar(
+                      'Venta Rápida aún no está implementada.',
+                      duration: const Duration(seconds: 2),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.bolt, color: Colors.white, size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          'Venta Rápida',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                icon: const Icon(Icons.bolt),
-                label: const Text(
-                  'Venta rápida',
-                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ),
@@ -198,6 +216,7 @@ class _PosOptionCard extends StatelessWidget {
   final Color iconColor;
   final IconData icon;
   final String title;
+  final Color titleColor;
   final String subtitle;
   final VoidCallback onTap;
 
@@ -206,50 +225,80 @@ class _PosOptionCard extends StatelessWidget {
     required this.iconColor,
     required this.icon,
     required this.title,
+    required this.titleColor,
     required this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.xl - 4),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: AppRadius.smAll,
-            ),
-            child: Icon(icon, color: iconColor, size: 34),
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 340),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD4D4D8), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.6),
-                  ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFD4D4D8),
+                  size: 26,
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.teal500),
-        ],
+        ),
       ),
     );
   }

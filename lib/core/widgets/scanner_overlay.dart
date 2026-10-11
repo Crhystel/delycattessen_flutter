@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 
 /// Rounded yellow viewfinder frame with an animated scan line. The concrete
@@ -25,8 +23,8 @@ class ScannerFrame extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(AppRadius.lg - 4),
-        border: Border.all(color: AppColors.brand500, width: 3),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5A93C), width: 3),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -43,10 +41,10 @@ class ScannerFrame extends StatelessWidget {
                 child: Container(
                   height: 3,
                   decoration: BoxDecoration(
-                    color: AppColors.teal500,
+                    color: const Color(0xFF00B4D8),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.teal500.withValues(alpha: 0.8),
+                        color: const Color(0xFF00B4D8).withValues(alpha: 0.8),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),
@@ -62,7 +60,7 @@ class ScannerFrame extends StatelessWidget {
   }
 }
 
-/// Dark help card with a teal accent bar, shown under the viewfinder.
+/// Dark help card with a blue accent bar, shown under the viewfinder.
 class ScannerNotice extends StatelessWidget {
   final String text;
   final double width;
@@ -73,15 +71,15 @@ class ScannerNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      decoration: const BoxDecoration(
-        color: AppColors.ink900,
-        borderRadius: AppRadius.smAll,
+      decoration: BoxDecoration(
+        color: const Color(0xFF03192B),
+        borderRadius: BorderRadius.circular(4),
       ),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           children: [
-            Container(width: 4, color: AppColors.teal500),
+            Container(width: 4, color: const Color(0xFF007ACC)),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -91,7 +89,7 @@ class ScannerNotice extends StatelessWidget {
                 child: Text(
                   text,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
+                    color: const Color(0xFF007ACC),
                     fontWeight: FontWeight.w600,
                     height: 1.35,
                   ),

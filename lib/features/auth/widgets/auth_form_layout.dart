@@ -29,7 +29,7 @@ class AuthFormLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           const RepaintBoundary(
@@ -44,23 +44,14 @@ class AuthFormLayout extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   children: [
-                    const SizedBox(height: AppSpacing.xl),
-                    Container(
-                      width: 84,
-                      height: 84,
-                      decoration: const BoxDecoration(
-                        color: AppColors.brand500,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 44, color: AppColors.ink900),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: 40),
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.teal700,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 30,
+                        color: AppColors.brand500,
                       ),
                     ),
                     if (subtitle != null) ...[

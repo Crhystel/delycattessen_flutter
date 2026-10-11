@@ -15,9 +15,9 @@ class AppColors {
 
   static const Color navActiveCircle = Color(0xFFE8B862);
 
-  static const Color secondary50 = Color(0xFFF0EBFB);
-  static const Color secondary500 = Color(0xFF6F42C9);
-  static const Color secondary700 = Color(0xFF42257D);
+  static const Color secondary50 = Color(0xFFEEE8F6);
+  static const Color secondary500 = Color(0xFF5B2D9E);
+  static const Color secondary700 = Color(0xFF3E1E6C);
 
   static const Color ink50 = Color(0xFFF2F7FB);
   static const Color ink900 = Color(0xFF0C1B2A);

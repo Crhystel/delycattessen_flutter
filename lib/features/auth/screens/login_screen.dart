@@ -76,9 +76,9 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
   @override
   Widget build(BuildContext context) {
     return AuthFormLayout(
-      icon: Icons.restaurant,
-      title: '¡Bienvenido!',
-      subtitle: 'Ingresa para pedir el almuerzo de tus hijos',
+      icon: Icons.person_outline,
+      title: 'Te damos la bienvenida',
+      subtitle: 'Inicia sesión para continuar',
       footer: [
         const SizedBox(height: AppSpacing.lg),
         TextButton(
@@ -93,12 +93,11 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
             ),
           ),
         ),
-        // TODO: agregar "Olvidé mi contraseña" cuando exista el flujo.
       ],
       children: [
         AuthTextField(
           controller: _usernameController,
-          hint: 'Usuario',
+          hint: 'Correo o usuario',
           icon: Icons.person_outline,
         ),
         const SizedBox(height: AppSpacing.md),

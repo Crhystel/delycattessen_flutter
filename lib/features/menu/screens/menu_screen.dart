@@ -252,23 +252,25 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
             if (_selectedChild != null) _buildChildBanner(children),
+            const SizedBox(height: AppSpacing.sm),
             _buildCategories(),
+            const SizedBox(height: AppSpacing.xs),
             Expanded(
               child: _isLoading
                   ? const Center(
                       child: CircularProgressIndicator(
-                        color: AppColors.teal500,
+                        color: AppColors.secondary500,
                       ),
                     )
                   : RefreshIndicator(
-                      color: AppColors.teal500,
+                      color: AppColors.secondary500,
                       onRefresh: _refreshMenu,
                       child: _buildProductList(),
                     ),
@@ -284,45 +286,61 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
-        AppSpacing.md,
+        AppSpacing.sm,
         AppSpacing.lg,
-        0,
+        AppSpacing.xs,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!widget.embedded)
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.ink900),
-              onPressed: () => Navigator.pop(context),
-            ),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {});
-                _onSearchChanged(value);
-              },
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: '¿Qué se te antoja hoy?',
-                prefixIcon: const Icon(Icons.search, color: AppColors.teal700),
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                          _onSearchChanged('');
-                        },
-                      ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+          Row(
+            children: [
+              if (!widget.embedded) ...[
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
+                  onPressed: () => Navigator.pop(context),
                 ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                'Menú',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {});
+              _onSearchChanged(value);
+            },
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Buscar...',
+              prefixIcon: const Icon(Icons.search, color: AppColors.secondary500),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                        _onSearchChanged('');
+                      },
+                    ),
+              filled: true,
+              fillColor: AppColors.ink50,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
@@ -381,46 +399,70 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
   Widget _buildCategories() {
     final names = _categoryNames;
-    if (names.isEmpty) return const SizedBox(height: AppSpacing.md);
+    if (names.isEmpty) return const SizedBox.shrink();
     final options = <String?>[null, ...names];
-    return SizedBox(
-      height: 64,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Text(
+            'Categorías',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink900,
+            ),
+          ),
         ),
-        itemCount: options.length,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-        itemBuilder: (context, index) {
-          final category = options[index];
-          final isSelected = _selectedCategory == category;
-          return ChoiceChip(
-            showCheckmark: false,
-            selected: isSelected,
-            selectedColor: AppColors.teal500,
-            backgroundColor: Colors.white,
-            side: BorderSide(
-              color: isSelected ? AppColors.teal500 : AppColors.teal50,
-            ),
-            shape: const StadiumBorder(),
-            avatar: Icon(
-              category == null ? Icons.apps : _iconFor(category),
-              size: 18,
-              color: isSelected ? Colors.white : AppColors.secondary500,
-            ),
-            label: Text(
-              category ?? 'Todo',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : AppColors.ink900,
-              ),
-            ),
-            onSelected: (_) => setState(() => _selectedCategory = category),
-          );
-        },
-      ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: 84,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            itemCount: options.length,
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+            itemBuilder: (context, index) {
+              final category = options[index];
+              final isSelected = _selectedCategory == category;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedCategory = category),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.secondary500
+                            : AppColors.secondary50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        category == null ? Icons.apps : _iconFor(category),
+                        color: isSelected ? Colors.white : AppColors.secondary500,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      category ?? 'Todo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected
+                            ? AppColors.secondary500
+                            : AppColors.ink900.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -561,16 +603,16 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.teal500,
+                              color: AppColors.secondary500,
                             ),
                           ),
                         ),
                         errorWidget: (_, _, _) => const Icon(
                           Icons.fastfood,
-                          color: AppColors.teal500,
+                          color: AppColors.secondary500,
                         ),
                       )
-                    : const Icon(Icons.fastfood, color: AppColors.teal500),
+                    : const Icon(Icons.fastfood, color: AppColors.secondary500),
               ),
             ),
           ],
@@ -584,11 +626,11 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 4,
-            offset: const Offset(0, -2),
+            offset: Offset(0, -2),
           ),
         ],
       ),
@@ -603,8 +645,13 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary500,
+              foregroundColor: Colors.white,
               minimumSize: const Size(0, 48),
               padding: const EdgeInsets.symmetric(horizontal: 32),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
             onPressed: () {
               Navigator.push(

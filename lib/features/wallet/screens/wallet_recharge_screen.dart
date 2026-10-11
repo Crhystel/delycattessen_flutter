@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
@@ -247,9 +248,10 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
         !childrenProvider.hasLoadedOnce;
 
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
+          const FloatingBubbles(corner: BubbleCorner.topRight),
           SafeArea(
             child: Column(
               children: [
@@ -325,10 +327,10 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
             const SizedBox(width: 4),
           ],
           Text(
-            'Billetera',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            'Billetera Digital',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
-              color: AppColors.teal700,
+              color: AppColors.ink900,
             ),
           ),
         ],
@@ -345,7 +347,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
-          child: CircularProgressIndicator(color: AppColors.teal500),
+          child: CircularProgressIndicator(color: AppColors.secondary500),
         ),
       );
     }
@@ -385,7 +387,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? AppColors.teal500 : AppColors.teal50,
+                  color: isSelected
+                      ? AppColors.secondary500
+                      : const Color(0xFFE0E0E0),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -398,7 +402,11 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                   const SizedBox(height: 6),
                   Text(
                     child.name,
-                    style: TextStyle(fontSize: 11, color: AppColors.ink900),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: AppColors.ink900,
+                    ),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),

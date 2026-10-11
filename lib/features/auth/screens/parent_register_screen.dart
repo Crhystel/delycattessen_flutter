@@ -87,12 +87,12 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
 
     return AuthFormLayout(
       icon: Icons.person_add_alt_1,
-      title: 'Crea tu cuenta',
-      subtitle: 'Regístrate para administrar el comedor de tus hijos',
+      title: 'Registrarse',
+      subtitle: null,
       children: [
         AuthTextField(
           controller: _emailController,
-          hint: 'Correo electrónico',
+          hint: 'E-mail',
           icon: Icons.mail_outline,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -108,7 +108,7 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
         const SizedBox(height: AppSpacing.md),
         AuthTextField(
           controller: _confirmController,
-          hint: 'Confirmar contraseña',
+          hint: 'Confirmar Contraseña',
           icon: Icons.lock_outline,
           isPassword: true,
           onChanged: (_) => setState(() {}),

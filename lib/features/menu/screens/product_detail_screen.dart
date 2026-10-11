@@ -29,7 +29,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final item = widget.item;
 
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,7 +38,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Container(
                 width: double.infinity,
                 height: 280,
-                color: AppColors.teal50,
+                color: AppColors.ink50,
                 child: item.imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: item.imageUrl!,
@@ -46,19 +46,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         memCacheWidth: 900,
                         placeholder: (_, _) => const Center(
                           child: CircularProgressIndicator(
-                            color: AppColors.teal500,
+                            color: AppColors.secondary500,
                           ),
                         ),
                         errorWidget: (_, _, _) => const Icon(
                           Icons.fastfood,
                           size: 100,
-                          color: AppColors.teal500,
+                          color: AppColors.secondary500,
                         ),
                       )
                     : const Icon(
                         Icons.fastfood,
                         size: 100,
-                        color: AppColors.teal500,
+                        color: AppColors.secondary500,
                       ),
               ),
               SafeArea(
@@ -68,8 +68,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     backgroundColor: Colors.white,
                     child: IconButton(
                       icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
+                        Icons.arrow_back,
+                        size: 20,
                         color: AppColors.ink900,
                       ),
                       onPressed: () => Navigator.pop(context),
@@ -163,13 +163,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isAllergen ? AppColors.dangerBg : AppColors.teal50,
+        color: isAllergen ? AppColors.dangerBg : AppColors.secondary50,
         borderRadius: AppRadius.smAll,
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: isAllergen ? AppColors.danger700 : AppColors.teal700,
+          color: isAllergen ? AppColors.danger700 : AppColors.secondary700,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -199,13 +199,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.teal500),
+                border: Border.all(color: AppColors.secondary500),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.remove, color: AppColors.teal700),
+                    icon: const Icon(Icons.remove, color: AppColors.secondary500),
                     onPressed: () {
                       if (_quantity > 1) setState(() => _quantity--);
                     },
@@ -217,7 +217,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.add, color: AppColors.teal700),
+                    icon: const Icon(Icons.add, color: AppColors.secondary500),
                     onPressed: () => setState(() => _quantity++),
                   ),
                 ],

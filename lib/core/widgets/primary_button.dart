@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import '../theme/app_radius.dart';
 
 /// Main call-to-action button (yellow). Use one per screen.
 class PrimaryButton extends StatelessWidget {
@@ -21,14 +20,15 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = ElevatedButton.styleFrom(
-      backgroundColor: AppColors.brand500,
-      foregroundColor: AppColors.ink900,
-      minimumSize: const Size.fromHeight(52),
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      backgroundColor: AppColors.secondary500,
+      foregroundColor: Colors.white,
+      minimumSize: const Size.fromHeight(50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      elevation: 0,
     );
     final text = Text(
       label,
-      style: const TextStyle(fontWeight: FontWeight.w800),
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
     );
     final enabled = isLoading ? null : onPressed;
 
@@ -37,11 +37,11 @@ class PrimaryButton extends StatelessWidget {
         onPressed: enabled,
         style: style,
         child: const SizedBox(
-          height: 22,
-          width: 22,
+          height: 20,
+          width: 20,
           child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: AppColors.ink900,
+            strokeWidth: 2,
+            color: Colors.white,
           ),
         ),
       );

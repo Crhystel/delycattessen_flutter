@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
-import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
-import '../../../core/widgets/primary_button.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/student_registration_screen.dart';
@@ -151,20 +148,21 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
               Text(
-                '¿A quién le pedimos hoy?',
-                style: textTheme.headlineSmall?.copyWith(
+                'Tus hijos',
+                style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.teal700,
+                  fontSize: 26,
+                  color: AppColors.ink900,
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               if (childrenProvider.isLoading && !childrenProvider.hasLoadedOnce)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.teal500),
+                    child: CircularProgressIndicator(color: AppColors.secondary500),
                   ),
                 )
               else if (childrenProvider.errorMessage != null)
@@ -183,11 +181,11 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                 )
               else
                 ...children.map((c) => _buildChildCard(c)),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
-                height: 52,
-                child: OutlinedButton.icon(
+                height: 50,
+                child: ElevatedButton.icon(
                   onPressed: () async {
                     final provider = context.read<ChildrenProvider>();
                     await Navigator.of(context).push(
@@ -197,20 +195,18 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                     );
                     provider.refresh();
                   },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.teal700,
-                    side: const BorderSide(
-                      color: AppColors.teal500,
-                      width: 1.5,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary500,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadius.mdAll,
-                    ),
+                    elevation: 0,
                   ),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add, color: Colors.white),
                   label: const Text(
                     'Añadir hijo/a',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                   ),
                 ),
               ),
@@ -228,86 +224,89 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       onTap: () => _openChildDetail(child),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              ChildAvatarChip(imageUrl: child.profilePictureUrl),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${child.firstName} ${child.lastName}',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      child.institutionName,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.55),
-                      ),
-                    ),
-                    if (isLowBalance) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            size: 16,
-                            color: AppColors.danger700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Saldo bajo',
-                            style: textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.danger700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isLowBalance ? AppColors.dangerBg : AppColors.brand50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  child.balance != null
-                      ? '\$${child.balance!.toStringAsFixed(2)}'
-                      : '—',
-                  style: textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isLowBalance
-                        ? AppColors.danger700
-                        : AppColors.brand700,
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.ink50,
+            backgroundImage: child.profilePictureUrl != null
+                ? NetworkImage(child.profilePictureUrl!)
+                : null,
+            child: child.profilePictureUrl == null
+                ? const Icon(Icons.person, color: AppColors.secondary500)
+                : null,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${child.firstName} ${child.lastName}',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              const Icon(Icons.chevron_right, color: AppColors.teal500),
-            ],
-          ),
-          if (widget.onOrderForChild != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            PrimaryButton(
-              label: 'Pedir comida',
-              icon: Icons.restaurant_menu,
-              onPressed: () => widget.onOrderForChild!(child.id),
+                const SizedBox(height: 2),
+                Text(
+                  child.institutionName,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.ink900.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 8,
+                      color: isLowBalance
+                          ? AppColors.danger500
+                          : AppColors.success500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isLowBalance ? 'Saldo bajo' : 'Activo',
+                      style: textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        color: isLowBalance
+                            ? AppColors.danger700
+                            : AppColors.success700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: isLowBalance ? AppColors.dangerBg : AppColors.brand50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              child.balance != null
+                  ? '\$${child.balance!.toStringAsFixed(2)}'
+                  : '—',
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: isLowBalance
+                    ? AppColors.danger700
+                    : AppColors.brand700,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          const Icon(Icons.chevron_right, color: Color(0xFFBBBBBB)),
         ],
       ),
     );

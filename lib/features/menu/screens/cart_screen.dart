@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/menu_models.dart';
@@ -34,12 +33,30 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> with NotificationMixin {
   final MenuService _menuService = MenuService();
   bool _isLoading = false;
+  late Map<int, int> _editableCart;
 
-  /// Ítems del carrito resueltos contra el menú. Se ignoran ids que ya no
-  /// existan en el menú para no romper la pantalla.
+  @override
+  void initState() {
+    super.initState();
+    _editableCart = Map<int, int>.from(widget.cart);
+  }
+
+  void _updateQuantity(int itemId, int delta) {
+    setState(() {
+      final current = _editableCart[itemId] ?? 0;
+      final next = current + delta;
+      if (next <= 0) {
+        _editableCart.remove(itemId);
+      } else {
+        _editableCart[itemId] = next;
+      }
+    });
+  }
+
+  /// Ítems del carrito resueltos contra el menú.
   List<MapEntry<MenuItem, int>> get _lines {
     final lines = <MapEntry<MenuItem, int>>[];
-    for (final entry in widget.cart.entries) {
+    for (final entry in _editableCart.entries) {
       final matches = widget.menuItems.where((i) => i.id == entry.key);
       if (matches.isNotEmpty) lines.add(MapEntry(matches.first, entry.value));
     }
@@ -98,7 +115,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
 
     setState(() => _isLoading = true);
     try {
-      final orderItems = widget.cart.entries
+      final orderItems = _editableCart.entries
           .map((e) => PreOrderItem(menuItemId: e.key, quantity: e.value))
           .toList();
       final preOrder = PreOrder(studentId: widget.studentId, items: orderItems);
@@ -133,8 +150,11 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
     final lines = _lines;
 
     return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppBar(title: const Text('Mi carrito')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Mi carrito'),
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -143,18 +163,43 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
               children: [
                 if (hasUnsafeItems) _buildAllergenWarningBanner(unsafeItems),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: lines.length,
-                    itemBuilder: (context, index) {
-                      final item = lines[index].key;
-                      return _buildCartItemCard(
-                        item,
-                        lines[index].value,
-                        unsafeItems.contains(item),
-                      );
-                    },
-                  ),
+                  child: lines.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Tu carrito está vacío',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF8A8686),
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          children: [
+                            ...lines.map((line) {
+                              final item = line.key;
+                              return _buildCartItemCard(
+                                item,
+                                line.value,
+                                unsafeItems.contains(item),
+                              );
+                            }),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Método de pago',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink900,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            _buildPaymentOption(
+                              'Billetera Digital',
+                              Icons.account_balance_wallet_outlined,
+                              true,
+                            ),
+                          ],
+                        ),
                 ),
                 _buildBottomBar(hasUnsafeItems),
               ],
@@ -163,7 +208,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
                 child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.brand500),
+                  child: CircularProgressIndicator(color: AppColors.secondary500),
                 ),
               ),
           ],
@@ -227,20 +272,26 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
 
   Widget _buildCartItemCard(MenuItem item, int quantity, bool isUnsafe) {
     final textTheme = Theme.of(context).textTheme;
-    return AppCard(
+    return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
-      color: isUnsafe ? AppColors.dangerBg : Colors.white,
+      decoration: BoxDecoration(
+        color: isUnsafe ? AppColors.dangerBg : Colors.white,
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(
+          color: isUnsafe ? AppColors.danger500 : const Color(0xFFE5E7EB),
+        ),
+      ),
       child: Row(
         children: [
           Container(
             width: 56,
             height: 56,
             decoration: const BoxDecoration(
-              color: AppColors.teal50,
+              color: AppColors.ink50,
               borderRadius: AppRadius.smAll,
             ),
-            child: const Icon(Icons.fastfood, color: AppColors.teal500),
+            child: const Icon(Icons.fastfood, color: AppColors.secondary500),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -255,42 +306,97 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '\$${item.price.toStringAsFixed(2)} c/u',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.6),
+                  '\$${item.price.toStringAsFixed(2)}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.brand700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.ink50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    quantity == 1 ? Icons.delete_outline : Icons.remove,
+                    size: 18,
+                    color: const Color(0xFF8A8686),
+                  ),
+                  onPressed: () => _updateQuantity(item.id, -1),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.brand50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '×$quantity',
-                  style: textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.brand700,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    '$quantity',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '\$${(item.price * quantity).toStringAsFixed(2)}',
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                IconButton(
+                  icon: const Icon(
+                    Icons.add,
+                    size: 18,
+                    color: Color(0xFF8A8686),
+                  ),
+                  onPressed: () => _updateQuantity(item.id, 1),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentOption(String title, IconData icon, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: isSelected ? AppColors.secondary500 : const Color(0xFFE5E7EB),
+          width: isSelected ? 1.5 : 1,
+        ),
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.brand50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.brand700, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Icon(
+            isSelected
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
+            color: isSelected
+                ? AppColors.secondary500
+                : const Color(0xFF8A8686),
           ),
         ],
       ),
@@ -300,6 +406,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   Widget _buildBottomBar(bool hasUnsafeItems) {
     final textTheme = Theme.of(context).textTheme;
     final total = _total;
+    final isEmpty = _editableCart.isEmpty;
     final insufficient =
         widget.childBalance != null && widget.childBalance! < total;
     return Container(
@@ -307,6 +414,13 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -368,16 +482,20 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
               ),
             ),
           const SizedBox(height: AppSpacing.lg),
-          if (hasUnsafeItems)
+          if (hasUnsafeItems || isEmpty)
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.ink900.withValues(alpha: 0.2),
                   foregroundColor: AppColors.ink900,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.fullAll,
+                  ),
                 ),
-                onPressed: _isLoading ? null : _handlePayment,
-                child: const Text('Revisa tu carrito'),
+                onPressed: null,
+                child: Text(isEmpty ? 'Carrito vacío' : 'Revisa tu carrito'),
               ),
             )
           else

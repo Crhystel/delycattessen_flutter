@@ -163,8 +163,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: AppColors.teal500,
+        foregroundColor: Colors.white,
         title: const Text('Registro'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -194,14 +196,15 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 _currentStep == 0 ? 'Paso 1 de 2' : 'Paso 2 de 2',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.ink900.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brand500,
                 ),
               ),
               const SizedBox(height: 6),
               LinearProgressIndicator(
                 value: _currentStep == 0 ? 0.5 : 1.0,
                 color: AppColors.brand500,
-                backgroundColor: AppColors.ink50,
+                backgroundColor: AppColors.brand50,
                 minHeight: 4,
                 borderRadius: BorderRadius.circular(2),
               ),
@@ -282,13 +285,36 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     setState(() => _selectedInstitution = value),
                 icon: const Icon(
                   Icons.keyboard_arrow_down,
-                  color: AppColors.teal700,
+                  color: AppColors.secondary500,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Selecciona la institución',
-                  prefixIcon: Icon(
+                  prefixIcon: const Icon(
                     Icons.account_balance_outlined,
-                    color: AppColors.teal700,
+                    color: AppColors.secondary500,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary500,
+                      width: 1.4,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary500,
+                      width: 1.4,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary700,
+                      width: 1.8,
+                    ),
                   ),
                 ),
               ),
@@ -436,7 +462,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               value: _acceptedTerms,
               onChanged: (value) =>
                   setState(() => _acceptedTerms = value ?? false),
-              activeColor: AppColors.teal500,
+              activeColor: AppColors.secondary500,
             ),
             Expanded(
               child: Text(
@@ -456,8 +482,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       text,
       style: const TextStyle(
         fontSize: 14,
-        fontWeight: FontWeight.w800,
-        color: AppColors.teal700,
+        fontWeight: FontWeight.w700,
+        color: AppColors.secondary500,
       ),
     ),
   );
@@ -465,15 +491,69 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   Widget _field(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
-      decoration: InputDecoration(hintText: hint),
+      style: const TextStyle(color: AppColors.ink900),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary700,
+            width: 1.8,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+      ),
     );
   }
 
   InputDecoration _decoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.teal700) : null,
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.secondary500) : null,
       suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: AppColors.secondary500,
+          width: 1.4,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: AppColors.secondary500,
+          width: 1.4,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: AppColors.secondary700,
+          width: 1.8,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
 }

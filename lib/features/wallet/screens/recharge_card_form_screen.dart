@@ -217,8 +217,11 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppBar(title: const Text('Recarga segura')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Recarga segura'),
+        backgroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
@@ -312,7 +315,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
                   value: _acceptedTerms,
                   onChanged: (value) =>
                       setState(() => _acceptedTerms = value ?? false),
-                  activeColor: AppColors.teal500,
+                  activeColor: AppColors.secondary500,
                 ),
                 Expanded(
                   child: Text(
@@ -476,7 +479,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
           Expanded(
             child: Text(
               widget.childName,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.ink900,
               ),
@@ -495,7 +498,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
               ),
               Text(
                 '\$${widget.amount.toStringAsFixed(2)}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: AppColors.brand700,
@@ -512,10 +515,10 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       text,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: AppColors.teal700,
+        color: AppColors.secondary500,
         letterSpacing: 0.5,
       ),
     ),
@@ -534,12 +537,12 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       keyboardType: keyboardType,
       obscureText: obscure,
       inputFormatters: inputFormatters,
-      style: TextStyle(color: AppColors.ink900),
+      style: const TextStyle(color: AppColors.ink900),
       onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: icon != null
-            ? Icon(icon, color: AppColors.teal700, size: 20)
+            ? Icon(icon, color: AppColors.secondary500, size: 20)
             : null,
       ),
     );
@@ -554,14 +557,14 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
               value: type,
               child: Text(
                 type.label,
-                style: TextStyle(fontSize: 14, color: AppColors.ink900),
+                style: const TextStyle(fontSize: 14, color: AppColors.ink900),
               ),
             ),
           )
           .toList(),
       onChanged: (value) =>
           setState(() => _documentType = value ?? DocumentType.cedula),
-      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.teal700),
+      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.secondary500),
       decoration: const InputDecoration(),
     );
   }

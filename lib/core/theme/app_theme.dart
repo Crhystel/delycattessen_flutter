@@ -43,12 +43,14 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.brand500,
-          foregroundColor: AppColors.ink900,
-          minimumSize: const Size.fromHeight(52),
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+          backgroundColor: AppColors.secondary500,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          elevation: 0,
           textStyle: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
           ),
         ),
       ),

@@ -167,7 +167,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.logout, color: AppColors.teal700),
+                  icon: const Icon(Icons.logout, color: AppColors.secondary500),
                   tooltip: 'Cerrar sesión',
                   onPressed: _confirmLogout,
                 ),
@@ -175,16 +175,23 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // Balance card
+            // Balance card with Figma gradient
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.xl - 4),
               decoration: BoxDecoration(
-                color: AppColors.teal500,
-                borderRadius: AppRadius.mdAll,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0068D6), // Vibrant Blue
+                    Color(0xFF4F46E5), // Indigo / Purple
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.teal500.withValues(alpha: 0.3),
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -215,7 +222,9 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
                     balanceText,
                     style: textTheme.headlineLarge?.copyWith(
                       color: Colors.white,
+                      fontSize: 34,
                       fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
@@ -224,12 +233,30 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
             const SizedBox(height: AppSpacing.xl),
 
             Center(
-              child: Text(
-                'Tu código QR',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.teal700,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xFFE5A93C),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Tu código QR',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xFFE5A93C),
+                    size: 18,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -301,7 +328,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
         width: 200,
         height: 200,
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.teal500),
+          child: CircularProgressIndicator(color: AppColors.secondary500),
         ),
       );
     }

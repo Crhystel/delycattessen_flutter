@@ -61,15 +61,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppBar(title: Text('Movimientos de ${widget.childName}')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Movimientos de ${widget.childName}'),
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: AppColors.teal500,
+          color: AppColors.secondary500,
           onRefresh: _loadTransactions,
           child: _isLoading
               ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.teal500),
+                  child: CircularProgressIndicator(color: AppColors.secondary500),
                 )
               : _errorMessage != null
               ? _buildMessage(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
 import 'floating_bubbles.dart';
 
 /// Common page frame: unified background, safe area and optional decorative
@@ -22,7 +21,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       appBar: appBar,
       bottomNavigationBar: bottomNavigationBar,
       body: Stack(

@@ -113,7 +113,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
     final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
-        Icon(icon, color: AppColors.teal500),
+        Icon(icon, color: AppColors.secondary500),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
@@ -138,8 +138,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
         Switch(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: AppColors.ink900,
-          activeTrackColor: AppColors.brand500,
+          activeThumbColor: AppColors.secondary500,
         ),
       ],
     );
@@ -229,19 +228,21 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
                           selected: isSelected,
                           showCheckmark: false,
                           onSelected: (_) => _toggleDay(index),
-                          selectedColor: AppColors.teal500,
+                          selectedColor: AppColors.brand50,
                           backgroundColor: Colors.white,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? Colors.white
-                                : AppColors.ink900.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w700,
+                                ? AppColors.brand700
+                                : AppColors.ink900.withValues(alpha: 0.6),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
-                          shape: const StadiumBorder(),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.teal500
-                                : AppColors.ink900.withValues(alpha: 0.15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? AppColors.brand700
+                                  : AppColors.ink900.withValues(alpha: 0.15),
+                            ),
                           ),
                         );
                       }),

@@ -4,7 +4,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
@@ -164,7 +163,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 top: MediaQuery.of(context).padding.top + 12,
                 bottom: 46,
               ),
-              decoration: const BoxDecoration(color: AppColors.teal500),
+              decoration: const BoxDecoration(color: AppColors.secondary500),
               child: Column(
                 children: [
                   Align(
@@ -184,11 +183,11 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                           padding: const EdgeInsets.all(3),
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.secondary500,
+                            color: Colors.white,
                           ),
                           child: CircleAvatar(
                             radius: 40,
-                            backgroundColor: AppColors.teal700,
+                            backgroundColor: AppColors.ink50,
                             backgroundImage: child.profilePictureUrl != null
                                 ? NetworkImage(child.profilePictureUrl!)
                                 : null,
@@ -198,13 +197,13 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                                     height: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: AppColors.secondary500,
                                     ),
                                   )
                                 : (child.profilePictureUrl == null
                                       ? const Icon(
                                           Icons.person,
-                                          color: Colors.white,
+                                          color: AppColors.secondary500,
                                           size: 40,
                                         )
                                       : null),
@@ -251,11 +250,11 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.teal500,
                     borderRadius: AppRadius.mdAll,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -264,41 +263,95 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Saldo actual',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.6),
-                        ),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.credit_card,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Saldo Actual',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         '\$${(child.balance ?? 0).toStringAsFixed(2)}',
                         style: textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: AppColors.teal700,
+                          fontSize: 30,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      PrimaryButton(
-                        label: 'Recargar saldo',
-                        icon: Icons.add,
-                        onPressed: () => _goToWallet(context),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () => _goToHistory(context),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _goToWallet(context),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
                           icon: const Icon(
-                            Icons.receipt_long,
-                            size: 18,
+                            Icons.add,
                             color: AppColors.teal500,
+                            size: 18,
                           ),
                           label: const Text(
-                            'Ver movimientos',
+                            'Recargar saldo',
                             style: TextStyle(
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.teal500,
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      GestureDetector(
+                        onTap: () => _goToHistory(context),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.brand500,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long,
+                                size: 16,
+                                color: AppColors.ink900,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Ver historial de movimientos',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink900,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: AppColors.ink900,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -313,13 +366,19 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 children: [
                   buildSettingRow(
                     icon: Icons.shield_outlined,
-                    title: 'Control de gastos',
-                    subtitle: 'Límite diario y días permitidos',
+                    title: 'Límite de gasto diario',
+                    subtitle: 'Toca para configurar',
+                    onTap: () => _goToParentalControl(context),
+                  ),
+                  buildSettingRow(
+                    icon: Icons.shield_outlined,
+                    title: 'Días permitidos de gasto',
+                    subtitle: 'Toca para configurar',
                     onTap: () => _goToParentalControl(context),
                   ),
                   buildSettingRow(
                     icon: Icons.warning_amber_outlined,
-                    title: 'Alergias',
+                    title: 'Alergias registradas',
                     subtitle: _allergiesSummary,
                     onTap: () => _goToAllergies(context),
                   ),

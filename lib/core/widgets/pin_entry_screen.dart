@@ -83,11 +83,12 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           widget.isCreating ? 'Crea tu PIN de pago' : 'Confirma tu pago',
         ),
+        backgroundColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -99,13 +100,13 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                 width: 72,
                 height: 72,
                 decoration: const BoxDecoration(
-                  color: AppColors.teal50,
+                  color: AppColors.secondary50,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.lock_outline_rounded,
                   size: 36,
-                  color: AppColors.teal500,
+                  color: AppColors.secondary500,
                 ),
               ),
             ),

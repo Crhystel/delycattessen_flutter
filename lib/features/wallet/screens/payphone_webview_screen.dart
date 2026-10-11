@@ -49,7 +49,7 @@ class _PayphoneWebViewScreenState extends State<PayphoneWebViewScreen> {
           WebViewWidget(controller: _controller),
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(color: AppColors.teal500),
+              child: CircularProgressIndicator(color: AppColors.secondary500),
             ),
         ],
       ),

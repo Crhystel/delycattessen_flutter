@@ -37,8 +37,19 @@ class _AuthTextFieldState extends State<AuthTextField> {
       obscureText: widget.isPassword && _obscure,
       keyboardType: widget.keyboardType,
       onChanged: widget.onChanged,
+      style: const TextStyle(color: AppColors.ink900, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: widget.hint,
+        filled: true,
+        fillColor: AppColors.ink50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
         prefixIcon: Icon(widget.icon, color: AppColors.teal700),
         suffixIcon: widget.isPassword
             ? IconButton(

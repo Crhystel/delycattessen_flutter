@@ -128,7 +128,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink50,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +145,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   if (!widget.embedded)
                     IconButton(
                       icon: const Icon(
-                        Icons.arrow_back_ios,
+                        Icons.arrow_back,
                         color: AppColors.ink900,
                       ),
                       onPressed: () => Navigator.pop(context),
@@ -154,7 +154,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     'Mis pedidos',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.teal700,
+                      color: AppColors.ink900,
                     ),
                   ),
                 ],
@@ -176,13 +176,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.teal500),
+        child: CircularProgressIndicator(color: AppColors.secondary500),
       );
     }
 
     if (_errorMessage != null) {
       return RefreshIndicator(
-        color: AppColors.teal500,
+        color: AppColors.secondary500,
         onRefresh: _fetchOrders,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -204,7 +204,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     if (_orders.isEmpty) {
       return RefreshIndicator(
-        color: AppColors.teal500,
+        color: AppColors.secondary500,
         onRefresh: _fetchOrders,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -233,7 +233,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     ];
 
     return RefreshIndicator(
-      color: AppColors.teal500,
+      color: AppColors.secondary500,
       onRefresh: _fetchOrders,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -256,7 +256,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Icon(
             title == 'Historial' ? Icons.history : Icons.shopping_bag_outlined,
             size: 20,
-            color: AppColors.teal500,
+            color: AppColors.secondary500,
           ),
           const SizedBox(width: AppSpacing.sm),
           Text(
