@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -387,7 +388,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                     ? CachedNetworkImage(
                         imageUrl: dish.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 200,
+                        memCacheWidth: AppImageCacheHelper.cacheSize(context, 120),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 120),
                         placeholder: (_, _) => Container(
                           color: AppColors.ink50,
                           child: const Center(
@@ -457,6 +459,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     final textTheme = Theme.of(context).textTheme;
     final isLowBalance =
         child.balance != null && child.balance! < _lowBalanceThreshold;
+    final avatarSize = AppImageCacheHelper.cacheSize(context, 52);
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       onTap: () => _openChildDetail(child),
@@ -466,7 +469,11 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
             radius: 26,
             backgroundColor: AppColors.ink50,
             backgroundImage: child.profilePictureUrl != null
-                ? NetworkImage(child.profilePictureUrl!)
+                ? ResizeImage(
+                    CachedNetworkImageProvider(child.profilePictureUrl!),
+                    width: avatarSize,
+                    height: avatarSize,
+                  )
                 : null,
             child: child.profilePictureUrl == null
                 ? const Icon(Icons.person, color: AppColors.secondary500)

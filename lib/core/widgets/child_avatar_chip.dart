@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../utils/app_image_cache_helper.dart';
 
 /// Child avatar with a small purple ring (accent). Falls back to an icon.
 class ChildAvatarChip extends StatelessWidget {
@@ -13,7 +14,7 @@ class ChildAvatarChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-    final size = (radius * 2 * MediaQuery.devicePixelRatioOf(context)).round();
+    final size = AppImageCacheHelper.cacheSize(context, radius * 2);
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: const BoxDecoration(
@@ -26,7 +27,7 @@ class ChildAvatarChip extends StatelessWidget {
         radius: radius,
         backgroundColor: AppColors.secondary50,
         backgroundImage: hasImage
-            ? ResizeImage(CachedNetworkImageProvider(imageUrl!), width: size)
+            ? ResizeImage(CachedNetworkImageProvider(imageUrl!), width: size, height: size)
             : null,
         child: hasImage
             ? null

@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -631,7 +632,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                     ? CachedNetworkImage(
                         imageUrl: dish.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 300,
+                        memCacheWidth: AppImageCacheHelper.cacheSize(context, 100),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 75),
                         placeholder: (_, _) => const Center(
                           child: SizedBox(
                             width: 16,
