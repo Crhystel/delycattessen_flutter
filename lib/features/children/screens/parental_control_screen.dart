@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../widgets/parental_control_card.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 
@@ -69,6 +72,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
   }
 
   Future<void> _saveData() async {
+    FocusScope.of(context).unfocus(); // hide keyboard before saving
     setState(() => _isSaving = true);
     try {
       final amount = double.tryParse(_amountController.text) ?? 0.0;
@@ -101,169 +105,195 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
     });
   }
 
-  /// Título + descripción a la izquierda (se ajustan al ancho disponible) y
-  /// el interruptor a la derecha, para que nunca se desborde la fila.
-  Widget _buildSwitchHeader({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.secondary500),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.ink900.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
+  /// Page frame: white background with the brand bubbles. The keyboard only
+  /// pads the content, so the bubbles stay anchored to the screen corners.
+  Widget _frame({required Widget child}) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          const RepaintBoundary(
+            child: FloatingBubbles(corner: BubbleCorner.topRight),
           ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: AppColors.secondary500,
-        ),
-      ],
+          const RepaintBoundary(
+            child: FloatingBubbles(corner: BubbleCorner.bottomRight),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            'Control parental',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.ink900.withValues(alpha: 0.06),
+        borderRadius: AppRadius.smAll,
+      ),
+      child: Row(
+        children: [
+          const Text(
+            '\$',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.secondary500,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: TextField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              // Digits with an optional dot and up to 2 decimals (a comma would parse as 0).
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^\d{0,5}\.?\d{0,2}$'),
+                ),
+              ],
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText: '0.00',
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+              ),
+            ),
+          ),
+          const Icon(Icons.edit, size: 18, color: AppColors.secondary500),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayChips() {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: List.generate(_weekDays.length, (index) {
+        final isSelected = _allowedDays.contains(index);
+        return ChoiceChip(
+          label: Text(_weekDays[index]),
+          selected: isSelected,
+          showCheckmark: false,
+          onSelected: (_) => _toggleDay(index),
+          selectedColor: AppColors.brand50,
+          backgroundColor: AppColors.ink900.withValues(alpha: 0.06),
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
+          labelStyle: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: isSelected
+                ? AppColors.brand700
+                : AppColors.ink900.withValues(alpha: 0.75),
+          ),
+        );
+      }),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColors.ink50,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.teal500),
+      return _frame(
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.secondary500),
         ),
       );
     }
 
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppBar(title: const Text('Control de gastos')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Daily limit section
-            AppCard(
+    return _frame(
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.sm,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSwitchHeader(
-                    icon: Icons.payments_outlined,
-                    title: 'Límite de gasto diario',
-                    subtitle: 'Máximo que puede gastar por día',
-                    value: _dailyLimitEnabled,
+                  ParentalControlCard(
+                    icon: Icons.attach_money,
+                    title: 'Límite de gasto',
+                    subtitle: 'Monto máximo diario',
+                    enabled: _dailyLimitEnabled,
                     onChanged: (val) =>
                         setState(() => _dailyLimitEnabled = val),
+                    child: _buildAmountField(),
                   ),
-                  if (_dailyLimitEnabled) ...[
-                    const SizedBox(height: AppSpacing.lg),
-                    TextField(
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Monto máximo por día',
-                        prefixText: '\$ ',
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Allowed days section
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSwitchHeader(
+                  const SizedBox(height: AppSpacing.lg),
+                  ParentalControlCard(
                     icon: Icons.event_available_outlined,
                     title: 'Días permitidos',
                     subtitle: 'Días en que puede comprar',
-                    value: _allowedDaysEnabled,
+                    enabled: _allowedDaysEnabled,
                     onChanged: (val) =>
                         setState(() => _allowedDaysEnabled = val),
+                    child: _buildDayChips(),
                   ),
-                  if (_allowedDaysEnabled) ...[
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Selecciona los días en los que puede comprar en el bar:',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: List.generate(_weekDays.length, (index) {
-                        final isSelected = _allowedDays.contains(index);
-                        return ChoiceChip(
-                          label: Text(_weekDays[index]),
-                          selected: isSelected,
-                          showCheckmark: false,
-                          onSelected: (_) => _toggleDay(index),
-                          selectedColor: AppColors.brand50,
-                          backgroundColor: Colors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? AppColors.brand700
-                                : AppColors.ink900.withValues(alpha: 0.6),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? AppColors.brand700
-                                  : AppColors.ink900.withValues(alpha: 0.15),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: PrimaryButton(
-            label: 'Guardar cambios',
-            icon: Icons.save_outlined,
-            isLoading: _isSaving,
-            onPressed: _saveData,
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.sm,
+              AppSpacing.xl,
+              AppSpacing.xl,
+            ),
+            child: PrimaryButton(
+              label: 'Guardar cambios',
+              icon: Icons.save_outlined,
+              isLoading: _isSaving,
+              onPressed: _saveData,
+            ),
+          ),
+        ],
       ),
     );
   }

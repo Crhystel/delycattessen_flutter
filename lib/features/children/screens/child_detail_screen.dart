@@ -12,6 +12,8 @@ import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
+import '../models/parental_control_model.dart';
+import '../services/parental_control_service.dart';
 import 'parental_control_screen.dart';
 
 class ChildDetailScreen extends StatefulWidget {
@@ -29,13 +31,16 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   bool _isUpdatingPhoto = false;
   bool _hasUpdatedPhoto = false;
   final AuthService _authService = AuthService();
+  final ParentalControlService _parentalService = ParentalControlService();
   List<Allergen>? _allergies; // null = cargando o no disponible
+  ParentalControl? _parentalControl; // null = cargando o no disponible
 
   @override
   void initState() {
     super.initState();
     _currentChild = widget.child;
     _loadAllergies();
+    _loadParentalControl();
   }
 
   Future<void> _loadAllergies() async {
@@ -48,6 +53,38 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     } catch (_) {
       // El resumen es informativo; si falla se muestra el texto genérico.
     }
+  }
+
+  Future<void> _loadParentalControl() async {
+    try {
+      final control = await _parentalService.getParentalControl(
+        _currentChild.id,
+      );
+      if (!mounted) return;
+      setState(() => _parentalControl = control);
+    } catch (_) {
+      // Resumen informativo: si falla se muestra el texto genérico.
+    }
+  }
+
+  /// Una sola línea con lo que está activo, p. ej. "Límite $5.00/día · Lun, Mié".
+  String get _spendingControlSummary {
+    final control = _parentalControl;
+    if (control == null) return 'Límite diario y días permitidos';
+
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    final parts = <String>[];
+    if (control.dailyLimitEnabled) {
+      parts.add('Límite \$${control.dailyLimitAmount.toStringAsFixed(2)}/día');
+    }
+    if (control.allowedDaysEnabled) {
+      final days = ([...control.allowedDays]..sort())
+          .where((d) => d >= 0 && d < dayNames.length)
+          .map((d) => dayNames[d])
+          .toList();
+      parts.add(days.isEmpty ? 'Ningún día permitido' : days.join(', '));
+    }
+    return parts.isEmpty ? 'Sin restricciones' : parts.join(' · ');
   }
 
   String get _allergiesSummary {
@@ -95,6 +132,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
         builder: (_) => ParentalControlScreen(studentId: _currentChild.id),
       ),
     );
+    if (!mounted) return;
+    _loadParentalControl(); // refresca el resumen con lo que se acaba de guardar
   }
 
   void _goToAllergies(BuildContext context) async {
@@ -366,14 +405,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 children: [
                   buildSettingRow(
                     icon: Icons.shield_outlined,
-                    title: 'Límite de gasto diario',
-                    subtitle: 'Toca para configurar',
-                    onTap: () => _goToParentalControl(context),
-                  ),
-                  buildSettingRow(
-                    icon: Icons.shield_outlined,
-                    title: 'Días permitidos de gasto',
-                    subtitle: 'Toca para configurar',
+                    title: 'Control parental',
+                    subtitle: _spendingControlSummary,
                     onTap: () => _goToParentalControl(context),
                   ),
                   buildSettingRow(
