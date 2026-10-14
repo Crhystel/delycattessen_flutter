@@ -46,21 +46,23 @@ class RechargeResponse {
 }
 
 class TransactionItemDetail {
-  final String menuItemName;
+  final String dishName;
   final int quantity;
   final double priceAtPurchase;
 
   TransactionItemDetail({
-    required this.menuItemName,
+    required this.dishName,
     required this.quantity,
     required this.priceAtPurchase,
   });
 
+  String get menuItemName => dishName;
+
   factory TransactionItemDetail.fromJson(Map<String, dynamic> json) {
     return TransactionItemDetail(
-      menuItemName: json['menu_item_name'] as String,
-      quantity: json['quantity'] as int,
-      priceAtPurchase: double.parse(json['price_at_purchase'].toString()),
+      dishName: (json['dish_name'] ?? json['menu_item_name'] ?? 'Platillo').toString(),
+      quantity: json['quantity'] as int? ?? 1,
+      priceAtPurchase: double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ?? 0.0,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/wallet_models.dart';
@@ -219,7 +220,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const LightAppBar(title: 'Recarga segura'),
+      appBar: AppTheme.lightAppBar(title: const Text('Recarga segura')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(

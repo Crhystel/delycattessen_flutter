@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
@@ -228,7 +230,11 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                             radius: 40,
                             backgroundColor: AppColors.ink50,
                             backgroundImage: child.profilePictureUrl != null
-                                ? NetworkImage(child.profilePictureUrl!)
+                                ? ResizeImage(
+                                    CachedNetworkImageProvider(child.profilePictureUrl!),
+                                    width: AppImageCacheHelper.cacheSize(context, 80),
+                                    height: AppImageCacheHelper.cacheSize(context, 80),
+                                  )
                                 : null,
                             child: _isUpdatingPhoto
                                 ? const SizedBox(

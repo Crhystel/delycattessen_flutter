@@ -2,23 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_confirmation_dialog.dart';
+import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../auth/models/auth_models.dart';
-import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_picker_sheet.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import 'cart_screen.dart';
-import 'product_detail_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dish_detail_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   final int? studentId;
@@ -26,7 +28,15 @@ class MenuScreen extends StatefulWidget {
   /// true cuando vive dentro del ParentShell: sin flecha atrás ni barra propia.
   final bool embedded;
 
-  const MenuScreen({super.key, this.studentId, this.embedded = false});
+  /// Fecha preseleccionada (opcional, p.ej. al tocar un platillo desde Inicio)
+  final DateTime? initialDate;
+
+  const MenuScreen({
+    super.key,
+    this.studentId,
+    this.embedded = false,
+    this.initialDate,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -34,46 +44,27 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   final MenuService _menuService = MenuService();
-  final AuthService _authService = AuthService();
   bool _isLoading = true;
-  List<MenuItem> _menuItems = [];
-  final Map<int, int> _cart = {}; // itemId -> quantity
-  String? _selectedCategory; // null = todas las categorías
+  String? _errorMessage;
+
+  List<MenuDay> _days = [];
+  MenuDay? _selectedDay;
+
+  final Map<int, int> _cart = {}; // dishId -> quantity
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   String _searchQuery = '';
 
   Child? _selectedChild;
-  Set<int> _childAllergenIds = {};
   bool _hasInitializedSelectedChild = false;
   late final ChildrenProvider _childrenProvider;
-
-  static const Map<String, IconData> _categoryIcons = {
-    'bar': Icons.local_bar,
-    'almuerzo': Icons.restaurant_menu,
-    'snacks': Icons.lunch_dining,
-    'bebidas': Icons.local_drink,
-    'postres': Icons.icecream,
-  };
-
-  /// Categorías reales del menú, en el orden en que llegan del backend.
-  List<String> get _categoryNames {
-    final seen = <String>{};
-    return [
-      for (final item in _menuItems)
-        if (item.category.isNotEmpty && seen.add(item.category)) item.category,
-    ];
-  }
-
-  IconData _iconFor(String category) =>
-      _categoryIcons[category.toLowerCase()] ?? Icons.restaurant;
 
   @override
   void initState() {
     super.initState();
     _childrenProvider = context.read<ChildrenProvider>();
     _childrenProvider.addListener(_onSelectedChildChanged);
-    _fetchMenu();
+
     Future.microtask(() async {
       await _childrenProvider.ensureLoaded();
       _initializeSelectedChild();
@@ -88,14 +79,12 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     super.dispose();
   }
 
-  /// Mantiene este Menú alineado con el hijo seleccionado global (cambiado
-  /// desde Inicio, Pedidos o Billetera) y con su saldo actualizado.
   void _onSelectedChildChanged() {
     if (!mounted || !_hasInitializedSelectedChild) return;
     final selected = _childrenProvider.selectedChild;
     if (selected == null) return;
     if (selected.id != _selectedChild?.id) {
-      _switchChild(selected);
+      _confirmAndSwitchChild(selected);
     } else if (!identical(selected, _selectedChild)) {
       setState(() => _selectedChild = selected);
     }
@@ -107,94 +96,150 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       _childrenProvider.select(widget.studentId!);
     }
     final initial = _childrenProvider.selectedChild;
-    if (initial == null) return;
+    if (initial == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     setState(() {
       _selectedChild = initial;
       _hasInitializedSelectedChild = true;
     });
-    _loadChildAllergies(initial.id);
+    _fetchMonthlyMenu(initial.id);
   }
 
-  Future<void> _refreshSelectedChildBalance() async {
-    await context.read<ChildrenProvider>().refresh();
-    if (!mounted) return;
-    final children = context.read<ChildrenProvider>().children;
-    if (children.isEmpty) return;
-    final updated = children.firstWhere(
-      (c) => c.id == _selectedChild?.id,
-      orElse: () => children.first,
-    );
-    setState(() => _selectedChild = updated);
-  }
+  Future<void> _fetchMonthlyMenu(int studentId) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  Future<void> _loadChildAllergies(int studentId) async {
     try {
-      final allergies = await _authService.getStudentAllergies(studentId);
+      final days = await _menuService.getStudentMonthlyMenu(studentId);
+      if (!mounted) return;
+
+      MenuDay? targetDay;
+      if (widget.initialDate != null) {
+        final initialIso = DateFormatter.toIsoDate(widget.initialDate!);
+        targetDay = days.where((d) => d.date == initialIso).firstOrNull;
+      }
+      targetDay ??= days.isNotEmpty ? days.first : null;
+
+      setState(() {
+        _days = days;
+        _selectedDay = targetDay;
+        _isLoading = false;
+      });
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _childAllergenIds = allergies.map((a) => a.id).toSet();
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _childAllergenIds = {});
     }
   }
 
   Future<void> _refreshMenu() async {
-    await Future.wait([
-      _fetchMenu(),
-      if (_selectedChild != null) _loadChildAllergies(_selectedChild!.id),
-    ]);
-  }
-
-  Future<void> _fetchMenu() async {
-    try {
-      final items = await _menuService.getMenu();
-      if (!mounted) return;
-      setState(() => _menuItems = items);
-    } catch (e) {
-      if (!mounted) return;
-      showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
-        title: 'No se pudo cargar el menú',
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (_selectedChild != null) {
+      await _fetchMonthlyMenu(_selectedChild!.id);
+      await _childrenProvider.refresh();
     }
   }
 
-  void _addToCart(int itemId, int quantity) {
+  Future<void> _confirmAndSwitchChild(Child newChild) async {
+    if (_cart.isNotEmpty) {
+      final confirmed = await AppConfirmationDialog.show(
+        context,
+        title: 'Cambiar de estudiante',
+        message:
+            'Tienes productos en el carrito para ${_selectedChild?.firstName ?? "este estudiante"}. Si cambias, el carrito se vaciará.',
+        confirmLabel: 'Cambiar y vaciar',
+        cancelLabel: 'Conservar',
+        isDestructive: true,
+      );
+      if (!confirmed) return;
+    }
+
     setState(() {
-      _cart[itemId] = (_cart[itemId] ?? 0) + quantity;
+      _selectedChild = newChild;
+      _cart.clear();
+    });
+    _fetchMonthlyMenu(newChild.id);
+  }
+
+  Future<void> _onSelectDay(MenuDay day) async {
+    if (day.id == _selectedDay?.id) return;
+
+    if (day.isBlockedByParentalControl) {
+      showWarningSnackBar(
+        day.blockedReason ?? 'Este día no está habilitado por el control parental.',
+        title: 'Día bloqueado',
+      );
+      return;
+    }
+
+    if (_cart.isNotEmpty) {
+      final currentFormatted = _selectedDay != null
+          ? DateFormatter.formatLong(DateFormatter.parseIsoDate(_selectedDay!.date))
+          : 'el día actual';
+      final confirmed = await AppConfirmationDialog.show(
+        context,
+        title: 'Cambiar de día',
+        message:
+            'Tienes productos en el carrito para $currentFormatted. Si cambias de día se vaciará el carrito.',
+        confirmLabel: 'Cambiar y vaciar',
+        cancelLabel: 'Conservar',
+        isDestructive: true,
+      );
+      if (!confirmed) return;
+    }
+
+    setState(() {
+      _selectedDay = day;
+      _cart.clear();
+      _searchController.clear();
+      _searchQuery = '';
     });
   }
 
-  bool _isUnsafeForChild(MenuItem item) {
-    if (_childAllergenIds.isEmpty) return false;
-    return item.allergens.any((a) => _childAllergenIds.contains(a.id));
+  void _addToCart(int dishId, int quantity) {
+    setState(() {
+      _cart[dishId] = (_cart[dishId] ?? 0) + quantity;
+    });
   }
 
-  Set<String> _unsafeAllergenNames(MenuItem item) {
-    return item.allergens
-        .where((a) => _childAllergenIds.contains(a.id))
-        .map((a) => a.name)
-        .toSet();
-  }
-
-  void _showAllergenBlockedDialog(MenuItem item) {
+  void _showAllergenBlockedDialog(MenuDish dish) {
     final childName = _selectedChild != null
         ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
-        : 'este hijo';
-    final allergenNames = _unsafeAllergenNames(item).join(', ');
+        : 'este estudiante';
+    final allergenList = dish.allergens.isNotEmpty
+        ? dish.allergens.join(', ')
+        : 'alérgenos registrados';
 
     AppNotificationDialog.show(
       context,
       type: NotificationType.danger,
-      title: 'No disponible para $childName',
+      title: 'Platillo no disponible',
       message:
-          '"${item.name}" contiene $allergenNames, registrado como alergia '
-          'de $childName. No se puede agregar al carrito.',
+          '"${dish.name}" contiene $allergenList, registrados como alergias de $childName. No se puede ordenar este producto.',
     );
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      setState(() => _searchQuery = value.trim().toLowerCase());
+    });
+  }
+
+  List<MenuDish> get _visibleDishes {
+    if (_selectedDay == null) return [];
+    final dishes = _selectedDay!.dishes;
+    if (_searchQuery.isEmpty) return dishes;
+    return dishes
+        .where((d) => d.name.toLowerCase().contains(_searchQuery))
+        .toList();
   }
 
   void _openChildSwitcher(List<Child> children) {
@@ -206,47 +251,12 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  Future<void> _switchChild(Child child) async {
-    if (child.id == _selectedChild?.id) return;
-
-    final hadItemsInCart = _cart.isNotEmpty;
-    setState(() {
-      _selectedChild = child;
-      _cart.clear();
-      _childAllergenIds = {};
-    });
-    await _loadChildAllergies(child.id);
-
-    if (!mounted) return;
-    if (hadItemsInCart) {
-      showInfoSnackBar('Se vació el carrito al cambiar de hijo.');
-    }
-  }
-
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      setState(() => _searchQuery = value.trim().toLowerCase());
-    });
-  }
-
-  /// Con búsqueda activa se busca en todo el menú; si no, filtra por categoría.
-  List<MenuItem> get _visibleItems {
-    if (_searchQuery.isNotEmpty) {
-      return _menuItems
-          .where((i) => i.name.toLowerCase().contains(_searchQuery))
-          .toList();
-    }
-    if (_selectedCategory == null) return _menuItems;
-    return _menuItems.where((i) => i.category == _selectedCategory).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final children = context.watch<ChildrenProvider>().children;
     final total = _cart.entries.fold<double>(0, (sum, entry) {
-      final matches = _menuItems.where((i) => i.id == entry.key);
+      if (_selectedDay == null) return sum;
+      final matches = _selectedDay!.dishes.where((d) => d.id == entry.key);
       if (matches.isEmpty) return sum;
       return sum + (matches.first.price * entry.value);
     });
@@ -260,7 +270,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
             _buildHeader(),
             if (_selectedChild != null) _buildChildBanner(children),
             const SizedBox(height: AppSpacing.sm),
-            _buildCategories(),
+            if (!_isLoading && _days.isNotEmpty) _buildDaysSelector(),
             const SizedBox(height: AppSpacing.xs),
             Expanded(
               child: _isLoading
@@ -269,13 +279,18 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                         color: AppColors.secondary500,
                       ),
                     )
-                  : RefreshIndicator(
-                      color: AppColors.secondary500,
-                      onRefresh: _refreshMenu,
-                      child: _buildProductList(),
-                    ),
+                  : _errorMessage != null
+                      ? _buildErrorView()
+                      : _days.isEmpty
+                          ? _buildEmptyView()
+                          : RefreshIndicator(
+                              color: AppColors.secondary500,
+                              onRefresh: _refreshMenu,
+                              child: _buildDishList(),
+                            ),
             ),
-            if (total > 0) _buildCartSummary(total),
+            if (total > 0 && _selectedDay != null)
+              _buildCartSummary(total, _selectedDay!),
           ],
         ),
       ),
@@ -397,17 +412,14 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildCategories() {
-    final names = _categoryNames;
-    if (names.isEmpty) return const SizedBox.shrink();
-    final options = <String?>[null, ...names];
+  Widget _buildDaysSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: Text(
-            'Categorías',
+            'Días disponibles',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: AppColors.ink900,
@@ -420,13 +432,18 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            itemCount: options.length,
+            itemCount: _days.length,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
             itemBuilder: (context, index) {
-              final category = options[index];
-              final isSelected = _selectedCategory == category;
+              final day = _days[index];
+              final isSelected = _selectedDay?.id == day.id;
+              final isBlocked = day.isBlockedByParentalControl;
+              final parsedDate = DateFormatter.parseIsoDate(day.date);
+              final weekdayShort = DateFormatter.shortWeekdayName(parsedDate);
+              final dayNum = parsedDate.day.toString();
+
               return GestureDetector(
-                onTap: () => setState(() => _selectedCategory = category),
+                onTap: () => _onSelectDay(day),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -434,26 +451,45 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.secondary500
-                            : AppColors.secondary50,
+                        color: isBlocked
+                            ? Colors.grey.shade200
+                            : isSelected
+                                ? AppColors.secondary500
+                                : AppColors.secondary50,
                         shape: BoxShape.circle,
+                        border: isBlocked
+                            ? Border.all(color: Colors.grey.shade400)
+                            : null,
                       ),
-                      child: Icon(
-                        category == null ? Icons.apps : _iconFor(category),
-                        color: isSelected ? Colors.white : AppColors.secondary500,
-                        size: 24,
-                      ),
+                      alignment: Alignment.center,
+                      child: isBlocked
+                          ? Icon(
+                              Icons.lock_outline,
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            )
+                          : Text(
+                              dayNum,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.secondary700,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      category ?? 'Todo',
+                      weekdayShort,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                        color: isSelected
-                            ? AppColors.secondary500
-                            : AppColors.ink900.withValues(alpha: 0.7),
+                        color: isBlocked
+                            ? Colors.grey.shade500
+                            : isSelected
+                                ? AppColors.secondary500
+                                : AppColors.ink900.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -466,10 +502,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildProductList() {
-    final items = _visibleItems;
+  Widget _buildDishList() {
+    final dishes = _visibleDishes;
 
-    if (items.isEmpty) {
+    if (dishes.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
@@ -477,8 +513,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
             icon: _searchQuery.isNotEmpty ? Icons.search_off : Icons.restaurant,
             title: _searchQuery.isNotEmpty
                 ? 'No encontramos "$_searchQuery"'
-                : 'No hay productos en esta categoría',
-            message: _searchQuery.isNotEmpty ? 'Prueba con otro nombre.' : null,
+                : 'No hay platillos asignados para este día',
+            message: _searchQuery.isNotEmpty ? 'Prueba con otro término.' : null,
           ),
         ],
       );
@@ -487,31 +523,31 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.lg),
-      itemCount: items.length,
-      itemBuilder: (context, index) => _buildProductCard(items[index]),
+      itemCount: dishes.length,
+      itemBuilder: (context, index) => _buildDishCard(dishes[index]),
     );
   }
 
-  Widget _buildProductCard(MenuItem item) {
-    final isUnsafe = _isUnsafeForChild(item);
+  Widget _buildDishCard(MenuDish dish) {
+    final hasAllergens = dish.hasStudentAllergens;
     final textTheme = Theme.of(context).textTheme;
 
     return Opacity(
-      opacity: isUnsafe ? 0.6 : 1.0,
+      opacity: hasAllergens ? 0.6 : 1.0,
       child: AppCard(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
         padding: const EdgeInsets.all(AppSpacing.md),
         onTap: () {
-          if (isUnsafe) {
-            _showAllergenBlockedDialog(item);
+          if (hasAllergens) {
+            _showAllergenBlockedDialog(dish);
             return;
           }
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(
-                item: item,
-                onAdd: (qty) => _addToCart(item.id, qty),
+              builder: (_) => DishDetailScreen(
+                dish: dish,
+                onAdd: (qty) => _addToCart(dish.id, qty),
               ),
             ),
           );
@@ -523,15 +559,15 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    dish.name,
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (item.description.isNotEmpty) ...[
+                  if (dish.description.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      item.description,
+                      dish.description,
                       style: textTheme.bodySmall?.copyWith(
                         color: AppColors.ink900.withValues(alpha: 0.6),
                       ),
@@ -543,13 +579,13 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                   Row(
                     children: [
                       Text(
-                        '\$${item.price.toStringAsFixed(2)}',
+                        '\$${dish.price.toStringAsFixed(2)}',
                         style: textTheme.titleMedium?.copyWith(
                           color: AppColors.brand700,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      if (isUnsafe) ...[
+                      if (hasAllergens) ...[
                         const SizedBox(width: AppSpacing.sm),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -592,11 +628,12 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                 width: 100,
                 height: 75,
                 color: AppColors.ink50,
-                child: item.imageUrl != null
+                child: dish.imageUrl != null
                     ? CachedNetworkImage(
-                        imageUrl: item.imageUrl!,
+                        imageUrl: dish.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 300,
+                        memCacheWidth: AppImageCacheHelper.cacheSize(context, 100),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 75),
                         placeholder: (_, _) => const Center(
                           child: SizedBox(
                             width: 16,
@@ -621,7 +658,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildCartSummary(double total) {
+  Widget _buildCartSummary(double total, MenuDay currentDay) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -659,25 +696,67 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                 MaterialPageRoute(
                   builder: (_) => CartScreen(
                     studentId: _selectedChild?.id ?? widget.studentId ?? 0,
+                    deliveryDate: currentDay.date,
                     cart: _cart,
-                    menuItems: _menuItems,
-                    childAllergenIds: _childAllergenIds,
+                    dishes: currentDay.dishes,
                     childName: _selectedChild != null
                         ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
                         : '',
                     childBalance: _selectedChild?.balance,
                   ),
                 ),
-              ).then((cleared) {
-                if (cleared == true) {
+              ).then((result) {
+                if (result == true) {
                   setState(() => _cart.clear());
-                  _refreshSelectedChildBalance();
+                  _childrenProvider.refresh();
+                } else if (result is Map<int, int>) {
+                  setState(() {
+                    _cart.clear();
+                    _cart.addAll(result);
+                  });
                 }
               });
             },
-            child: const Text('Ver carrito'),
+            child: Text(
+              'Ver carrito (${_cart.values.fold(0, (sum, q) => sum + q)})',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: EmptyState(
+          icon: Icons.restaurant_menu,
+          title: 'Aún no hay un menú publicado para la institución.',
+          message: 'Cuando la institución publique el menú mensual, aparecerá aquí.',
+          actionLabel: 'Actualizar',
+          onAction: _refreshMenu,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: EmptyState(
+          icon: Icons.error_outline,
+          title: 'No pudimos cargar el menú',
+          message: _errorMessage,
+          actionLabel: 'Reintentar',
+          onAction: () {
+            if (_selectedChild != null) {
+              _fetchMonthlyMenu(_selectedChild!.id);
+            }
+          },
+        ),
       ),
     );
   }

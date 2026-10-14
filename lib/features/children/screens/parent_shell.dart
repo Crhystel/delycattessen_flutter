@@ -24,6 +24,7 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
 
   int _index = BottomNavDestination.home;
   final List<bool> _visited = List<bool>.filled(_tabCount, false)..[0] = true;
+  DateTime? _initialMenuDate;
 
   void _goTo(int index) {
     if (index == _index) return;
@@ -43,6 +44,17 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
 
   void _orderForChild(int childId) {
     context.read<ChildrenProvider>().select(childId);
+    setState(() {
+      _initialMenuDate = null;
+    });
+    _goTo(BottomNavDestination.menu);
+  }
+
+  void _openMenuDay(int childId, DateTime date) {
+    context.read<ChildrenProvider>().select(childId);
+    setState(() {
+      _initialMenuDate = date;
+    });
     _goTo(BottomNavDestination.menu);
   }
 
@@ -50,9 +62,16 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
     if (!_visited[index]) return const SizedBox.shrink();
     switch (index) {
       case BottomNavDestination.home:
-        return ChildrenListScreen(onOrderForChild: _orderForChild);
+        return ChildrenListScreen(
+          onOrderForChild: _orderForChild,
+          onOpenMenuDay: _openMenuDay,
+        );
       case BottomNavDestination.menu:
-        return const MenuScreen(embedded: true);
+        return MenuScreen(
+          key: _initialMenuDate != null ? ValueKey(_initialMenuDate) : null,
+          embedded: true,
+          initialDate: _initialMenuDate,
+        );
       case BottomNavDestination.orders:
         return OrdersScreen(
           embedded: true,

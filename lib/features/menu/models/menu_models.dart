@@ -20,6 +20,205 @@ class Allergen {
   }
 }
 
+/// Platillo del menú mensual (`MenuDish`)
+class MenuDish {
+  final int id;
+  final String name;
+  final String description;
+  final double price;
+  final String? imageUrl;
+  final List<String> allergens;
+  final bool hasStudentAllergens;
+
+  MenuDish({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.price,
+    this.imageUrl,
+    this.allergens = const [],
+    this.hasStudentAllergens = false,
+  });
+
+  factory MenuDish.fromJson(Map<String, dynamic> json) {
+    final allergensList = (json['allergens'] as List? ?? [])
+        .map((a) => a.toString())
+        .toList();
+
+    return MenuDish(
+      id: json['id'] as int,
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
+      imageUrl: json['image'] as String?,
+      allergens: allergensList,
+      hasStudentAllergens: json['has_student_allergens'] as bool? ?? false,
+    );
+  }
+}
+
+/// Día del menú mensual (`DailyMenu`)
+class MenuDay {
+  final int id;
+  final String date; // "YYYY-MM-DD"
+  final bool isBlockedByParentalControl;
+  final String? blockedReason;
+  final List<MenuDish> dishes;
+
+  MenuDay({
+    required this.id,
+    required this.date,
+    required this.isBlockedByParentalControl,
+    this.blockedReason,
+    required this.dishes,
+  });
+
+  factory MenuDay.fromJson(Map<String, dynamic> json) {
+    final dishesRaw = json['dishes'] as List? ?? [];
+    return MenuDay(
+      id: json['id'] as int,
+      date: json['date'] as String,
+      isBlockedByParentalControl:
+          json['is_blocked_by_parental_control'] as bool? ?? false,
+      blockedReason: json['blocked_reason'] as String?,
+      dishes: dishesRaw
+          .map((d) => MenuDish.fromJson(d as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// Item para enviar en `POST /api/pos/preorder/`
+class PreOrderItem {
+  final int dishId;
+  final int quantity;
+
+  PreOrderItem({required this.dishId, required this.quantity});
+
+  // Compatibilidad hacia atrás
+  int get menuItemId => dishId;
+
+  Map<String, dynamic> toJson() {
+    return {'dish_id': dishId, 'quantity': quantity};
+  }
+}
+
+/// Payload para crear preorden: `POST /api/pos/preorder/`
+class PreOrder {
+  final int studentId;
+  final String deliveryDate; // "YYYY-MM-DD"
+  final List<PreOrderItem> items;
+
+  PreOrder({
+    required this.studentId,
+    required this.deliveryDate,
+    required this.items,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'student_id': studentId,
+      'delivery_date': deliveryDate,
+      'items': items.map((i) => i.toJson()).toList(),
+    };
+  }
+}
+
+/// Detalle de ítem recibido en `GET /api/pos/preorders/`
+class PreOrderItemDetail {
+  final int id;
+  final int dishId;
+  final String dishName;
+  final int quantity;
+  final double priceAtPurchase;
+
+  PreOrderItemDetail({
+    required this.id,
+    required this.dishId,
+    required this.dishName,
+    required this.quantity,
+    required this.priceAtPurchase,
+  });
+
+  // Compatibilidad hacia atrás
+  int get menuItemId => dishId;
+  String get menuItemName => dishName;
+
+  factory PreOrderItemDetail.fromJson(Map<String, dynamic> json) {
+    return PreOrderItemDetail(
+      id: json['id'] as int? ?? 0,
+      dishId: json['dish'] as int? ?? (json['menu_item'] as int? ?? 0),
+      dishName: json['dish_name'] as String? ??
+          (json['menu_item_name'] as String? ?? 'Platillo'),
+      quantity: json['quantity'] as int? ?? 1,
+      priceAtPurchase:
+          double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ??
+              0.0,
+    );
+  }
+}
+
+enum PreOrderStatus { pending, delivered, canceled }
+
+PreOrderStatus _preOrderStatusFromString(String value) {
+  switch (value) {
+    case 'DELIVERED':
+      return PreOrderStatus.delivered;
+    case 'CANCELED':
+      return PreOrderStatus.canceled;
+    case 'PENDING':
+    default:
+      return PreOrderStatus.pending;
+  }
+}
+
+/// Resumen de preorden devuelto por `GET /api/pos/preorders/`
+class PreOrderSummary {
+  final int id;
+  final int studentId;
+  final String studentName;
+  final String deliveryDate; // "YYYY-MM-DD"
+  final PreOrderStatus status;
+  final String statusDisplay;
+  final double totalAmount;
+  final DateTime createdAt;
+  final List<PreOrderItemDetail> items;
+
+  PreOrderSummary({
+    required this.id,
+    required this.studentId,
+    required this.studentName,
+    required this.deliveryDate,
+    required this.status,
+    required this.statusDisplay,
+    required this.totalAmount,
+    required this.createdAt,
+    required this.items,
+  });
+
+  factory PreOrderSummary.fromJson(Map<String, dynamic> json) {
+    final itemsList = json['items'] as List? ?? [];
+    return PreOrderSummary(
+      id: json['id'] as int,
+      studentId: json['student'] as int? ?? 0,
+      studentName: json['student_name'] as String? ?? '',
+      deliveryDate: json['delivery_date'] as String? ?? '',
+      status: _preOrderStatusFromString(json['status'] as String? ?? 'PENDING'),
+      statusDisplay: (json['status_display'] ?? json['status'] ?? 'Pendiente')
+          .toString(),
+      totalAmount:
+          double.tryParse((json['total_amount'] ?? '0.00').toString()) ?? 0.0,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'].toString())
+          : DateTime.now(),
+      items: itemsList
+          .map((i) => PreOrderItemDetail.fromJson(i as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// Modelo de catálogo general (mantenido para compatibilidad opcional)
 class MenuItem {
   final int id;
   final String name;
@@ -48,112 +247,11 @@ class MenuItem {
       id: json['id'],
       name: json['name'],
       description: json['description'] ?? '',
-      price: double.parse(json['price'].toString()),
+      price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
       imageUrl: json['image'] as String?,
       category: json['category'] as String? ?? '',
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
-    );
-  }
-}
-
-class PreOrderItem {
-  final int menuItemId;
-  final int quantity;
-
-  PreOrderItem({required this.menuItemId, required this.quantity});
-
-  Map<String, dynamic> toJson() {
-    return {'menu_item_id': menuItemId, 'quantity': quantity};
-  }
-}
-
-class PreOrder {
-  final int studentId;
-  final List<PreOrderItem> items;
-
-  PreOrder({required this.studentId, required this.items});
-
-  Map<String, dynamic> toJson() {
-    return {
-      'student_id': studentId,
-      'items': items.map((i) => i.toJson()).toList(),
-    };
-  }
-}
-
-class PreOrderItemDetail {
-  final int id;
-  final int menuItemId;
-  final String menuItemName;
-  final int quantity;
-  final double priceAtPurchase;
-
-  PreOrderItemDetail({
-    required this.id,
-    required this.menuItemId,
-    required this.menuItemName,
-    required this.quantity,
-    required this.priceAtPurchase,
-  });
-
-  factory PreOrderItemDetail.fromJson(Map<String, dynamic> json) {
-    return PreOrderItemDetail(
-      id: json['id'],
-      menuItemId: json['menu_item'],
-      menuItemName: json['menu_item_name'] ?? '',
-      quantity: json['quantity'],
-      priceAtPurchase: double.parse(json['price_at_purchase'].toString()),
-    );
-  }
-}
-
-enum PreOrderStatus { pending, delivered, canceled }
-
-PreOrderStatus _preOrderStatusFromString(String value) {
-  switch (value) {
-    case 'DELIVERED':
-      return PreOrderStatus.delivered;
-    case 'CANCELED':
-      return PreOrderStatus.canceled;
-    case 'PENDING':
-    default:
-      return PreOrderStatus.pending;
-  }
-}
-
-class PreOrderSummary {
-  final int id;
-  final int studentId;
-  final String studentName;
-  final PreOrderStatus status;
-  final String statusDisplay;
-  final double totalAmount;
-  final DateTime createdAt;
-  final List<PreOrderItemDetail> items;
-
-  PreOrderSummary({
-    required this.id,
-    required this.studentId,
-    required this.studentName,
-    required this.status,
-    required this.statusDisplay,
-    required this.totalAmount,
-    required this.createdAt,
-    required this.items,
-  });
-
-  factory PreOrderSummary.fromJson(Map<String, dynamic> json) {
-    final itemsList = json['items'] as List? ?? [];
-    return PreOrderSummary(
-      id: json['id'],
-      studentId: json['student'],
-      studentName: json['student_name'] ?? '',
-      status: _preOrderStatusFromString(json['status']),
-      statusDisplay: json['status_display'] ?? json['status'],
-      totalAmount: double.parse(json['total_amount'].toString()),
-      createdAt: DateTime.parse(json['created_at']),
-      items: itemsList.map((i) => PreOrderItemDetail.fromJson(i)).toList(),
     );
   }
 }

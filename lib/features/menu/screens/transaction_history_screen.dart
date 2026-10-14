@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -63,7 +64,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: LightAppBar(title: 'Movimientos de ${widget.childName}'),
+      appBar: AppTheme.lightAppBar(
+        title: Text('Movimientos de ${widget.childName}'),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.secondary500,
@@ -210,7 +213,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ] else if (transaction.items.isNotEmpty) ...[
               ...transaction.items.map(
                 (item) => _buildDetailRow(
-                  '${item.quantity}x ${item.menuItemName}',
+                  '${item.quantity}x ${item.dishName}',
                   '\$${(item.priceAtPurchase * item.quantity).toStringAsFixed(2)}',
                 ),
               ),

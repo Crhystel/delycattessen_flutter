@@ -15,6 +15,8 @@ class AuthFormLayout extends StatelessWidget {
   final String? subtitle;
   final List<Widget> children;
   final List<Widget> footer;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   const AuthFormLayout({
     super.key,
@@ -23,6 +25,8 @@ class AuthFormLayout extends StatelessWidget {
     this.subtitle,
     required this.children,
     this.footer = const [],
+    this.showBackButton = false,
+    this.onBack,
   });
 
   @override
@@ -38,6 +42,20 @@ class AuthFormLayout extends StatelessWidget {
           const RepaintBoundary(
             child: FloatingBubbles(corner: BubbleCorner.bottomRight),
           ),
+          if (showBackButton)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.xs, top: AppSpacing.xs),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
+                  onPressed: onBack ?? () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ),
+            ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(

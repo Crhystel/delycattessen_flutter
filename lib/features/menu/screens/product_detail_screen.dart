@@ -3,6 +3,7 @@ import '../models/menu_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/widgets/primary_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -43,7 +44,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ? CachedNetworkImage(
                         imageUrl: item.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 900,
+                        memCacheWidth: AppImageCacheHelper.cacheSize(
+                          context,
+                          MediaQuery.sizeOf(context).width,
+                        ),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 280),
                         placeholder: (_, _) => const Center(
                           child: CircularProgressIndicator(
                             color: AppColors.secondary500,
