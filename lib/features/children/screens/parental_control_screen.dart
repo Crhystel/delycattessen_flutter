@@ -73,9 +73,17 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
 
   Future<void> _saveData() async {
     FocusScope.of(context).unfocus(); // hide keyboard before saving
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    // An enabled limit of $0 would block every purchase: require a real amount.
+    if (_dailyLimitEnabled && amount <= 0) {
+      showWarningSnackBar(
+        'Ingresa un monto mayor a \$0 o desactiva el límite de gasto.',
+        title: 'Monto inválido',
+      );
+      return;
+    }
     setState(() => _isSaving = true);
     try {
-      final amount = double.tryParse(_amountController.text) ?? 0.0;
       final control = ParentalControl(
         dailyLimitEnabled: _dailyLimitEnabled,
         dailyLimitAmount: amount,

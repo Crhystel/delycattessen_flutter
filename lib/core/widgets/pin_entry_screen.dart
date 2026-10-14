@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'light_app_bar.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'primary_button.dart';
@@ -84,11 +85,8 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          widget.isCreating ? 'Crea tu PIN de pago' : 'Confirma tu pago',
-        ),
-        backgroundColor: Colors.white,
+      appBar: LightAppBar(
+        title: widget.isCreating ? 'Crea tu PIN de pago' : 'Confirma tu pago',
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),

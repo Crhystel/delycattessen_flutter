@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -151,10 +152,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Mi carrito'),
-        backgroundColor: Colors.white,
-      ),
+      appBar: const LightAppBar(title: 'Mi carrito'),
       body: SafeArea(
         child: Stack(
           children: [
@@ -187,10 +185,11 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
                             const SizedBox(height: AppSpacing.md),
                             Text(
                               'Método de pago',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.ink900,
-                              ),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.ink900,
+                                  ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             _buildPaymentOption(
@@ -208,7 +207,9 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
                 child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.secondary500),
+                  child: CircularProgressIndicator(
+                    color: AppColors.secondary500,
+                  ),
                 ),
               ),
           ],

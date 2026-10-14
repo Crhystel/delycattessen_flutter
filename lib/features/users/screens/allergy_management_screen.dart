@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/allergy_models.dart';
@@ -33,6 +35,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
   List<Allergen> _selectedAllergens = [];
   Allergen? _dropdownValue;
   bool _isLoading = true;
+  bool _loadFailed = false;
   bool _isSaving = false;
   bool _isCreatingAllergen = false;
   bool _showNewAllergenField = false;
@@ -54,6 +57,10 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
   }
 
   Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _loadFailed = false;
+    });
     try {
       final allergens = await _authService.getAllergens();
       final selected = await _authService.getStudentAllergies(widget.studentId);
@@ -65,7 +72,11 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      // Show the failure instead of an empty form that looks like "no data".
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+      });
     }
   }
 
@@ -147,14 +158,21 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Alergias de ${widget.personName}'),
-        backgroundColor: Colors.white,
-      ),
+      appBar: LightAppBar(title: 'Alergias de ${widget.personName}'),
       body: SafeArea(
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: AppColors.secondary500),
+              )
+            : _loadFailed
+            ? Center(
+                child: EmptyState(
+                  icon: Icons.cloud_off_outlined,
+                  title: 'No pudimos cargar las alergias',
+                  message: 'Revisa tu conexión e inténtalo de nuevo.',
+                  actionLabel: 'Reintentar',
+                  onAction: _load,
+                ),
               )
             : Column(
                 children: [
@@ -172,14 +190,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                           ),
                           const SizedBox(height: AppSpacing.md),
                           _selectedAllergens.isEmpty
-                              ? Text(
-                                  'Sin alergias registradas.',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.ink900.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                  ),
-                                )
+                              ? _buildEmptyRegistered(textTheme)
                               : Wrap(
                                   spacing: AppSpacing.sm,
                                   runSpacing: AppSpacing.sm,
@@ -237,7 +248,9 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.secondary500,
                                       foregroundColor: Colors.white,
-                                      disabledBackgroundColor: AppColors.secondary500.withValues(alpha: 0.4),
+                                      disabledBackgroundColor: AppColors
+                                          .secondary500
+                                          .withValues(alpha: 0.4),
                                       shape: const RoundedRectangleBorder(
                                         borderRadius: AppRadius.fullAll,
                                       ),
@@ -325,6 +338,36 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  /// Friendly placeholder shown while no allergy has been registered yet.
+  Widget _buildEmptyRegistered(TextTheme textTheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.ink900.withValues(alpha: 0.04),
+        borderRadius: AppRadius.smAll,
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.health_and_safety_outlined,
+            color: AppColors.secondary500,
+            size: 28,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              'Aún no hay alergias registradas. Elige una de la lista para agregarla.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink900.withValues(alpha: 0.65),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

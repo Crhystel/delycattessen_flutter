@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
@@ -62,17 +63,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Movimientos de ${widget.childName}'),
-        backgroundColor: Colors.white,
-      ),
+      appBar: LightAppBar(title: 'Movimientos de ${widget.childName}'),
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.secondary500,
           onRefresh: _loadTransactions,
           child: _isLoading
               ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.secondary500),
+                  child: CircularProgressIndicator(
+                    color: AppColors.secondary500,
+                  ),
                 )
               : _errorMessage != null
               ? _buildMessage(
