@@ -92,19 +92,22 @@ class PasswordResetRequest {
 
 class PasswordResetConfirm {
   final String email;
-  final String token;
+  final String code;
   final String newPassword;
+  final String confirmPassword;
 
   PasswordResetConfirm({
     required this.email,
-    required this.token,
+    required this.code,
     required this.newPassword,
+    required this.confirmPassword,
   });
 
   Map<String, dynamic> toJson() => {
     'email': email,
-    'token': token,
+    'code': code,
     'new_password': newPassword,
+    'confirm_password': confirmPassword,
   };
 }
 

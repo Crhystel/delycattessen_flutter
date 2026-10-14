@@ -10,6 +10,7 @@ import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'parent_register_screen.dart';
 import 'change_password_screen.dart';
+import 'forgot_password_screen.dart';
 import '../utils/auth_routing.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -87,6 +88,18 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
           ),
           child: const Text(
             '¿No tienes cuenta? Regístrate',
+            style: TextStyle(
+              color: AppColors.teal700,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+          ),
+          child: const Text(
+            'Olvidé mi contraseña',
             style: TextStyle(
               color: AppColors.teal700,
               fontWeight: FontWeight.w700,
