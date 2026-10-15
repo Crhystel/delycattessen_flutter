@@ -10,8 +10,9 @@ import '../models/menu_models.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/product_catalog_source.dart';
 import '../utils/catalog_filters.dart';
+import 'catalog_header.dart';
 import 'catalog_item_card.dart';
-import 'catalog_search_field.dart';
+import 'catalog_section.dart';
 import 'category_filter_bar.dart';
 
 /// Catálogo de productos de solo consulta (el backend únicamente permite
@@ -188,49 +189,24 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (widget.showBackButton) ...[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                widget.title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink900,
-                ),
-              ),
-            ],
-          ),
-          if (widget.headerAccessory != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            widget.headerAccessory!,
-          ],
-          const SizedBox(height: AppSpacing.sm),
-          CatalogSearchField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-          ),
-        ],
-      ),
+    return CatalogHeader(
+      title: widget.title,
+      showBackButton: widget.showBackButton,
+      searchController: _searchController,
+      onSearchChanged: _onSearchChanged,
+      accessory: widget.headerAccessory,
     );
   }
 
   Widget _buildBody() {
+    if (_isLoading || _errorMessage != null) return _buildList();
+    return CatalogSection(
+      title: CategoryFilterBar.labelFor(_selectedCategory),
+      child: _buildList(),
+    );
+  }
+
+  Widget _buildList() {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.secondary500),
@@ -275,7 +251,12 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),

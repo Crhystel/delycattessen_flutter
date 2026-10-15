@@ -42,6 +42,10 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // Es la "sesión" del usuario identificado: solo se sale con el botón
+      // de cerrar sesión o con "Ver productos", no deslizando ni tocando fuera.
+      enableDrag: false,
+      isDismissible: false,
       builder: (ctx) => IdentifiedUserSheet(user: user),
     );
     if (action == IdentifiedUserAction.addProducts && mounted) {

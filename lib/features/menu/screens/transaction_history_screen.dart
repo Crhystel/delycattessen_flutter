@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../wallet/models/wallet_models.dart';
 import '../../wallet/services/wallet_service.dart';
 import '../../wallet/widgets/transaction_kind_badge.dart';
@@ -28,10 +26,14 @@ class TransactionHistoryScreen extends StatefulWidget {
   final TransactionsLoader loader;
   final String emptyMessage;
 
+  /// Persona dueña del historial, mostrada en el encabezado morado (Figma).
+  final String personName;
+
   const TransactionHistoryScreen({
     super.key,
-    required this.title,
     required this.loader,
+    required this.personName,
+    this.title = 'Historial de consumo',
     this.emptyMessage = 'Las recargas y los pagos con saldo aparecerán aquí.',
   });
 
@@ -43,7 +45,7 @@ class TransactionHistoryScreen extends StatefulWidget {
   }) {
     return TransactionHistoryScreen(
       key: key,
-      title: 'Movimientos de $childName',
+      personName: childName,
       loader: () async => TransactionHistoryData(
         await WalletService().getTransactions(walletId),
       ),
@@ -94,37 +96,134 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppTheme.lightAppBar(title: Text(widget.title)),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.secondary500,
-          onRefresh: _loadTransactions,
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.secondary500,
+      body: Stack(
+        children: [
+          const RepaintBoundary(
+            child: FloatingBubbles(corner: BubbleCorner.homeBottomLeft),
+          ),
+          const RepaintBoundary(
+            child: FloatingBubbles(corner: BubbleCorner.homeBottomRight),
+          ),
+          Column(
+            children: [
+              _buildPurpleHeader(),
+              Expanded(
+                child: RefreshIndicator(
+                  color: AppColors.secondary500,
+                  onRefresh: _loadTransactions,
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.secondary500,
+                          ),
+                        )
+                      : _errorMessage != null
+                      ? _buildMessage(
+                          EmptyState(
+                            icon: Icons.cloud_off_outlined,
+                            title: 'No pudimos cargar los movimientos',
+                            message: _errorMessage,
+                            actionLabel: 'Reintentar',
+                            onAction: _loadTransactions,
+                          ),
+                        )
+                      : _transactions.isEmpty
+                      ? _buildMessage(
+                          EmptyState(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'Aún no hay movimientos',
+                            message: widget.emptyMessage,
+                          ),
+                        )
+                      : _buildList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Encabezado morado del Figma: flecha, título, avatar y nombre.
+  Widget _buildPurpleHeader() {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      width: double.infinity,
+      color: AppColors.secondary500,
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        MediaQuery.of(context).padding.top + AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                tooltip: 'Volver',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
                   ),
-                )
-              : _errorMessage != null
-              ? _buildMessage(
-                  EmptyState(
-                    icon: Icons.cloud_off_outlined,
-                    title: 'No pudimos cargar los movimientos',
-                    message: _errorMessage,
-                    actionLabel: 'Reintentar',
-                    onAction: _loadTransactions,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.only(left: AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
                   ),
-                )
-              : _transactions.isEmpty
-              ? _buildMessage(
-                  EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Aún no hay movimientos',
-                    message: widget.emptyMessage,
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Colors.white,
+                    size: 34,
                   ),
-                )
-              : _buildList(),
-        ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.personName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Detalles de compra',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -137,29 +236,41 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget _buildList() {
     final visible = _visibleTransactions;
     final hasMixedKinds = _transactions.map((t) => t.kind).toSet().length > 1;
-    final rows = <Widget>[
-      ?_header,
-      if (hasMixedKinds) _buildFilterBar(),
-      if (visible.isEmpty)
-        EmptyState(
-          icon: Icons.receipt_long_outlined,
-          title: _filter == TransactionKind.recharge
-              ? 'No hay recargas'
-              : 'No hay consumos',
-        ),
-      for (final transaction in visible) _buildTransactionRow(transaction),
-    ];
-    return ListView.separated(
+    const sidePadding = EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      AppSpacing.md,
+      AppSpacing.lg,
+      0,
+    );
+    final divider = Divider(
+      height: 1,
+      indent: AppSpacing.lg,
+      endIndent: AppSpacing.lg,
+      color: AppColors.ink900.withValues(alpha: 0.12),
+    );
+    return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg + MediaQuery.of(context).padding.bottom,
+      // Margen inferior amplio para que la lista no quede bajo las burbujas.
+      padding: EdgeInsets.only(
+        bottom: AppSpacing.xxl * 3 + MediaQuery.of(context).padding.bottom,
       ),
-      itemCount: rows.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-      itemBuilder: (_, index) => rows[index],
+      children: [
+        if (_header != null) Padding(padding: sidePadding, child: _header),
+        if (hasMixedKinds)
+          Padding(padding: sidePadding, child: _buildFilterBar()),
+        const SizedBox(height: AppSpacing.sm),
+        if (visible.isEmpty)
+          EmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: _filter == TransactionKind.recharge
+                ? 'No hay recargas'
+                : 'No hay consumos',
+          ),
+        for (var i = 0; i < visible.length; i++) ...[
+          _buildTransactionRow(visible[i]),
+          if (i < visible.length - 1) divider,
+        ],
+      ],
     );
   }
 
@@ -195,64 +306,72 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final kind = transaction.kind;
     final isFailed = transaction.status == 'failed';
 
-    return AppCard(
+    // Figma: consumos con ícono de cubiertos naranja y monto en rojo.
+    final isConsumption = kind == TransactionKind.consumption;
+    return InkWell(
       onTap: () => _showTransactionDetail(transaction),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md + 2,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: kind.background,
-              borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: kind.background,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isConsumption ? Icons.restaurant : kind.icon,
+                color: isConsumption ? AppColors.brand500 : kind.color,
+                size: 24,
+              ),
             ),
-            child: Icon(kind.icon, color: kind.color, size: 22),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.displayName,
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    TransactionKindBadge(kind: kind),
-                    Text(
-                      transaction.time,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.55),
-                      ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.displayName,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TransactionKindBadge(kind: kind),
+                      Text(
+                        transaction.time,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.ink900.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Text(
-            isFailed
-                ? 'Fallida'
-                : '${kind.sign}\$${transaction.amount.toStringAsFixed(2)}',
-            style: textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: isFailed
-                  ? AppColors.ink900.withValues(alpha: 0.4)
-                  : kind.color,
+            Text(
+              isFailed
+                  ? 'Fallida'
+                  : '${kind.sign}\$${transaction.amount.toStringAsFixed(2)}',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: isFailed
+                    ? AppColors.ink900.withValues(alpha: 0.4)
+                    : (isConsumption ? AppColors.danger500 : kind.color),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

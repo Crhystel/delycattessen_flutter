@@ -11,8 +11,9 @@ import '../../menu/screens/product_detail_screen.dart';
 import '../../menu/services/menu_service.dart';
 import '../../menu/utils/cart_rules.dart';
 import '../../menu/utils/catalog_filters.dart';
+import '../../menu/widgets/catalog_header.dart';
 import '../../menu/widgets/catalog_item_card.dart';
-import '../../menu/widgets/catalog_search_field.dart';
+import '../../menu/widgets/catalog_section.dart';
 import '../../menu/widgets/category_filter_bar.dart';
 import '../models/pos_identification_model.dart';
 import 'pos_checkout_screen.dart';
@@ -203,40 +204,12 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Productos',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          CatalogSearchField(
-            controller: _searchController,
-            onChanged: (value) =>
-                setState(() => _searchQuery = value.trim().toLowerCase()),
-          ),
-        ],
-      ),
+    return CatalogHeader(
+      title: 'Productos',
+      showBackButton: true,
+      searchController: _searchController,
+      onSearchChanged: (value) =>
+          setState(() => _searchQuery = value.trim().toLowerCase()),
     );
   }
 
@@ -298,11 +271,13 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     final categories = categoriesOf(_items);
     // Con una sola categoría el filtro no aporta nada.
     if (categories.length < 2) return const SizedBox.shrink();
-    return CategoryFilterBar(
-      categories: categories,
-      selected: _selectedCategory,
-      style: CategoryFilterStyle.chips,
-      onSelected: (category) => setState(() => _selectedCategory = category),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: CategoryFilterBar(
+        categories: categories,
+        selected: _selectedCategory,
+        onSelected: (category) => setState(() => _selectedCategory = category),
+      ),
     );
   }
 
@@ -325,7 +300,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     }
 
     final items = _visibleItems;
-    return RefreshIndicator(
+    final list = RefreshIndicator(
       color: AppColors.secondary500,
       onRefresh: _loadMenu,
       child: items.isEmpty
@@ -347,10 +322,19 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),
+    );
+    return CatalogSection(
+      title: CategoryFilterBar.labelFor(_selectedCategory),
+      child: list,
     );
   }
 

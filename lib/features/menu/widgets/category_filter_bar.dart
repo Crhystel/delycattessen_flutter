@@ -32,6 +32,12 @@ class CategoryFilterBar extends StatelessWidget {
   static IconData iconFor(String category) =>
       _icons[category.toLowerCase()] ?? Icons.restaurant;
 
+  /// Nombre de la opción que muestra todos los productos (Figma: "General").
+  static const String allLabel = 'General';
+
+  /// Título a mostrar para la categoría elegida (null = todas).
+  static String labelFor(String? category) => category ?? allLabel;
+
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
@@ -55,7 +61,7 @@ class CategoryFilterBar extends StatelessWidget {
         itemBuilder: (_, index) {
           final category = options[index];
           return ChoiceChip(
-            label: Text(category ?? 'Todos'),
+            label: Text(labelFor(category)),
             selected: category == selected,
             onSelected: (_) => onSelected(category),
           );
@@ -80,12 +86,12 @@ class CategoryFilterBar extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          height: 84,
+          height: 92,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             itemCount: options.length,
-            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.lg),
             itemBuilder: (_, index) {
               final category = options[index];
               final isSelected = selected == category;
@@ -94,34 +100,44 @@ class CategoryFilterBar extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Círculo morado del Figma: relleno al estar elegido,
+                    // morado claro con borde cuando no.
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 58,
+                      height: 58,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.secondary500
                             : AppColors.secondary50,
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.secondary500.withValues(
+                            alpha: isSelected ? 1 : 0.35,
+                          ),
+                          width: 1.5,
+                        ),
                       ),
                       child: Icon(
-                        category == null ? Icons.apps : iconFor(category),
+                        category == null
+                            ? Icons.storefront_outlined
+                            : iconFor(category),
                         color: isSelected
                             ? Colors.white
                             : AppColors.secondary500,
-                        size: 24,
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      category ?? 'Todo',
+                      labelFor(category),
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: isSelected
                             ? FontWeight.w800
                             : FontWeight.w600,
                         color: isSelected
-                            ? AppColors.secondary500
-                            : AppColors.ink900.withValues(alpha: 0.7),
+                            ? AppColors.ink900
+                            : AppColors.ink900.withValues(alpha: 0.45),
                       ),
                     ),
                   ],
