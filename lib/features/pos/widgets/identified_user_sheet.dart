@@ -8,6 +8,9 @@ import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/pos_identification_model.dart';
 import '../services/pos_service.dart';
 
+/// Acción elegida por el cajero al cerrar la hoja del usuario identificado.
+enum IdentifiedUserAction { addProducts }
+
 /// Hoja de confirmación tras identificar al usuario en el POS. Vive como
 /// widget aparte de PosHomeScreen (Single Responsibility) porque es una
 /// pieza de presentación con su propia composición y su propio estado
@@ -200,10 +203,28 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            child: PrimaryButton(
-              label: 'Aceptar',
-              onPressed: () => Navigator.of(context).pop(),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: Column(
+              children: [
+                PrimaryButton(
+                  label: user.pendingOrders.isEmpty
+                      ? 'Comprar productos'
+                      : 'Agregar productos a la compra',
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(IdentifiedUserAction.addProducts),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Cerrar',
+                    style: GoogleFonts.nunito(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink900.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

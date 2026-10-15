@@ -11,6 +11,7 @@ import '../models/pos_identification_model.dart';
 import 'face_recognition_scan_screen.dart';
 import 'qr_scan_screen.dart';
 import '../widgets/identified_user_sheet.dart';
+import '../screens/pos_menu_screen.dart';
 
 class PosHomeScreen extends StatefulWidget {
   final String userName;
@@ -36,13 +37,18 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
     return 'Hoy es $dayName';
   }
 
-  void _onUserIdentified(IdentifiedUser user) {
-    showModalBottomSheet(
+  Future<void> _onUserIdentified(IdentifiedUser user) async {
+    final action = await showModalBottomSheet<IdentifiedUserAction>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => IdentifiedUserSheet(user: user),
     );
+    if (action == IdentifiedUserAction.addProducts && mounted) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => PosMenuScreen(user: user)));
+    }
   }
 
   void _navigateToFaceScan() async {
