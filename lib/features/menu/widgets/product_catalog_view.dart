@@ -1,55 +1,61 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../auth/models/auth_models.dart';
-import '../../auth/services/auth_service.dart';
-import '../../children/providers/children_provider.dart';
-import '../../children/widgets/child_picker_sheet.dart';
 import '../models/menu_models.dart';
-import '../services/menu_service.dart';
-import '../widgets/catalog_filters.dart';
-import '../widgets/catalog_item_card.dart';
-import '../widgets/catalog_search_field.dart';
-import '../widgets/category_filter_bar.dart';
-import 'product_detail_screen.dart';
+import '../screens/product_detail_screen.dart';
+import '../services/product_catalog_source.dart';
+import '../utils/catalog_filters.dart';
+import 'catalog_item_card.dart';
+import 'catalog_search_field.dart';
+import 'category_filter_bar.dart';
 
-/// Catálogo de productos de la sede del hijo seleccionado (vista del padre).
-/// Es de solo consulta: el backend únicamente permite preordenar platillos
-/// del menú mensual, así que aquí no hay carrito.
-class ProductsScreen extends StatefulWidget {
-  /// true cuando vive dentro del ParentShell: sin flecha atrás.
-  final bool embedded;
+/// Catálogo de productos de solo consulta (el backend únicamente permite
+/// preordenar platillos del menú mensual). Es genérico: de dónde salen los
+/// productos y las alergias lo decide [source]; con [source] nulo no hay nada
+/// que cargar (p. ej. un padre sin hijo seleccionado).
+class ProductCatalogView extends StatefulWidget {
+  final ProductCatalogSource? source;
+  final String title;
+  final bool showBackButton;
 
-  /// Widget bajo el título (selector Menú/Productos).
+  /// Widget bajo el título (p. ej. el selector Menú/Productos).
   final Widget? headerAccessory;
 
-  const ProductsScreen({super.key, this.embedded = false, this.headerAccessory});
+  /// Widget bajo el buscador (p. ej. el banner del hijo seleccionado).
+  final Widget? banner;
+
+  /// Se ejecuta tras recargar con pull-to-refresh (p. ej. refrescar saldos).
+  final Future<void> Function()? onRefreshed;
+
+  const ProductCatalogView({
+    super.key,
+    required this.source,
+    this.title = 'Productos',
+    this.showBackButton = false,
+    this.headerAccessory,
+    this.banner,
+    this.onRefreshed,
+  });
 
   @override
-  State<ProductsScreen> createState() => _ProductsScreenState();
+  State<ProductCatalogView> createState() => _ProductCatalogViewState();
 }
 
-class _ProductsScreenState extends State<ProductsScreen> {
+class _ProductCatalogViewState extends State<ProductCatalogView> {
   static const int _lowStockThreshold = 5;
 
-  final MenuService _menuService = MenuService();
-  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
-  late final ChildrenProvider _childrenProvider;
 
-  bool _isLoading = true;
+  bool _isLoading = false;
   String? _errorMessage;
-  List<MenuItem> _items = [];
-  Set<int> _childAllergenIds = {};
-  Child? _selectedChild;
+  List<MenuItem> _items = const [];
+  Set<int> _allergenIds = const {};
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
   int _loadToken = 0;
@@ -57,61 +63,52 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _childrenProvider = context.read<ChildrenProvider>();
-    _childrenProvider.addListener(_onSelectedChildChanged);
-    Future.microtask(() async {
-      await _childrenProvider.ensureLoaded();
-      if (!mounted) return;
-      _onSelectedChildChanged();
-    });
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(ProductCatalogView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source?.id != widget.source?.id) {
+      // Otra sede/persona: se reinicia el filtro y se recarga.
+      _selectedCategory = null;
+      _load();
+    }
   }
 
   @override
   void dispose() {
-    _childrenProvider.removeListener(_onSelectedChildChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  /// Mantiene el catálogo alineado con el hijo seleccionado global: cada hijo
-  /// puede pertenecer a una sede distinta con sus propios productos.
-  void _onSelectedChildChanged() {
-    if (!mounted) return;
-    final selected = _childrenProvider.selectedChild;
-    if (selected == null) {
-      if (_isLoading) setState(() => _isLoading = false);
+  Future<void> _load() async {
+    final source = widget.source;
+    final token = ++_loadToken;
+    if (source == null) {
+      setState(() {
+        _items = const [];
+        _allergenIds = const {};
+        _errorMessage = null;
+        _isLoading = false;
+      });
       return;
     }
-    if (selected.id != _selectedChild?.id) {
-      setState(() {
-        _selectedChild = selected;
-        _selectedCategory = null;
-      });
-      _load();
-    } else if (!identical(selected, _selectedChild)) {
-      setState(() => _selectedChild = selected);
-    }
-  }
-
-  Future<void> _load() async {
-    final child = _selectedChild;
-    if (child == null) return;
-    final token = ++_loadToken;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      // Se esperan por separado: ambos Allergen son clases distintas.
-      final itemsFuture = _menuService.getMenu(studentId: child.id);
-      final allergiesFuture = _authService.getStudentAllergies(child.id);
+      // Peticiones en paralelo; se esperan por separado para conservar los tipos.
+      final itemsFuture = source.loadItems();
+      final allergensFuture = source.loadAllergenIds();
       final items = await itemsFuture;
-      final allergies = await allergiesFuture;
+      final allergenIds = await allergensFuture;
       if (!mounted || token != _loadToken) return;
       setState(() {
         _items = items;
-        _childAllergenIds = allergies.map((a) => a.id).toSet();
+        _allergenIds = allergenIds;
         _isLoading = false;
       });
     } catch (e) {
@@ -125,11 +122,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Future<void> _refresh() async {
     await _load();
-    await _childrenProvider.refresh();
+    await widget.onRefreshed?.call();
   }
 
   List<String> _conflictingAllergens(MenuItem item) => item.allergens
-      .where((a) => _childAllergenIds.contains(a.id))
+      .where((a) => _allergenIds.contains(a.id))
       .map((a) => a.name)
       .toList();
 
@@ -145,16 +142,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
   void _onTapItem(MenuItem item) {
     final conflicts = _conflictingAllergens(item);
     if (conflicts.isNotEmpty) {
-      final child = _selectedChild;
-      final childName = child != null
-          ? '${child.firstName} ${child.lastName}'
-          : 'este estudiante';
       AppNotificationDialog.show(
         context,
         type: NotificationType.danger,
         title: 'Producto no disponible',
         message:
-            '"${item.name}" contiene ${conflicts.join(', ')}, registrados como alergias de $childName.',
+            '"${item.name}" contiene ${conflicts.join(', ')}, registrados en '
+            '${widget.source?.allergyOwnerLabel ?? 'las alergias'}.',
       );
       return;
     }
@@ -164,18 +158,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  void _openChildSwitcher(List<Child> children) {
-    if (children.length <= 1) return;
-    ChildPickerSheet.show(
-      context,
-      _childrenProvider,
-      title: '¿Para quién estás viendo?',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final children = context.watch<ChildrenProvider>().children;
     final categories = categoriesOf(_items);
     final showFilters = !_isLoading && _errorMessage == null;
 
@@ -186,7 +170,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            if (_selectedChild != null) _buildChildBanner(children),
+            if (widget.banner != null) widget.banner!,
             const SizedBox(height: AppSpacing.sm),
             if (showFilters && categories.isNotEmpty)
               CategoryFilterBar(
@@ -216,7 +200,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         children: [
           Row(
             children: [
-              if (!widget.embedded) ...[
+              if (widget.showBackButton) ...[
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
                   onPressed: () => Navigator.pop(context),
@@ -224,7 +208,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 const SizedBox(width: 4),
               ],
               Text(
-                'Menú',
+                widget.title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.ink900,
@@ -242,54 +226,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             onChanged: _onSearchChanged,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildChildBanner(List<Child> children) {
-    final canSwitch = children.length > 1;
-    final child = _selectedChild!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        0,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: GestureDetector(
-          onTap: canSwitch ? () => _openChildSwitcher(children) : null,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-            decoration: BoxDecoration(
-              color: AppColors.secondary50,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 12),
-                const SizedBox(width: 8),
-                Text(
-                  'Productos para ${child.firstName}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.secondary700,
-                  ),
-                ),
-                if (canSwitch) ...[
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.expand_more,
-                    size: 18,
-                    color: AppColors.secondary700,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -330,7 +266,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       : Icons.fastfood,
                   title: _searchQuery.isNotEmpty
                       ? 'No encontramos "$_searchQuery"'
-                      : 'Esta sede aún no tiene productos disponibles',
+                      : 'Tu sede aún no tiene productos disponibles',
                   message: _searchQuery.isNotEmpty
                       ? 'Prueba con otro término.'
                       : null,

@@ -10,6 +10,7 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
+import '../../menu/screens/teacher_products_screen.dart';
 import '../../pos/screens/credit_history_screen.dart';
 import '../../users/screens/allergy_management_screen.dart';
 import '../../users/services/allergy_owner.dart';
@@ -345,6 +346,12 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const CreditHistoryScreen()));
   }
 
+  void _openProducts() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TeacherProductsScreen()));
+  }
+
   void _openAllergies() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -359,6 +366,12 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
   Widget _buildTeacherShortcuts() {
     return Column(
       children: [
+        _buildShortcut(
+          icon: Icons.storefront_outlined,
+          label: 'Catálogo de productos',
+          onTap: _openProducts,
+        ),
+        const SizedBox(height: AppSpacing.md),
         _buildShortcut(
           icon: Icons.account_balance_outlined,
           label: 'Mi crédito',

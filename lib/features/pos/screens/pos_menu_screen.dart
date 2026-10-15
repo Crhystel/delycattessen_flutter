@@ -9,7 +9,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
 import '../../menu/services/menu_service.dart';
-import '../../menu/widgets/catalog_filters.dart';
+import '../../menu/utils/catalog_filters.dart';
 import '../../menu/widgets/catalog_item_card.dart';
 import '../../menu/widgets/catalog_search_field.dart';
 import '../../menu/widgets/category_filter_bar.dart';

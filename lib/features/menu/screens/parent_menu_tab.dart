@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/menu_mode_switcher.dart';
 import 'menu_screen.dart';
-import 'products_screen.dart';
+import 'parent_products_screen.dart';
 
 /// Pestaña "Menú" del padre: alterna entre el menú mensual y el catálogo de
 /// productos. Ambas vistas conservan su estado al alternar y el catálogo se
@@ -41,7 +41,7 @@ class _ParentMenuTabState extends State<ParentMenuTab> {
           headerAccessory: _switcher,
         ),
         if (_productsVisited)
-          ProductsScreen(embedded: true, headerAccessory: _switcher)
+          ParentProductsScreen(headerAccessory: _switcher)
         else
           const SizedBox.shrink(),
       ],
