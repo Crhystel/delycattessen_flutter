@@ -133,7 +133,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${user.role} · ${user.institution ?? "Sin institución"}',
+                    '${user.roleDisplay} · ${user.institution ?? "Sin institución"}',
                     style: GoogleFonts.nunito(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -141,45 +141,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.teal500,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.credit_card,
-                              color: Colors.white70,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Saldo disponible',
-                              style: GoogleFonts.nunito(
-                                fontSize: 13,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '\$${user.balance.toStringAsFixed(2)}',
-                          style: GoogleFonts.nunito(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ..._buildAmountCard(user),
                   if (user.allergies.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     _buildAllergySection(user),
@@ -230,6 +192,26 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
         ],
       ),
     );
+  }
+
+  /// Tarjeta de monto según el rol: saldo para estudiantes y crédito del mes
+  /// para docentes (no usan billetera). Sin dato no se muestra nada, para no
+  /// enseñar un $0.00 engañoso.
+  List<Widget> _buildAmountCard(IdentifiedUser user) {
+    final double? amount = user.isTeacher
+        ? user.creditAccumulated
+        : user.balance;
+    if (amount == null) return const [];
+    return [
+      _AmountCard(
+        color: user.isTeacher ? AppColors.secondary500 : AppColors.teal500,
+        icon: user.isTeacher
+            ? Icons.account_balance_outlined
+            : Icons.credit_card,
+        label: user.isTeacher ? 'Crédito del mes' : 'Saldo disponible',
+        amount: amount,
+      ),
+    ];
   }
 
   Widget _buildAllergySection(IdentifiedUser user) {
@@ -456,6 +438,57 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                       ),
                     ),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Recuadro de color con un monto (saldo del estudiante o crédito del docente).
+class _AmountCard extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final double amount;
+
+  const _AmountCard({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.amount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.white70, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.nunito(fontSize: 13, color: Colors.white70),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '\$${amount.toStringAsFixed(2)}',
+            style: GoogleFonts.nunito(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
         ],
       ),

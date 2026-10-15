@@ -59,8 +59,14 @@ class IdentifiedUser {
   final String username;
   final String fullName;
   final String role;
+
+  /// Rol en español ya traducido por el backend ("Docente", "Estudiante").
+  final String roleDisplay;
   final String? institution;
   final double balance;
+
+  /// Crédito del mes acumulado; solo viene para docentes.
+  final double? creditAccumulated;
   final List<String> allergies;
   final List<PendingPreOrder> pendingOrders;
   final String identificationMethod;
@@ -71,8 +77,10 @@ class IdentifiedUser {
     required this.username,
     required this.fullName,
     required this.role,
+    required this.roleDisplay,
     this.institution,
     required this.balance,
+    this.creditAccumulated,
     required this.allergies,
     required this.pendingOrders,
     required this.identificationMethod,
@@ -87,8 +95,12 @@ class IdentifiedUser {
       username: json['username'] ?? '',
       fullName: json['full_name'] ?? '',
       role: json['role'] ?? '',
+      roleDisplay: _nonEmptyOr(json['role_display'], json['role']),
       institution: json['institution'] as String?,
       balance: double.tryParse((json['balance'] ?? '0.00').toString()) ?? 0.0,
+      creditAccumulated: json['credit_accumulated'] == null
+          ? null
+          : double.tryParse(json['credit_accumulated'].toString()),
       allergies: rawAllergies.map((a) => a.toString()).toList(),
       pendingOrders: rawPendingOrders
           .map((o) => PendingPreOrder.fromJson(o as Map<String, dynamic>))
@@ -97,6 +109,8 @@ class IdentifiedUser {
     );
   }
 
+  bool get isTeacher => role == 'TEACHER';
+
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
@@ -104,10 +118,19 @@ class IdentifiedUser {
       'username': username,
       'full_name': fullName,
       'role': role,
+      'role_display': roleDisplay,
       'institution': institution,
       'balance': balance.toStringAsFixed(2),
+      if (creditAccumulated != null)
+        'credit_accumulated': creditAccumulated!.toStringAsFixed(2),
       'allergies': allergies,
       'identification_method': identificationMethod,
     };
   }
+}
+
+/// Texto del backend si viene con contenido; si no, [fallback] (o vacío).
+String _nonEmptyOr(Object? value, Object? fallback) {
+  final text = value?.toString().trim() ?? '';
+  return text.isNotEmpty ? text : (fallback?.toString() ?? '');
 }
