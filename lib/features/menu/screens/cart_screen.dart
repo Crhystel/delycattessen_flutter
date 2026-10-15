@@ -12,6 +12,8 @@ import '../../../core/widgets/primary_button.dart';
 import '../../children/providers/children_provider.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
+import '../utils/cart_rules.dart';
+import '../widgets/cart_line_tile.dart';
 
 class CartScreen extends StatefulWidget {
   final int studentId;
@@ -56,6 +58,11 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
         _editableCart[dishId] = next;
       }
     });
+  }
+
+  /// Quita el platillo completo, sin importar su cantidad.
+  void _removeLine(int dishId) {
+    setState(() => _editableCart.remove(dishId));
   }
 
   List<MapEntry<MenuDish, int>> get _lines {
@@ -205,6 +212,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
                                   dish,
                                   line.value,
                                   unsafeItems.contains(dish),
+                                  CartRules.canRemoveLine(lines.length),
                                 );
                               }),
                               const SizedBox(height: AppSpacing.md),
@@ -297,86 +305,20 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildCartItemCard(MenuDish dish, int quantity, bool isUnsafe) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isUnsafe ? AppColors.danger500 : Colors.grey.shade300,
-          width: isUnsafe ? 1.5 : 1,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        color: isUnsafe ? AppColors.dangerBg : Colors.white,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppColors.ink50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.fastfood, color: AppColors.secondary500),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dish.name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '\$${dish.price.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.brand700,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.ink50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    quantity == 1 ? Icons.delete_outline : Icons.remove,
-                    size: 18,
-                    color: AppColors.secondary500,
-                  ),
-                  onPressed: () => _updateQuantity(dish.id, -1),
-                ),
-                Text(
-                  '$quantity',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.add,
-                    size: 18,
-                    color: AppColors.secondary500,
-                  ),
-                  onPressed: () => _updateQuantity(dish.id, 1),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildCartItemCard(
+    MenuDish dish,
+    int quantity,
+    bool isUnsafe,
+    bool canRemove,
+  ) {
+    return CartLineTile(
+      name: dish.name,
+      unitPrice: dish.price,
+      quantity: quantity,
+      isUnsafe: isUnsafe,
+      onIncrement: () => _updateQuantity(dish.id, 1),
+      onDecrement: () => _updateQuantity(dish.id, -1),
+      onRemove: canRemove ? () => _removeLine(dish.id) : null,
     );
   }
 

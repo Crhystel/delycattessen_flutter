@@ -14,28 +14,33 @@ class CatalogBadge extends StatelessWidget {
   final Color foreground;
   final IconData? icon;
 
+  /// Si se define, la insignia muestra una × para quitar el producto.
+  final VoidCallback? onRemove;
+
   const CatalogBadge({
     super.key,
     required this.label,
     required this.background,
     required this.foreground,
     this.icon,
+    this.onRemove,
   });
 
   const CatalogBadge.allergen({super.key})
     : label = 'Alérgeno',
       background = AppColors.dangerBg,
       foreground = AppColors.danger700,
-      icon = Icons.warning_amber_rounded;
+      icon = Icons.warning_amber_rounded,
+      onRemove = null;
 
-  const CatalogBadge.info(this.label, {super.key})
+  const CatalogBadge.info(this.label, {super.key, this.onRemove})
     : background = AppColors.secondary50,
       foreground = AppColors.secondary700,
       icon = null;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: background,
@@ -55,7 +60,25 @@ class CatalogBadge extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
+          if (onRemove != null) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.close, size: 14, color: foreground),
+          ],
         ],
+      ),
+    );
+    if (onRemove == null) return badge;
+    // Área táctil mínima de 40 px aunque la insignia sea pequeña.
+    return Semantics(
+      button: true,
+      label: 'Quitar del carrito',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onRemove,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 40),
+          child: Center(widthFactor: 1, child: badge),
+        ),
       ),
     );
   }

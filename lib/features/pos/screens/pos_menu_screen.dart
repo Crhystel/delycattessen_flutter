@@ -9,6 +9,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
 import '../../menu/services/menu_service.dart';
+import '../../menu/utils/cart_rules.dart';
 import '../../menu/utils/catalog_filters.dart';
 import '../../menu/widgets/catalog_item_card.dart';
 import '../../menu/widgets/catalog_search_field.dart';
@@ -126,6 +127,11 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     if (confirmed && mounted) setState(() => _cart.clear());
   }
 
+  /// Quita el producto completo del carrito, sin importar su cantidad.
+  void _removeFromCart(int itemId) {
+    setState(() => _cart.remove(itemId));
+  }
+
   void _showAllergenBlockedDialog(MenuItem item, List<String> conflicts) {
     AppNotificationDialog.show(
       context,
@@ -160,12 +166,20 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           CheckoutLine(item: item, quantity: entry.value),
     ];
     if (lines.isEmpty) return;
-    Navigator.push(
+    Navigator.push<Map<int, int>>(
       context,
       MaterialPageRoute(
         builder: (_) => PosCheckoutScreen(user: widget.user, lines: lines),
       ),
-    );
+    ).then((updatedCart) {
+      // El checkout devuelve el carrito editado (quitar/ajustar líneas).
+      if (!mounted || updatedCart == null) return;
+      setState(() {
+        _cart
+          ..clear()
+          ..addAll(updatedCart);
+      });
+    });
   }
 
   @override
@@ -352,7 +366,13 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
-        if (inCart > 0) CatalogBadge.info('$inCart en carrito'),
+        if (inCart > 0)
+          CatalogBadge.info(
+            '$inCart en carrito',
+            onRemove: CartRules.canRemoveLine(_cart.length)
+                ? () => _removeFromCart(item.id)
+                : null,
+          ),
       ],
     );
   }
