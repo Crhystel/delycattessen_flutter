@@ -1,6 +1,7 @@
 import '../../../core/network/api_config.dart';
 import '../../../core/network/base_api_service.dart';
 import '../models/pos_identification_model.dart';
+import '../models/sale_models.dart';
 
 class PosService extends BaseApiService {
   /// Identifies a user in POS via facial biometric frame.
@@ -27,5 +28,21 @@ class PosService extends BaseApiService {
   /// identifica al estudiante en el POS y confirma la entrega del producto.
   Future<void> markPreOrderDelivered(int preOrderId) async {
     await performPatchRequest(ApiConfig.preOrderDeliver(preOrderId), {});
+  }
+
+  /// Cobra productos del POS. El backend decide quién puede usar cada método
+  /// de pago y valida stock, alérgenos, control parental y saldo.
+  Future<Sale> createSale(SaleRequest request) async {
+    final response = await performPostRequest(
+      ApiConfig.posSales,
+      request.toJson(),
+    );
+    return Sale.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Compras a crédito del docente autenticado y su acumulado del mes.
+  Future<CreditHistory> getCreditHistory() async {
+    final response = await performGetRequest(ApiConfig.creditHistory);
+    return CreditHistory.fromJson(response as Map<String, dynamic>);
   }
 }

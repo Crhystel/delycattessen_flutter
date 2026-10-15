@@ -4,24 +4,35 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
+import '../../pos/screens/credit_history_screen.dart';
+import '../../users/screens/allergy_management_screen.dart';
+import '../../users/services/allergy_owner.dart';
 import '../models/qr_token_model.dart';
 import '../services/qr_service.dart';
 
-class StudentContingencyScreen extends StatefulWidget {
+/// Inicio de estudiantes y docentes: saldo (solo estudiantes), QR dinámico
+/// para identificarse en el POS y, para docentes, crédito y alergias.
+class MemberHomeScreen extends StatefulWidget {
   final String? initialUserName;
-  const StudentContingencyScreen({super.key, this.initialUserName});
+  final bool isTeacher;
+
+  const MemberHomeScreen({
+    super.key,
+    this.initialUserName,
+    this.isTeacher = false,
+  });
 
   @override
-  State<StudentContingencyScreen> createState() =>
-      _StudentContingencyScreenState();
+  State<MemberHomeScreen> createState() => _MemberHomeScreenState();
 }
 
-class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
+class _MemberHomeScreenState extends State<MemberHomeScreen> {
   final QrService _qrService = QrService();
   QrTokenModel? _qrData;
   bool _isLoading = true;
@@ -112,7 +123,7 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
       context,
       icon: Icons.logout,
       title: 'Cerrar sesión',
-      message: '¿Estás seguro de que deseas salir de tu cuenta de estudiante?',
+      message: '¿Estás seguro de que deseas salir de tu cuenta?',
       confirmLabel: 'Cerrar sesión',
       cancelLabel: 'Cancelar',
     );
@@ -175,62 +186,68 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // Balance card with Figma gradient
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.xl - 4),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0068D6), // Vibrant Blue
-                    Color(0xFF4F46E5), // Indigo / Purple
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.account_balance_wallet_outlined,
-                        color: Colors.white70,
-                        size: 18,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Saldo actual',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+            // Balance card with Figma gradient (docentes no usan billetera)
+            if (!widget.isTeacher) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.xl - 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0068D6), // Vibrant Blue
+                      Color(0xFF4F46E5), // Indigo / Purple
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    balanceText,
-                    style: textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          'Saldo actual',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      balanceText,
+                      style: textTheme.headlineLarge?.copyWith(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.xl),
+            ],
+            if (widget.isTeacher) ...[
+              _buildTeacherShortcuts(),
+              const SizedBox(height: AppSpacing.xl),
+            ],
 
             Center(
               child: Row(
@@ -318,6 +335,67 @@ class _StudentContingencyScreenState extends State<StudentContingencyScreen> {
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
+      ),
+    );
+  }
+
+  void _openCreditHistory() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreditHistoryScreen()));
+  }
+
+  void _openAllergies() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AllergyManagementScreen(
+          owner: TeacherAllergyOwner(),
+          personName: widget.initialUserName ?? 'Docente',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeacherShortcuts() {
+    return Column(
+      children: [
+        _buildShortcut(
+          icon: Icons.account_balance_outlined,
+          label: 'Mi crédito',
+          onTap: _openCreditHistory,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _buildShortcut(
+          icon: Icons.health_and_safety_outlined,
+          label: 'Mis alergias',
+          onTap: _openAllergies,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShortcut({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.secondary500),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
       ),
     );
   }

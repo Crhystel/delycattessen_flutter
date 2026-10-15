@@ -14,14 +14,16 @@ import '../../menu/widgets/catalog_item_card.dart';
 import '../../menu/widgets/catalog_search_field.dart';
 import '../../menu/widgets/category_filter_bar.dart';
 import '../models/pos_identification_model.dart';
+import 'pos_checkout_screen.dart';
 
 /// selección de productos para el usuario
 /// identificado. Los productos que contienen alérgenos del usuario quedan
 /// bloqueados desde la selección.
 class PosMenuScreen extends StatefulWidget {
-  final IdentifiedUser user;
+  /// Cliente identificado; nulo en una venta rápida (solo efectivo).
+  final IdentifiedUser? user;
 
-  const PosMenuScreen({super.key, required this.user});
+  const PosMenuScreen({super.key, this.user});
 
   @override
   State<PosMenuScreen> createState() => _PosMenuScreenState();
@@ -34,6 +36,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   bool _isLoading = true;
   String? _errorMessage;
   List<MenuItem> _items = [];
+  Map<int, MenuItem> _itemsById = const {}; // índice para total/carrito
   final Map<int, int> _cart = {}; // itemId -> quantity
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
@@ -43,7 +46,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   @override
   void initState() {
     super.initState();
-    _userAllergies = widget.user.allergies
+    _userAllergies = (widget.user?.allergies ?? const <String>[])
         .map((a) => a.trim().toLowerCase())
         .toSet();
     _loadMenu();
@@ -65,6 +68,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       if (!mounted) return;
       setState(() {
         _items = items;
+        _itemsById = {for (final item in items) item.id: item};
         _isLoading = false;
       });
     } catch (e) {
@@ -84,17 +88,14 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
         .toList();
   }
 
-  List<MenuItem> get _visibleItems => filterItems(
-    _items,
-    category: _selectedCategory,
-    query: _searchQuery,
-  );
+  List<MenuItem> get _visibleItems =>
+      filterItems(_items, category: _selectedCategory, query: _searchQuery);
 
   double get _total {
     var total = 0.0;
     for (final entry in _cart.entries) {
-      final matches = _items.where((i) => i.id == entry.key);
-      if (matches.isNotEmpty) total += matches.first.price * entry.value;
+      final item = _itemsById[entry.key];
+      if (item != null) total += item.price * entry.value;
     }
     return total;
   }
@@ -131,7 +132,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       type: NotificationType.danger,
       title: 'Producto no disponible',
       message:
-          '"${item.name}" contiene ${conflicts.join(', ')}, registrados como alergias de ${widget.user.fullName}. No se puede vender este producto.',
+          '"${item.name}" contiene ${conflicts.join(', ')}, registrados como alergias de ${widget.user?.fullName ?? 'el cliente'}. No se puede vender este producto.',
     );
   }
 
@@ -153,10 +154,17 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   }
 
   void _onContinue() {
-    // Paso 4 (validación y pago): se implementa en la siguiente sección.
-    showInfoSnackBar(
-      'Siguiente paso: validación y método de pago.',
-      duration: const Duration(seconds: 2),
+    final lines = [
+      for (final entry in _cart.entries)
+        if (_itemsById[entry.key] case final item?)
+          CheckoutLine(item: item, quantity: entry.value),
+    ];
+    if (lines.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PosCheckoutScreen(user: widget.user, lines: lines),
+      ),
     );
   }
 
@@ -169,7 +177,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            _buildUserBanner(),
+            if (widget.user != null) _buildUserBanner(widget.user!),
             _buildCategoryChips(),
             const SizedBox(height: AppSpacing.xs),
             Expanded(child: _buildBody()),
@@ -218,8 +226,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildUserBanner() {
-    final user = widget.user;
+  Widget _buildUserBanner(IdentifiedUser user) {
     final hasAllergies = user.allergies.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(

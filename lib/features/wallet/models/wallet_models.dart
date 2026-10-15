@@ -1,3 +1,5 @@
+import '../../../core/utils/date_formatter.dart';
+
 class RechargeRequest {
   final int walletId;
   final double amount;
@@ -60,9 +62,12 @@ class TransactionItemDetail {
 
   factory TransactionItemDetail.fromJson(Map<String, dynamic> json) {
     return TransactionItemDetail(
-      dishName: (json['dish_name'] ?? json['menu_item_name'] ?? 'Platillo').toString(),
+      dishName: (json['dish_name'] ?? json['menu_item_name'] ?? 'Platillo')
+          .toString(),
       quantity: json['quantity'] as int? ?? 1,
-      priceAtPurchase: double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ?? 0.0,
+      priceAtPurchase:
+          double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ??
+          0.0,
     );
   }
 }
@@ -104,6 +109,32 @@ class TransactionModel {
       items: itemsList
           .map((i) => TransactionItemDetail.fromJson(i as Map<String, dynamic>))
           .toList(),
+    );
+  }
+
+  /// Adapta una venta del POS (p. ej. a crédito) al formato de movimientos.
+  /// [time] es la hora que envía el backend; se antepone la fecha porque el
+  /// historial de crédito abarca varios días.
+  factory TransactionModel.fromSale({
+    required int id,
+    required String displayName,
+    required String time,
+    required double amount,
+    required DateTime createdAt,
+    required List<TransactionItemDetail> items,
+  }) {
+    final local = createdAt.toLocal();
+    final date = DateFormatter.formatShort(local);
+    return TransactionModel(
+      id: id,
+      displayName: displayName,
+      amount: amount,
+      gateway: '',
+      status: 'success',
+      type: 'consumption',
+      time: time.isEmpty ? date : '$date · $time',
+      createdAt: local,
+      items: items,
     );
   }
 }

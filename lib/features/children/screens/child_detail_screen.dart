@@ -14,6 +14,7 @@ import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../menu/screens/transaction_history_screen.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
+import '../../users/services/allergy_owner.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 import 'parental_control_screen.dart';
@@ -104,7 +105,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     }
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TransactionHistoryScreen(
+        builder: (_) => TransactionHistoryScreen.forWallet(
           walletId: walletId,
           childName: '${_currentChild.firstName} ${_currentChild.lastName}',
         ),
@@ -142,7 +143,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AllergyManagementScreen(
-          studentId: _currentChild.id,
+          owner: StudentAllergyOwner(_currentChild.id),
           personName: '${_currentChild.firstName} ${_currentChild.lastName}',
         ),
       ),

@@ -119,26 +119,36 @@ class AuthService extends BaseApiService {
         .toList();
   }
 
-  Future<List<Allergen>> getStudentAllergies(int studentId) async {
-    final response = await performGetRequest(
-      ApiConfig.studentAllergies(studentId),
-    );
+  Future<List<Allergen>> getStudentAllergies(int studentId) =>
+      _fetchAllergies(ApiConfig.studentAllergies(studentId));
+
+  Future<List<String>> saveStudentAllergies(
+    int studentId,
+    List<int> allergenIds,
+  ) => _saveAllergies(ApiConfig.studentAllergies(studentId), allergenIds);
+
+  /// Alergias del docente autenticado.
+  Future<List<Allergen>> getMyAllergies() =>
+      _fetchAllergies(ApiConfig.allergies);
+
+  Future<List<String>> saveMyAllergies(List<int> allergenIds) =>
+      _saveAllergies(ApiConfig.allergies, allergenIds);
+
+  Future<List<Allergen>> _fetchAllergies(String url) async {
+    final response = await performGetRequest(url);
     return (response as List)
         .map((item) => Allergen.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<String>> saveStudentAllergies(
-    int studentId,
-    List<int> allergenIds,
-  ) async {
-    final response = await performPutRequest(
-      ApiConfig.studentAllergies(studentId),
-      {'allergen_ids': allergenIds},
-    );
+  /// Devuelve los alérgenos guardados que aún no tienen productos marcados.
+  Future<List<String>> _saveAllergies(String url, List<int> allergenIds) async {
+    final response = await performPutRequest(url, {
+      'allergen_ids': allergenIds,
+    });
     final map = response as Map<String, dynamic>;
     return (map['unprotected_allergens'] as List? ?? [])
-        .map((e) => e as String)
+        .map((e) => e.toString())
         .toList();
   }
 

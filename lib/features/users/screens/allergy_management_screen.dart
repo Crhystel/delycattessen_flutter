@@ -11,14 +11,15 @@ import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/allergy_models.dart';
 import '../../auth/services/auth_service.dart';
+import '../services/allergy_owner.dart';
 
 class AllergyManagementScreen extends StatefulWidget {
-  final int studentId;
+  final AllergyOwner owner;
   final String personName;
 
   const AllergyManagementScreen({
     super.key,
-    required this.studentId,
+    required this.owner,
     required this.personName,
   });
 
@@ -64,7 +65,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     });
     try {
       final allergens = await _authService.getAllergens();
-      final selected = await _authService.getStudentAllergies(widget.studentId);
+      final selected = await widget.owner.load();
       if (!mounted) return;
       setState(() {
         _allAllergens = allergens;
@@ -121,8 +122,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      final unprotected = await _authService.saveStudentAllergies(
-        widget.studentId,
+      final unprotected = await widget.owner.save(
         _selectedAllergens.map((a) => a.id).toList(),
       );
       if (!mounted) return;

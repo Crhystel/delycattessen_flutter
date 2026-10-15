@@ -4,7 +4,7 @@ import '../models/auth_models.dart';
 import '../../children/screens/parent_shell.dart';
 import '../screens/student_registration_screen.dart';
 import '../../pos/screens/pos_home_screen.dart';
-import '../../contingency/screens/student_contingency_screen.dart';
+import '../../contingency/screens/member_home_screen.dart';
 
 /// Decide a qué pantalla ir tras una autenticación exitosa (login normal o
 /// tras completar el cambio obligatorio de contraseña), según el rol y el
@@ -32,7 +32,10 @@ void routeAfterAuth(
         : (usernameFallback.isNotEmpty ? usernameFallback : fallbackName);
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => StudentContingencyScreen(initialUserName: displayName),
+        builder: (_) => MemberHomeScreen(
+          initialUserName: displayName,
+          isTeacher: me.role == 'TEACHER',
+        ),
       ),
       (route) => false,
     );

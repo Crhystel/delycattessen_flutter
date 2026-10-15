@@ -185,9 +185,8 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => showInfoSnackBar(
-                      'Venta Rápida aún no está implementada.',
-                      duration: const Duration(seconds: 2),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PosMenuScreen()),
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,

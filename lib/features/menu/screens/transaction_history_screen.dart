@@ -10,15 +10,44 @@ import '../../../core/widgets/empty_state.dart';
 import '../../wallet/models/wallet_models.dart';
 import '../../wallet/services/wallet_service.dart';
 
+/// Movimientos a mostrar más un [header] opcional fijo sobre la lista
+/// (p. ej. el acumulado del mes a crédito).
+class TransactionHistoryData {
+  final List<TransactionModel> transactions;
+  final Widget? header;
+
+  const TransactionHistoryData(this.transactions, {this.header});
+}
+
+/// Carga los movimientos a mostrar (billetera de un hijo, crédito docente…).
+typedef TransactionsLoader = Future<TransactionHistoryData> Function();
+
 class TransactionHistoryScreen extends StatefulWidget {
-  final int walletId;
-  final String childName;
+  final String title;
+  final TransactionsLoader loader;
+  final String emptyMessage;
 
   const TransactionHistoryScreen({
     super.key,
-    required this.walletId,
-    required this.childName,
+    required this.title,
+    required this.loader,
+    this.emptyMessage = 'Las recargas y compras aparecerán aquí.',
   });
+
+  /// Movimientos de la billetera de un hijo.
+  factory TransactionHistoryScreen.forWallet({
+    Key? key,
+    required int walletId,
+    required String childName,
+  }) {
+    return TransactionHistoryScreen(
+      key: key,
+      title: 'Movimientos de $childName',
+      loader: () async => TransactionHistoryData(
+        await WalletService().getTransactions(walletId),
+      ),
+    );
+  }
 
   @override
   State<TransactionHistoryScreen> createState() =>
@@ -26,8 +55,8 @@ class TransactionHistoryScreen extends StatefulWidget {
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  final _walletService = WalletService();
   List<TransactionModel> _transactions = [];
+  Widget? _header;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -43,12 +72,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       _errorMessage = null;
     });
     try {
-      final transactions = await _walletService.getTransactions(
-        widget.walletId,
-      );
+      final data = await widget.loader();
       if (!mounted) return;
       setState(() {
-        _transactions = transactions;
+        _transactions = data.transactions;
+        _header = data.header;
         _isLoading = false;
       });
     } catch (e) {
@@ -64,9 +92,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppTheme.lightAppBar(
-        title: Text('Movimientos de ${widget.childName}'),
-      ),
+      appBar: AppTheme.lightAppBar(title: Text(widget.title)),
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.secondary500,
@@ -89,10 +115,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 )
               : _transactions.isEmpty
               ? _buildMessage(
-                  const EmptyState(
+                  EmptyState(
                     icon: Icons.receipt_long_outlined,
                     title: 'Aún no hay movimientos',
-                    message: 'Las recargas y compras aparecerán aquí.',
+                    message: widget.emptyMessage,
                   ),
                 )
               : ListView.separated(
@@ -103,11 +129,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     AppSpacing.lg,
                     AppSpacing.lg + MediaQuery.of(context).padding.bottom,
                   ),
-                  itemCount: _transactions.length,
+                  itemCount: _transactions.length + (_header != null ? 1 : 0),
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (context, index) =>
-                      _buildTransactionRow(_transactions[index]),
+                  itemBuilder: (context, index) {
+                    if (_header != null) {
+                      if (index == 0) return _header!;
+                      return _buildTransactionRow(_transactions[index - 1]);
+                    }
+                    return _buildTransactionRow(_transactions[index]);
+                  },
                 ),
         ),
       ),
