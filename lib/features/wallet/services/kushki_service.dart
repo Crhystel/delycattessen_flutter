@@ -6,8 +6,6 @@ import '../../../core/config/env.dart';
 /// Tokenizes card data directly with Kushki — the card number never
 /// touches our own backend, only the resulting token does.
 class KushkiService {
-  static const _baseUrl = 'https://api-uat.kushkipagos.com';
-
   Future<String> tokenizeCard({
     required String cardNumber,
     required String cvv,
@@ -17,7 +15,7 @@ class KushkiService {
     required double amount,
   }) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/card/v1/tokens'),
+      Uri.parse('${Env.kushkiBaseUrl}/card/v1/tokens'),
       headers: {
         'Public-Merchant-Id': Env.kushkiPublicMerchantId,
         'Content-Type': 'application/json',

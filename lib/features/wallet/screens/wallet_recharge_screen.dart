@@ -9,10 +9,8 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
-import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
-import 'payphone_webview_screen.dart';
-import 'recharge_card_form_screen.dart';
+import '../utils/recharge_launcher.dart';
 
 class ChildOption {
   final int walletId;
@@ -62,7 +60,6 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   bool _isSubmitting = false;
 
   static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
-  static const double _gatewayThreshold = 5.0;
 
   @override
   void initState() {
@@ -150,6 +147,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   }
 
   Future<void> _proceedToRecharge() async {
+    if (_isSubmitting) return;
     final selectedChild = _resolveSelectedChild(
       _childrenOptions(context, listen: false),
     );
@@ -158,14 +156,6 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       showWarningSnackBar(
         'Ingresa un monto válido para recargar.',
         title: 'Monto inválido',
-      );
-      return;
-    }
-
-    if (amount < 1.0) {
-      showWarningSnackBar(
-        'El monto mínimo de recarga es \$1.00.',
-        title: 'Monto muy bajo',
       );
       return;
     }
@@ -181,49 +171,20 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     final confirmed = await _confirmWithPin();
     if (!confirmed || !mounted) return;
 
-    if (amount < _gatewayThreshold) {
-      await _rechargeViaPayphone(selectedChild, amount);
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => RechargeCardFormScreen(
-            walletId: selectedChild.walletId,
-            childName: selectedChild.name,
-            amount: amount,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _rechargeViaPayphone(
-    ChildOption selectedChild,
-    double amount,
-  ) async {
     setState(() => _isSubmitting = true);
     try {
-      final response = await _walletService.recharge(
-        RechargeRequest(walletId: selectedChild.walletId, amount: amount),
-      );
+      // El servidor decide la pasarela y valida el monto mínimo.
+      final gateway = await _walletService.getRechargeGateway(amount);
       if (!mounted) return;
-
-      final result = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (_) =>
-              PayphoneWebViewScreen(paymentUrl: response.paymentUrl!),
+      final credited = await RechargeLaunchers.forGateway(gateway).start(
+        context,
+        RechargeRequestData(
+          walletId: selectedChild.walletId,
+          childName: selectedChild.name,
+          amount: amount,
         ),
       );
-      if (result == true && mounted) {
-        showSuccessSnackBar(
-          'El saldo se acreditó correctamente.',
-          title: '¡Recarga exitosa!',
-        );
-        if (!mounted) return;
-        if (widget.children == null) {
-          await context.read<ChildrenProvider>().refresh();
-        }
-        if (mounted) Navigator.of(context).pop(true);
-      }
+      if (credited && mounted) await _finishRecharge(amount);
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
@@ -232,6 +193,23 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  /// Cierre común a todas las pasarelas: aviso, saldos al día y volver.
+  Future<void> _finishRecharge(double amount) async {
+    showSuccessSnackBar(
+      'Tu recarga de \$${amount.toStringAsFixed(2)} se acreditó correctamente.',
+      title: '¡Recarga exitosa!',
+    );
+    if (widget.children == null) {
+      await context.read<ChildrenProvider>().refresh();
+    }
+    if (!mounted) return;
+    if (widget.embedded) {
+      setState(_amountController.clear); // pestaña del shell: no se cierra
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(true);
     }
   }
 
@@ -404,7 +382,9 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                     child.name,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       color: AppColors.ink900,
                     ),
                     overflow: TextOverflow.ellipsis,

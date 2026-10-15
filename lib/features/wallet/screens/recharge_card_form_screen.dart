@@ -208,13 +208,8 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     }
   }
 
-  void _showSuccess() {
-    showSuccessSnackBar(
-      'Tu recarga de \$${widget.amount.toStringAsFixed(2)} ha sido registrada con éxito.',
-      title: '¡Pago Exitoso!',
-    );
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
+  /// Acreditado: devuelve true a la pantalla de recarga, que cierra el flujo.
+  void _showSuccess() => Navigator.of(context).pop(true);
 
   @override
   Widget build(BuildContext context) {

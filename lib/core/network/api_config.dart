@@ -16,6 +16,7 @@ class ApiConfig {
   static const String registerStudent = '$baseUrl/users/student-registration/';
 
   static const String walletRecharge = '$baseUrl/wallet/recharge/';
+  static const String rechargeGateway = '$baseUrl/wallet/recharge/gateway/';
   static String walletTransactions(int walletId) =>
       '$baseUrl/wallet/$walletId/transactions/';
   static const String me = '$baseUrl/users/me/';
