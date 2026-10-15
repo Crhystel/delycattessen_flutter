@@ -103,16 +103,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
       _errorMessage = null;
     });
     try {
-      final results = await Future.wait([
-        _menuService.getMenu(studentId: child.id),
-        _authService.getStudentAllergies(child.id),
-      ]);
+      // Se esperan por separado: ambos Allergen son clases distintas.
+      final itemsFuture = _menuService.getMenu(studentId: child.id);
+      final allergiesFuture = _authService.getStudentAllergies(child.id);
+      final items = await itemsFuture;
+      final allergies = await allergiesFuture;
       if (!mounted || token != _loadToken) return;
       setState(() {
-        _items = results[0] as List<MenuItem>;
-        _childAllergenIds = (results[1] as List<Allergen>)
-            .map((a) => a.id)
-            .toSet();
+        _items = items;
+        _childAllergenIds = allergies.map((a) => a.id).toSet();
         _isLoading = false;
       });
     } catch (e) {
