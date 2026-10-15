@@ -7,7 +7,10 @@ import '../widgets/credit_summary_card.dart';
 /// Compras a crédito del docente. Reutiliza [TransactionHistoryScreen] (filas
 /// y detalle) y solo aporta la carga y el acumulado del mes.
 class CreditHistoryScreen extends StatelessWidget {
-  const CreditHistoryScreen({super.key});
+  /// Nombre del docente para el encabezado del historial.
+  final String personName;
+
+  const CreditHistoryScreen({super.key, required this.personName});
 
   Future<TransactionHistoryData> _load() async {
     final history = await PosService().getCreditHistory();
@@ -23,7 +26,7 @@ class CreditHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TransactionHistoryScreen(
-      title: 'Mi crédito',
+      personName: personName,
       loader: _load,
       emptyMessage: 'Tus compras a crédito aparecerán aquí.',
     );

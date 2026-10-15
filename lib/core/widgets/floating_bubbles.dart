@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-enum BubbleCorner { topLeft, topRight, bottomLeft, bottomRight }
+/// Esquinas con burbujas. `homeBottomLeft`/`homeBottomRight` son las del
+/// inicio de estudiante/docente y del historial (Figma "Frame app Estudiante").
+enum BubbleCorner {
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  homeBottomLeft,
+  homeBottomRight,
+}
 
 class FloatingBubbles extends StatefulWidget {
   final BubbleCorner corner;
@@ -105,6 +114,22 @@ class _FloatingBubblesState extends State<FloatingBubbles>
         azulBottom = -64 * scale;
         doradoLeft = -54 * scale;
         doradoBottom = -23 * scale;
+        break;
+
+      case BubbleCorner.homeBottomLeft:
+        // Azul pegado al borde izquierdo y dorado encima, más a la derecha.
+        azulLeft = -35 * scale;
+        azulBottom = -60 * scale;
+        doradoLeft = 41 * scale;
+        doradoBottom = -92 * scale;
+        break;
+
+      case BubbleCorner.homeBottomRight:
+        // Azul más bajo y a la izquierda; dorado encima, pegado al borde derecho.
+        azulRight = -12 * scale;
+        azulBottom = -97 * scale;
+        doradoRight = -67 * scale;
+        doradoBottom = -60 * scale;
         break;
     }
 

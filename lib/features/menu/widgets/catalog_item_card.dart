@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
-import '../../../core/widgets/app_card.dart';
 
 /// Insignia de la tarjeta (alérgeno, unidades en carrito, stock, etc.).
 class CatalogBadge extends StatelessWidget {
@@ -111,89 +110,124 @@ class CatalogItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // Tarjeta blanca con sombra suave, como las del menú en el Figma.
     return Opacity(
       opacity: dimmed ? 0.6 : 1.0,
-      child: AppCard(
+      child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        onTap: onTap,
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.smAll,
+          border: Border.all(color: AppColors.ink900.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: AppRadius.smAll,
+          child: InkWell(
+            borderRadius: AppRadius.smAll,
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
                 children: [
-                  Text(
-                    name,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        '\$${price.toStringAsFixed(2)}',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: AppColors.brand700,
-                          fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      ...badges,
-                    ],
+                        if (description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            description,
+                            style: textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: AppColors.ink900.withValues(alpha: 0.5),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              '\$${price.toStringAsFixed(2)}',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: AppColors.brand500,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            ...badges,
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.md),
+                  _buildImage(context),
                 ],
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            _buildImage(context),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildImage(BuildContext context) {
-    return ClipRRect(
-      borderRadius: AppRadius.smAll,
-      child: Container(
-        width: 100,
-        height: 75,
-        color: AppColors.ink50,
-        child: imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: imageUrl!,
-                fit: BoxFit.cover,
-                memCacheWidth: AppImageCacheHelper.cacheSize(context, 100),
-                memCacheHeight: AppImageCacheHelper.cacheSize(context, 75),
-                placeholder: (_, _) => const Center(
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.secondary500,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.smAll,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: AppRadius.smAll,
+        child: Container(
+          width: 76,
+          height: 76,
+          color: AppColors.ink50,
+          child: imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  fit: BoxFit.cover,
+                  memCacheWidth: AppImageCacheHelper.cacheSize(context, 76),
+                  memCacheHeight: AppImageCacheHelper.cacheSize(context, 76),
+                  placeholder: (_, _) => const Center(
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.secondary500,
+                      ),
                     ),
                   ),
-                ),
-                errorWidget: (_, _, _) =>
-                    const Icon(Icons.fastfood, color: AppColors.secondary500),
-              )
-            : const Icon(Icons.fastfood, color: AppColors.secondary500),
+                  errorWidget: (_, _, _) =>
+                      const Icon(Icons.fastfood, color: AppColors.secondary500),
+                )
+              : const Icon(Icons.fastfood, color: AppColors.secondary500),
+        ),
       ),
     );
   }

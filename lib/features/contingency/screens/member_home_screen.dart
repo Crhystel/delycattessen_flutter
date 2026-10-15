@@ -149,41 +149,50 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
         : '\$0.00';
 
     return AppScaffold(
-      bubbleCorner: BubbleCorner.topRight,
+      bubbleCorners: const [
+        BubbleCorner.topRight,
+        BubbleCorner.homeBottomLeft,
+        BubbleCorner.homeBottomRight,
+      ],
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          AppSpacing.xs,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hola $displayName',
-                        style: textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _getCurrentDayFormatted(),
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ],
+            // Figma: cerrar sesión en la esquina superior, sobre las burbujas.
+            Align(
+              alignment: Alignment.centerRight,
+              child: Transform.translate(
+                offset: const Offset(AppSpacing.lg, 0),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.logout,
+                    color: AppColors.ink900,
+                    size: 28,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: AppColors.secondary500),
                   tooltip: 'Cerrar sesión',
                   onPressed: _confirmLogout,
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text(
+              'Hola $displayName',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _getCurrentDayFormatted(),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink900.withValues(alpha: 0.65),
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
 
@@ -333,7 +342,8 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            // Espacio para que el contenido no quede bajo las burbujas inferiores.
+            const SizedBox(height: AppSpacing.xxl * 3),
           ],
         ),
       ),
@@ -343,7 +353,15 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
   void _openCreditHistory() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const CreditHistoryScreen()));
+    ).push(
+      MaterialPageRoute(
+        builder: (_) => CreditHistoryScreen(
+          personName: _qrData?.fullName.isNotEmpty == true
+              ? _qrData!.fullName
+              : (widget.initialUserName ?? 'Docente'),
+        ),
+      ),
+    );
   }
 
   void _openProducts() {
