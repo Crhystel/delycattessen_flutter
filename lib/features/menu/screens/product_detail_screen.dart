@@ -9,12 +9,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final MenuItem item;
-  final Function(int) onAdd;
+  /// Si es nulo la pantalla es de solo consulta (sin cantidad ni botón añadir).
+  final ValueChanged<int>? onAdd;
 
   const ProductDetailScreen({
     super.key,
     required this.item,
-    required this.onAdd,
+    this.onAdd,
   });
 
   @override
@@ -146,7 +147,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
           ),
-          _buildBottomBar(),
+          if (widget.onAdd != null) _buildBottomBar(),
         ],
       ),
     );
@@ -234,7 +235,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 label:
                     'Añadir \$${(widget.item.price * _quantity).toStringAsFixed(2)}',
                 onPressed: () {
-                  widget.onAdd(_quantity);
+                  widget.onAdd?.call(_quantity);
                   Navigator.pop(context);
                 },
               ),

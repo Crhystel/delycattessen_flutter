@@ -41,6 +41,9 @@ class ApiConfig {
   static String preOrderDeliver(int preOrderId) =>
       '$baseUrl/pos/preorders/$preOrderId/deliver/';
 
+  // Catalog: productos de la sede del usuario (padres: ?student_id=)
+  static const String catalogMenu = '$baseUrl/catalog/menu/';
+
   // Monthly Menu & Dishes
   static String studentMonthlyMenu(int studentId) =>
       '$baseUrl/catalog/students/$studentId/monthly_menu/';

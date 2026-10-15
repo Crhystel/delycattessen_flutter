@@ -39,10 +39,19 @@ class MenuService extends BaseApiService {
         .toList();
   }
 
-  /// Catálogo general de productos (por compatibilidad)
-  Future<List<MenuItem>> getMenu() async {
-    final response = await performGetRequest('${ApiConfig.baseUrl}/catalog/menu/');
+  /// Catálogo de productos de la sede. Un padre debe indicar [studentId]
+  /// (el backend devuelve los productos de la sede de ese hijo); el POS lo
+  /// omite y recibe los de la sede del operador.
+  Future<List<MenuItem>> getMenu({int? studentId}) async {
+    final uri = Uri.parse(ApiConfig.catalogMenu).replace(
+      queryParameters: studentId != null
+          ? {'student_id': studentId.toString()}
+          : null,
+    );
+    final response = await performGetRequest(uri.toString());
     final data = response as List;
-    return data.map((json) => MenuItem.fromJson(json)).toList();
+    return data
+        .map((json) => MenuItem.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 }

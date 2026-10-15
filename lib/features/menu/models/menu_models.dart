@@ -148,12 +148,13 @@ class PreOrderItemDetail {
     return PreOrderItemDetail(
       id: json['id'] as int? ?? 0,
       dishId: json['dish'] as int? ?? (json['menu_item'] as int? ?? 0),
-      dishName: json['dish_name'] as String? ??
+      dishName:
+          json['dish_name'] as String? ??
           (json['menu_item_name'] as String? ?? 'Platillo'),
       quantity: json['quantity'] as int? ?? 1,
       priceAtPurchase:
           double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ??
-              0.0,
+          0.0,
     );
   }
 }
@@ -228,6 +229,7 @@ class MenuItem {
   final String category;
   final List<Ingredient> ingredients;
   final List<Allergen> allergens;
+  final int stock;
 
   MenuItem({
     required this.id,
@@ -238,6 +240,7 @@ class MenuItem {
     required this.category,
     required this.ingredients,
     required this.allergens,
+    this.stock = 0,
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
@@ -250,6 +253,7 @@ class MenuItem {
       price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
       imageUrl: json['image'] as String?,
       category: json['category'] as String? ?? '',
+      stock: json['stock'] as int? ?? 0,
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
     );

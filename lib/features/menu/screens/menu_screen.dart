@@ -31,11 +31,15 @@ class MenuScreen extends StatefulWidget {
   /// Fecha preseleccionada (opcional, p.ej. al tocar un platillo desde Inicio)
   final DateTime? initialDate;
 
+  /// Widget bajo el título (selector Menú/Productos del ParentShell).
+  final Widget? headerAccessory;
+
   const MenuScreen({
     super.key,
     this.studentId,
     this.embedded = false,
     this.initialDate,
+    this.headerAccessory,
   });
 
   @override
@@ -326,6 +330,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
               ),
             ],
           ),
+          if (widget.headerAccessory != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            widget.headerAccessory!,
+          ],
           const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: _searchController,

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/custom_bottom_nav.dart';
-import '../../menu/screens/menu_screen.dart';
+import '../../menu/screens/parent_menu_tab.dart';
 import '../../menu/screens/orders_screen.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../providers/children_provider.dart';
@@ -67,9 +67,8 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
           onOpenMenuDay: _openMenuDay,
         );
       case BottomNavDestination.menu:
-        return MenuScreen(
+        return ParentMenuTab(
           key: _initialMenuDate != null ? ValueKey(_initialMenuDate) : null,
-          embedded: true,
           initialDate: _initialMenuDate,
         );
       case BottomNavDestination.orders:
