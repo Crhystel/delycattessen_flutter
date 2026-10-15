@@ -219,6 +219,80 @@ class PreOrderSummary {
   }
 }
 
+/// De dónde viene un pedido que ve el padre.
+enum OrderOrigin { preorder, pointOfSale }
+
+/// Fila de la lista "Pedidos": una preorden o una compra hecha en caja.
+/// Unifica ambos orígenes para que la pantalla no dependa de dos modelos.
+class OrderEntry {
+  final int id;
+  final String studentName;
+  final DateTime createdAt;
+  final PreOrderStatus status;
+  final String statusDisplay;
+  final String deliveryDate; // "YYYY-MM-DD"; vacío en compras en caja
+  final double totalAmount;
+  final List<PreOrderItemDetail> items;
+  final OrderOrigin origin;
+
+  /// Medio de pago ("Efectivo", "Saldo de billetera"…); solo en compras en caja.
+  final String paymentLabel;
+
+  const OrderEntry({
+    required this.id,
+    required this.studentName,
+    required this.createdAt,
+    required this.status,
+    required this.statusDisplay,
+    required this.deliveryDate,
+    required this.totalAmount,
+    required this.items,
+    required this.origin,
+    this.paymentLabel = '',
+  });
+
+  /// Solo las preórdenes pendientes están "por retirar".
+  bool get isPendingPickup =>
+      origin == OrderOrigin.preorder && status == PreOrderStatus.pending;
+
+  factory OrderEntry.fromPreOrder(PreOrderSummary order) {
+    return OrderEntry(
+      id: order.id,
+      studentName: order.studentName,
+      createdAt: order.createdAt,
+      status: order.status,
+      statusDisplay: order.statusDisplay,
+      deliveryDate: order.deliveryDate,
+      totalAmount: order.totalAmount,
+      items: order.items,
+      origin: OrderOrigin.preorder,
+    );
+  }
+
+  /// Compra de `GET /api/pos/sales/history/`: ya fue entregada en caja.
+  factory OrderEntry.fromPurchaseJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List? ?? [];
+    return OrderEntry(
+      id: json['id'] as int? ?? 0,
+      studentName: (json['student_name'] ?? '').toString(),
+      createdAt:
+          DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+          DateTime.now(),
+      status: PreOrderStatus.delivered,
+      statusDisplay: 'Entregado',
+      deliveryDate: '',
+      totalAmount:
+          double.tryParse((json['total_amount'] ?? '0.00').toString()) ?? 0.0,
+      items: rawItems
+          .whereType<Map<String, dynamic>>()
+          .map(PreOrderItemDetail.fromJson)
+          .toList(),
+      origin: OrderOrigin.pointOfSale,
+      paymentLabel: (json['payment_method_display'] ?? '').toString(),
+    );
+  }
+}
+
 /// Modelo de catálogo general (mantenido para compatibilidad opcional)
 class MenuItem {
   final int id;

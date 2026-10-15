@@ -11,6 +11,7 @@ import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_selector_chip.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
+import '../widgets/order_origin_badge.dart';
 
 class OrdersScreen extends StatefulWidget {
   final int? studentId;
@@ -36,8 +37,11 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final MenuService _menuService = MenuService();
   bool _isLoading = true;
-  List<PreOrderSummary> _orders = [];
+  List<OrderEntry> _orders = [];
   String? _errorMessage;
+
+  /// Aviso cuando solo uno de los dos orígenes (preórdenes / compras en caja) falló.
+  String? _partialWarning;
   int? _studentId;
   ChildrenProvider? _childrenProvider;
 
@@ -76,22 +80,46 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _fetchOrders();
   }
 
-  Future<void> _fetchOrders() async {
+  /// Ejecuta una carga sin lanzar: devuelve sus pedidos o el mensaje de error.
+  Future<({List<OrderEntry> entries, String? error})> _safeLoad(
+    Future<List<OrderEntry>> Function() load,
+  ) async {
     try {
-      final orders = await _menuService.getPreOrders(studentId: _studentId);
-      if (!mounted) return;
-      setState(() {
-        _orders = orders;
-        _errorMessage = null;
-      });
+      return (entries: await load(), error: null);
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      return (
+        entries: const <OrderEntry>[],
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
     }
+  }
+
+  Future<void> _fetchOrders() async {
+    // Preórdenes y compras en caja se piden en paralelo.
+    final results = await Future.wait([
+      _safeLoad(() async {
+        final preOrders = await _menuService.getPreOrders(
+          studentId: _studentId,
+        );
+        return preOrders.map(OrderEntry.fromPreOrder).toList();
+      }),
+      _safeLoad(() => _menuService.getPurchases(studentId: _studentId)),
+    ]);
+    if (!mounted) return;
+
+    final errors = [
+      for (final r in results)
+        if (r.error != null) r.error!,
+    ];
+    final bothFailed = errors.length == results.length;
+    setState(() {
+      _orders = [for (final r in results) ...r.entries];
+      _errorMessage = bothFailed ? errors.first : null;
+      _partialWarning = (!bothFailed && errors.isNotEmpty)
+          ? 'Algunos pedidos no se pudieron cargar. Desliza para reintentar.'
+          : null;
+      _isLoading = false;
+    });
   }
 
   Color _statusAccent(PreOrderStatus status) {
@@ -224,7 +252,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             EmptyState(
               icon: Icons.receipt_long_outlined,
               title: 'Todavía no hay pedidos',
-              message: 'Cuando hagas un pedido aparecerá aquí.',
+              message: 'Tus preórdenes y las compras en caja aparecerán aquí.',
             ),
           ],
         ),
@@ -233,9 +261,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     // Se agrupa en "Por retirar" (pendientes, ordenadas por fecha de entrega más próxima)
     // e "Historial" (el resto, ordenadas por creación descendente).
-    final pending = _orders
-        .where((o) => o.status == PreOrderStatus.pending)
-        .toList()
+    final pending = _orders.where((o) => o.isPendingPickup).toList()
       ..sort((a, b) {
         if (a.deliveryDate.isNotEmpty && b.deliveryDate.isNotEmpty) {
           return a.deliveryDate.compareTo(b.deliveryDate);
@@ -243,12 +269,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
         return a.createdAt.compareTo(b.createdAt);
       });
 
-    final history = _orders
-        .where((o) => o.status != PreOrderStatus.pending)
-        .toList()
+    final history = _orders.where((o) => !o.isPendingPickup).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final rows = <Object>[
+      if (_partialWarning != null) _PartialWarning(_partialWarning!),
       if (pending.isNotEmpty) ...['Por retirar', ...pending],
       if (history.isNotEmpty) ...['Historial', ...history],
     ];
@@ -263,8 +288,30 @@ class _OrdersScreenState extends State<OrdersScreen> {
         itemBuilder: (context, index) {
           final row = rows[index];
           if (row is String) return _buildSectionTitle(row);
-          return _buildOrderCard(row as PreOrderSummary);
+          if (row is _PartialWarning) return _buildPartialWarning(row.message);
+          return _buildOrderCard(row as OrderEntry);
         },
+      ),
+    );
+  }
+
+  Widget _buildPartialWarning(String message) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: AppColors.warning700),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppColors.warning700,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -292,7 +339,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildOrderCard(PreOrderSummary order) {
+  Widget _buildOrderCard(OrderEntry order) {
     final textTheme = Theme.of(context).textTheme;
     final accent = _statusAccent(order.status);
     final dateLabel = DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt);
@@ -340,7 +387,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OrderOriginBadge(
+              origin: order.origin,
+              paymentLabel: order.paymentLabel,
+            ),
+          ),
+          const SizedBox(height: 6),
           if (deliveryText.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
@@ -414,4 +469,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
     );
   }
+}
+
+/// Marca de fila para el aviso de carga parcial dentro de la lista.
+class _PartialWarning {
+  final String message;
+
+  const _PartialWarning(this.message);
 }

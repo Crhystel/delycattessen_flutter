@@ -39,6 +39,21 @@ class MenuService extends BaseApiService {
         .toList();
   }
 
+  /// Compras en caja (efectivo, crédito o saldo) de los hijos del padre.
+  /// [studentId] es opcional: si se pasa, filtra solo ese hijo.
+  Future<List<OrderEntry>> getPurchases({int? studentId}) async {
+    final uri = Uri.parse(ApiConfig.posPurchases).replace(
+      queryParameters: studentId != null
+          ? {'student_id': studentId.toString()}
+          : null,
+    );
+    final response = await performGetRequest(uri.toString());
+    return (response as List)
+        .whereType<Map<String, dynamic>>()
+        .map(OrderEntry.fromPurchaseJson)
+        .toList();
+  }
+
   /// Catálogo de productos de la sede. Un padre debe indicar [studentId]
   /// (el backend devuelve los productos de la sede de ese hijo); el POS lo
   /// omite y recibe los de la sede del operador.

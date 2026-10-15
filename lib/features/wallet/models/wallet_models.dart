@@ -72,6 +72,9 @@ class TransactionItemDetail {
   }
 }
 
+/// Naturaleza de un movimiento: entra saldo (recarga) o sale (consumo).
+enum TransactionKind { recharge, consumption }
+
 class TransactionModel {
   final int id;
   final String displayName;
@@ -94,6 +97,10 @@ class TransactionModel {
     required this.createdAt,
     required this.items,
   });
+
+  TransactionKind get kind => type == 'recharge'
+      ? TransactionKind.recharge
+      : TransactionKind.consumption;
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     final itemsList = json['items'] as List? ?? [];

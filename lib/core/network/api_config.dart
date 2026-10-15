@@ -39,6 +39,7 @@ class ApiConfig {
   static const String preOrderCreate = '$baseUrl/pos/preorder/';
   static const String preOrders = '$baseUrl/pos/preorders/';
   static const String posSales = '$baseUrl/pos/sales/';
+  static const String posPurchases = '$baseUrl/pos/sales/history/';
   static const String creditHistory = '$baseUrl/pos/credit/history/';
   static String preOrderDeliver(int preOrderId) =>
       '$baseUrl/pos/preorders/$preOrderId/deliver/';

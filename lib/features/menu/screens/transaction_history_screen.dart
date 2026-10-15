@@ -9,6 +9,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../wallet/models/wallet_models.dart';
 import '../../wallet/services/wallet_service.dart';
+import '../../wallet/widgets/transaction_kind_badge.dart';
 
 /// Movimientos a mostrar más un [header] opcional fijo sobre la lista
 /// (p. ej. el acumulado del mes a crédito).
@@ -31,7 +32,7 @@ class TransactionHistoryScreen extends StatefulWidget {
     super.key,
     required this.title,
     required this.loader,
-    this.emptyMessage = 'Las recargas y compras aparecerán aquí.',
+    this.emptyMessage = 'Las recargas y los pagos con saldo aparecerán aquí.',
   });
 
   /// Movimientos de la billetera de un hijo.
@@ -57,6 +58,7 @@ class TransactionHistoryScreen extends StatefulWidget {
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   List<TransactionModel> _transactions = [];
   Widget? _header;
+  TransactionKind? _filter; // null = todos
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -121,27 +123,62 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     message: widget.emptyMessage,
                   ),
                 )
-              : ListView.separated(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                    AppSpacing.lg + MediaQuery.of(context).padding.bottom,
-                  ),
-                  itemCount: _transactions.length + (_header != null ? 1 : 0),
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (context, index) {
-                    if (_header != null) {
-                      if (index == 0) return _header!;
-                      return _buildTransactionRow(_transactions[index - 1]);
-                    }
-                    return _buildTransactionRow(_transactions[index]);
-                  },
-                ),
+              : _buildList(),
         ),
       ),
+    );
+  }
+
+  List<TransactionModel> get _visibleTransactions => _filter == null
+      ? _transactions
+      : _transactions.where((t) => t.kind == _filter).toList();
+
+  /// Cabecera + filtro por tipo (si hay más de un tipo) + movimientos.
+  Widget _buildList() {
+    final visible = _visibleTransactions;
+    final hasMixedKinds = _transactions.map((t) => t.kind).toSet().length > 1;
+    final rows = <Widget>[
+      ?_header,
+      if (hasMixedKinds) _buildFilterBar(),
+      if (visible.isEmpty)
+        EmptyState(
+          icon: Icons.receipt_long_outlined,
+          title: _filter == TransactionKind.recharge
+              ? 'No hay recargas'
+              : 'No hay consumos',
+        ),
+      for (final transaction in visible) _buildTransactionRow(transaction),
+    ];
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg + MediaQuery.of(context).padding.bottom,
+      ),
+      itemCount: rows.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (_, index) => rows[index],
+    );
+  }
+
+  Widget _buildFilterBar() {
+    final options = <(TransactionKind?, String)>[
+      (null, 'Todos'),
+      (TransactionKind.recharge, 'Recargas'),
+      (TransactionKind.consumption, 'Consumos'),
+    ];
+    return Wrap(
+      spacing: AppSpacing.sm,
+      children: [
+        for (final (kind, label) in options)
+          ChoiceChip(
+            label: Text(label),
+            selected: _filter == kind,
+            onSelected: (_) => setState(() => _filter = kind),
+          ),
+      ],
     );
   }
 
@@ -155,7 +192,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   Widget _buildTransactionRow(TransactionModel transaction) {
     final textTheme = Theme.of(context).textTheme;
-    final isRecharge = transaction.type == 'recharge';
+    final kind = transaction.kind;
     final isFailed = transaction.status == 'failed';
 
     return AppCard(
@@ -167,17 +204,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: isRecharge ? AppColors.successBg : AppColors.brand50,
-              borderRadius: BorderRadius.circular(10),
+              color: kind.background,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              isRecharge ? Icons.add : Icons.restaurant,
-              color: isRecharge ? AppColors.success700 : AppColors.brand700,
-              size: 20,
-            ),
+            child: Icon(kind.icon, color: kind.color, size: 22),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -190,12 +223,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  transaction.time,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.55),
-                  ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    TransactionKindBadge(kind: kind),
+                    Text(
+                      transaction.time,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink900.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -203,12 +244,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           Text(
             isFailed
                 ? 'Fallida'
-                : '${isRecharge ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+                : '${kind.sign}\$${transaction.amount.toStringAsFixed(2)}',
             style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: isFailed
                   ? AppColors.ink900.withValues(alpha: 0.4)
-                  : (isRecharge ? AppColors.success700 : AppColors.danger700),
+                  : kind.color,
             ),
           ),
         ],
@@ -217,7 +258,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   void _showTransactionDetail(TransactionModel transaction) {
-    final isRecharge = transaction.type == 'recharge';
+    final kind = transaction.kind;
+    final isRecharge = kind == TransactionKind.recharge;
 
     AppBottomSheet.show<void>(
       context,
@@ -266,12 +308,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   ),
                 ),
                 Text(
-                  '${isRecharge ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}',
+                  '${kind.sign}\$${transaction.amount.toStringAsFixed(2)}',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: isRecharge
-                        ? AppColors.success700
-                        : AppColors.danger700,
+                    color: kind.color,
                   ),
                 ),
               ],
