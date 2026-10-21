@@ -124,6 +124,53 @@ class _FaceRecognitionScanScreenState
   }
 
   @override
+  Widget? buildTopAction(BuildContext context) {
+    if (_availableCameras.length < 2) return null;
+    return ScannerRoundButton(
+      icon: Icons.flip_camera_ios_rounded,
+      tooltip: 'Cambiar cámara',
+      onPressed: _isProcessing ? null : _switchCamera,
+    );
+  }
+
+  /// Botón grande "Escanear rostro" de la vista de tablet.
+  @override
+  Widget? buildPrimaryAction(BuildContext context) {
+    final ready = _isCameraReady && !_isProcessing;
+    return SizedBox(
+      height: 64,
+      child: ElevatedButton.icon(
+        onPressed: ready ? _captureAndIdentify : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.brand500,
+          foregroundColor: Colors.black,
+          disabledBackgroundColor: AppColors.brand500.withValues(alpha: 0.6),
+          // El tema global estira los botones a todo el ancho; aquí no.
+          minimumSize: const Size(0, 64),
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        icon: _isProcessing
+            ? const SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  color: Colors.black,
+                  strokeWidth: 3,
+                ),
+              )
+            : const Icon(Icons.camera_alt, size: 30),
+        label: Text(
+          _isProcessing ? 'Identificando...' : 'Escanear rostro',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget buildScannerContent(BuildContext context) {
     if (_errorMessage != null) {
       return Center(
@@ -144,20 +191,50 @@ class _FaceRecognitionScanScreenState
       );
     }
 
+    // previewSize viene en orientación del sensor (horizontal): en vertical
+    // se intercambian ancho y alto; en horizontal se usan tal cual, si no la
+    // imagen se deforma.
+    final previewSize = _cameraController!.value.previewSize;
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final cameraFeed = Positioned.fill(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: (isPortrait ? previewSize?.height : previewSize?.width) ?? 1,
+          height: (isPortrait ? previewSize?.width : previewSize?.height) ?? 1,
+          child: CameraPreview(_cameraController!),
+        ),
+      ),
+    );
+
+    // Tablet: solo la cámara; los botones grandes los pone la plantilla base.
+    if (isFullScreen) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          cameraFeed,
+          Icon(
+            Icons.face_retouching_natural_rounded,
+            color: AppColors.brand500.withValues(alpha: 0.45),
+            size: 180,
+          ),
+          if (_isProcessing)
+            Container(
+              color: Colors.black45,
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColors.brand500),
+              ),
+            ),
+        ],
+      );
+    }
+
     return Stack(
       alignment: Alignment.center,
       children: [
         // Camera Viewfinder Feed
-        Positioned.fill(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: _cameraController!.value.previewSize?.height ?? 1,
-              height: _cameraController!.value.previewSize?.width ?? 1,
-              child: CameraPreview(_cameraController!),
-            ),
-          ),
-        ),
+        cameraFeed,
 
         // Stylized Orange Face Outline (Figura 25)
         Icon(

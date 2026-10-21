@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -92,14 +93,67 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
     }
   }
 
+  /// Escala de textos y tarjetas: en tablet el cajero trabaja a cierta
+  /// distancia, así que todo se ve más grande y claro.
+  double get _scale => AppLayout.isTablet(context) ? 1.7 : 1.0;
+
+  Widget _buildOptions() {
+    final faceCard = _PosOptionCard(
+      iconBackground: const Color(0xFF5932EA),
+      iconColor: Colors.white,
+      icon: Icons.face_retouching_natural_rounded,
+      title: 'Reconocimiento\nFacial',
+      titleColor: const Color(0xFF5932EA),
+      subtitle: 'Identifica por rostro',
+      onTap: _navigateToFaceScan,
+      scale: _scale,
+    );
+    final qrCard = _PosOptionCard(
+      iconBackground: const Color(0xFFE5A93C),
+      iconColor: Colors.white,
+      icon: Icons.qr_code_2_rounded,
+      title: 'Escanear Código\nQR',
+      titleColor: const Color(0xFFE5A93C),
+      subtitle: 'Escanea el código QR del usuario',
+      onTap: _navigateToQrScan,
+      scale: _scale,
+    );
+    final isLandscapeTablet =
+        AppLayout.isTablet(context) &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    // Teléfono y tablet vertical: una debajo de la otra, a todo el ancho.
+    // Tablet horizontal: lado a lado.
+    if (!isLandscapeTablet) {
+      return Column(
+        children: [
+          faceCard,
+          SizedBox(height: AppSpacing.lg * _scale),
+          qrCard,
+        ],
+      );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: faceCard),
+          const SizedBox(width: AppSpacing.xl),
+          Expanded(child: qrCard),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final s = _scale;
 
     return AppScaffold(
       bubbleCorner: BubbleCorner.topRight,
+      maxContentWidth: AppLayout.wideMaxWidth,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: EdgeInsets.all(AppSpacing.xl * (s > 1 ? 1.5 : 1)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -115,6 +169,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                         'Hola ${widget.userName}',
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
+                          fontSize: 24 * s,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
@@ -122,6 +177,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                         _getCurrentDayFormatted(),
                         style: textTheme.bodyMedium?.copyWith(
                           color: AppColors.ink900.withValues(alpha: 0.65),
+                          fontSize: 14 * s,
                         ),
                       ),
                     ],
@@ -130,6 +186,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                 IconButton(
                   onPressed: _confirmLogout,
                   tooltip: 'Cerrar sesión',
+                  iconSize: 24 * s,
                   icon: const Icon(
                     Icons.logout_rounded,
                     color: AppColors.teal700,
@@ -137,12 +194,13 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xl),
+            SizedBox(height: AppSpacing.xl * s),
             Text(
               '¿Cómo identificamos al usuario?',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.teal700,
+                fontSize: 22 * s,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -150,58 +208,37 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
               'Selecciona el método para identificar al usuario y registrar su consumo.',
               style: textTheme.bodyMedium?.copyWith(
                 color: AppColors.ink900.withValues(alpha: 0.6),
+                fontSize: 14 * s,
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            Center(
-              child: _PosOptionCard(
-                iconBackground: const Color(0xFF5932EA),
-                iconColor: Colors.white,
-                icon: Icons.face_retouching_natural_rounded,
-                title: 'Reconocimiento\nFacial',
-                titleColor: const Color(0xFF5932EA),
-                subtitle: 'Identifica por rostro',
-                onTap: _navigateToFaceScan,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Center(
-              child: _PosOptionCard(
-                iconBackground: const Color(0xFFE5A93C),
-                iconColor: Colors.white,
-                icon: Icons.qr_code_2_rounded,
-                title: 'Escanear Código\nQR',
-                titleColor: const Color(0xFFE5A93C),
-                subtitle: 'Escanea el código QR del usuario',
-                onTap: _navigateToQrScan,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+            SizedBox(height: AppSpacing.xl * s),
+            _buildOptions(),
+            SizedBox(height: AppSpacing.xl * s),
             Center(
               child: Container(
-                width: 190,
-                height: 48,
+                width: 190 * s,
+                height: 48 * s,
                 decoration: BoxDecoration(
                   color: const Color(0xFF5932EA),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12 * s),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12 * s),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const PosMenuScreen()),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.bolt, color: Colors.white, size: 20),
-                        SizedBox(width: 6),
+                        Icon(Icons.bolt, color: Colors.white, size: 20 * s),
+                        SizedBox(width: 6 * s),
                         Text(
                           'Venta Rápida',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 16 * s,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -220,6 +257,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
 }
 
 /// Large tappable option used on the cashier home (face or QR identification).
+/// [scale] enlarges paddings, icon and text on tablets.
 class _PosOptionCard extends StatelessWidget {
   final Color iconBackground;
   final Color iconColor;
@@ -228,6 +266,7 @@ class _PosOptionCard extends StatelessWidget {
   final Color titleColor;
   final String subtitle;
   final VoidCallback onTap;
+  final double scale;
 
   const _PosOptionCard({
     required this.iconBackground,
@@ -237,16 +276,19 @@ class _PosOptionCard extends StatelessWidget {
     required this.titleColor,
     required this.subtitle,
     required this.onTap,
+    this.scale = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final s = scale;
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 340),
+      // En teléfono se mantiene el ancho del Figma; en tablet ocupa el ancho.
+      constraints: BoxConstraints(maxWidth: s > 1 ? double.infinity : 340),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20 * s),
         border: Border.all(color: const Color(0xFFD4D4D8), width: 1.5),
         boxShadow: [
           BoxShadow(
@@ -259,22 +301,25 @@ class _PosOptionCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20 * s),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: EdgeInsets.symmetric(
+              horizontal: 20 * s,
+              vertical: 20 * s * (s > 1 ? 1.4 : 1),
+            ),
             child: Row(
               children: [
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 58 * s,
+                  height: 58 * s,
                   decoration: BoxDecoration(
                     color: iconBackground,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16 * s),
                   ),
-                  child: Icon(icon, color: iconColor, size: 32),
+                  child: Icon(icon, color: iconColor, size: 32 * s),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16 * s),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,27 +327,27 @@ class _PosOptionCard extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          fontSize: 17,
+                          fontSize: 17 * s,
                           fontWeight: FontWeight.w800,
                           color: titleColor,
                           height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * s),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF9CA3AF),
+                        style: TextStyle(
+                          fontSize: 12 * s,
+                          color: const Color(0xFF6B7280),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFD4D4D8),
-                  size: 26,
+                  color: const Color(0xFFD4D4D8),
+                  size: 26 * s,
                 ),
               ],
             ),

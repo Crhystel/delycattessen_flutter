@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -289,7 +290,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 ],
               ),
             ),
-            Transform.translate(
+            ResponsiveCenter(child: Transform.translate(
               offset: const Offset(0, -30),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -405,24 +406,26 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              child: Column(
-                children: [
-                  buildSettingRow(
-                    icon: Icons.shield_outlined,
-                    title: 'Control parental',
-                    subtitle: _spendingControlSummary,
-                    onTap: () => _goToParentalControl(context),
-                  ),
-                  buildSettingRow(
-                    icon: Icons.warning_amber_outlined,
-                    title: 'Alergias registradas',
-                    subtitle: _allergiesSummary,
-                    onTap: () => _goToAllergies(context),
-                  ),
-                ],
+            )),
+            ResponsiveCenter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Column(
+                  children: [
+                    buildSettingRow(
+                      icon: Icons.shield_outlined,
+                      title: 'Control parental',
+                      subtitle: _spendingControlSummary,
+                      onTap: () => _goToParentalControl(context),
+                    ),
+                    buildSettingRow(
+                      icon: Icons.warning_amber_outlined,
+                      title: 'Alergias registradas',
+                      subtitle: _allergiesSummary,
+                      onTap: () => _goToAllergies(context),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),

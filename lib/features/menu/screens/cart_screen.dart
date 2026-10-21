@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -185,67 +186,70 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
             onPressed: () => Navigator.pop(context, _editableCart),
           ),
         ),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (hasUnsafeItems) _buildAllergenWarningBanner(unsafeItems),
-                  Expanded(
-                    child: lines.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Tu carrito está vacío',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF8A8686),
+        body: ResponsiveCenter(
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (hasUnsafeItems)
+                      _buildAllergenWarningBanner(unsafeItems),
+                    Expanded(
+                      child: lines.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Tu carrito está vacío',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF8A8686),
+                                ),
                               ),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
+                                ...lines.map((line) {
+                                  final dish = line.key;
+                                  return _buildCartItemCard(
+                                    dish,
+                                    line.value,
+                                    unsafeItems.contains(dish),
+                                    CartRules.canRemoveLine(lines.length),
+                                  );
+                                }),
+                                const SizedBox(height: AppSpacing.md),
+                                Text(
+                                  'Método de pago',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.ink900,
+                                      ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                _buildPaymentOption(
+                                  'Billetera Digital',
+                                  Icons.account_balance_wallet_outlined,
+                                  true,
+                                ),
+                              ],
                             ),
-                          )
-                        : ListView(
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            children: [
-                              ...lines.map((line) {
-                                final dish = line.key;
-                                return _buildCartItemCard(
-                                  dish,
-                                  line.value,
-                                  unsafeItems.contains(dish),
-                                  CartRules.canRemoveLine(lines.length),
-                                );
-                              }),
-                              const SizedBox(height: AppSpacing.md),
-                              Text(
-                                'Método de pago',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.ink900,
-                                    ),
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              _buildPaymentOption(
-                                'Billetera Digital',
-                                Icons.account_balance_wallet_outlined,
-                                true,
-                              ),
-                            ],
-                          ),
-                  ),
-                  _buildBottomBar(hasUnsafeItems),
-                ],
-              ),
-              if (_isLoading)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.secondary500,
+                    ),
+                    _buildBottomBar(hasUnsafeItems),
+                  ],
+                ),
+                if (_isLoading)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.secondary500,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

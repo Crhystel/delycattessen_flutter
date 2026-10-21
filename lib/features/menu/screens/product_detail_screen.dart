@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/layout/responsive.dart';
 import '../models/menu_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -9,14 +10,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final MenuItem item;
+
   /// Si es nulo la pantalla es de solo consulta (sin cantidad ni botón añadir).
   final ValueChanged<int>? onAdd;
 
-  const ProductDetailScreen({
-    super.key,
-    required this.item,
-    this.onAdd,
-  });
+  const ProductDetailScreen({super.key, required this.item, this.onAdd});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -32,123 +30,128 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: double.infinity,
-                height: 280,
-                color: AppColors.ink50,
-                child: item.imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: item.imageUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(
-                          context,
-                          MediaQuery.sizeOf(context).width,
-                        ),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 280),
-                        placeholder: (_, _) => const Center(
-                          child: CircularProgressIndicator(
+      body: ResponsiveCenter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 280,
+                  color: AppColors.ink50,
+                  child: item.imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: item.imageUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: AppImageCacheHelper.cacheSize(
+                            context,
+                            MediaQuery.sizeOf(context).width,
+                          ),
+                          memCacheHeight: AppImageCacheHelper.cacheSize(
+                            context,
+                            280,
+                          ),
+                          placeholder: (_, _) => const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.secondary500,
+                            ),
+                          ),
+                          errorWidget: (_, _, _) => const Icon(
+                            Icons.fastfood,
+                            size: 100,
                             color: AppColors.secondary500,
                           ),
-                        ),
-                        errorWidget: (_, _, _) => const Icon(
+                        )
+                      : const Icon(
                           Icons.fastfood,
                           size: 100,
                           color: AppColors.secondary500,
                         ),
-                      )
-                    : const Icon(
-                        Icons.fastfood,
-                        size: 100,
-                        color: AppColors.secondary500,
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          size: 20,
+                          color: AppColors.ink900,
+                        ),
+                        onPressed: () => Navigator.pop(context),
                       ),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        size: 20,
-                        color: AppColors.ink900,
-                      ),
-                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.name,
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
+                        const SizedBox(width: AppSpacing.md),
+                        Text(
+                          '\$${item.price.toStringAsFixed(2)}',
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.brand700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (item.description.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
-                        '\$${item.price.toStringAsFixed(2)}',
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brand700,
+                        item.description,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.ink900.withValues(alpha: 0.65),
                         ),
                       ),
                     ],
-                  ),
-                  if (item.description.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      item.description,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.65),
+                    if (item.ingredients.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      _buildSectionTitle('Ingredientes'),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: item.ingredients
+                            .map((i) => _buildChip(i.name))
+                            .toList(),
                       ),
-                    ),
+                    ],
+                    if (item.allergens.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      _buildSectionTitle('Contiene alérgenos'),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: item.allergens
+                            .map((a) => _buildChip(a.name, isAllergen: true))
+                            .toList(),
+                      ),
+                    ],
                   ],
-                  if (item.ingredients.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildSectionTitle('Ingredientes'),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: item.ingredients
-                          .map((i) => _buildChip(i.name))
-                          .toList(),
-                    ),
-                  ],
-                  if (item.allergens.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildSectionTitle('Contiene alérgenos'),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: item.allergens
-                          .map((a) => _buildChip(a.name, isAllergen: true))
-                          .toList(),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
-          ),
-          if (widget.onAdd != null) _buildBottomBar(),
-        ],
+            if (widget.onAdd != null) _buildBottomBar(),
+          ],
+        ),
       ),
     );
   }
@@ -211,7 +214,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.remove, color: AppColors.secondary500),
+                    icon: const Icon(
+                      Icons.remove,
+                      color: AppColors.secondary500,
+                    ),
                     onPressed: () {
                       if (_quantity > 1) setState(() => _quantity--);
                     },

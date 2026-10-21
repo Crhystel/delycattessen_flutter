@@ -9,11 +9,16 @@ class ScannerFrame extends StatelessWidget {
   final Animation<double> scanAnimation;
   final Widget child;
 
+  /// false = solo el borde y la línea, para dibujarlo sobre la cámara a
+  /// pantalla completa (tablet).
+  final bool filled;
+
   const ScannerFrame({
     super.key,
     required this.size,
     required this.scanAnimation,
     required this.child,
+    this.filled = true,
   });
 
   @override
@@ -22,9 +27,9 @@ class ScannerFrame extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: filled ? Colors.black : Colors.transparent,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE5A93C), width: 3),
+        border: Border.all(color: const Color(0xFFE5A93C), width: filled ? 3 : 5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -64,8 +69,14 @@ class ScannerFrame extends StatelessWidget {
 class ScannerNotice extends StatelessWidget {
   final String text;
   final double width;
+  final double? fontSize;
 
-  const ScannerNotice({super.key, required this.text, required this.width});
+  const ScannerNotice({
+    super.key,
+    required this.text,
+    required this.width,
+    this.fontSize,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +102,7 @@ class ScannerNotice extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF007ACC),
                     fontWeight: FontWeight.w600,
+                    fontSize: fontSize,
                     height: 1.35,
                   ),
                 ),

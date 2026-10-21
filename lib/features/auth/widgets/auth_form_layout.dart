@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -45,14 +46,19 @@ class AuthFormLayout extends StatelessWidget {
           if (showBackButton)
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(left: AppSpacing.xs, top: AppSpacing.xs),
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.xs,
+                  top: AppSpacing.xs,
+                ),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-                  onPressed: onBack ?? () {
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
-                  },
+                  onPressed:
+                      onBack ??
+                      () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
                 ),
               ),
             ),
@@ -60,41 +66,45 @@ class AuthFormLayout extends StatelessWidget {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 30,
-                        color: AppColors.brand500,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: AppSpacing.xs),
+                // En tablet el formulario no se estira a todo el ancho.
+                child: ResponsiveCenter(
+                  maxWidth: AppLayout.formMaxWidth,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
                       Text(
-                        subtitle!,
+                        title,
                         textAlign: TextAlign.center,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.7),
+                        style: textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30,
+                          color: AppColors.brand500,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      decoration: const BoxDecoration(
-                        color: AppColors.teal500,
-                        borderRadius: AppRadius.mdAll,
+                      if (subtitle != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          subtitle!,
+                          textAlign: TextAlign.center,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: AppColors.ink900.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        decoration: const BoxDecoration(
+                          color: AppColors.teal500,
+                          borderRadius: AppRadius.mdAll,
+                        ),
+                        child: Column(children: children),
                       ),
-                      child: Column(children: children),
-                    ),
-                    ...footer,
-                    const SizedBox(height: AppSpacing.xxl),
-                  ],
+                      ...footer,
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
@@ -216,128 +217,131 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppTheme.lightAppBar(title: const Text('Recarga segura')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildCardPreview(),
-            const SizedBox(height: 16),
-            _buildUserSummaryCard(),
-            const SizedBox(height: 20),
-            _buildLabel('NÚMERO DE TARJETA'),
-            _buildField(
-              _cardNumberController,
-              '0000 0000 0000 0000',
-              icon: Icons.credit_card,
-              keyboardType: TextInputType.number,
-              inputFormatters: [_CardNumberFormatter()],
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('NOMBRE DEL TITULAR'),
-            _buildField(
-              _holderNameController,
-              'Ingrese el nombre',
-              icon: Icons.person_outline,
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('VENCIMIENTO'),
-                      _buildField(
-                        _expirationController,
-                        'MM/AA',
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [_ExpirationDateFormatter()],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 100,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('CVV'),
-                      _buildField(
-                        _cvvController,
-                        '•••',
-                        keyboardType: TextInputType.number,
-                        obscure: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('CORREO'),
-            _buildField(
-              _emailController,
-              'correo@ejemplo.com',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('TELÉFONO'),
-            _buildField(
-              _phoneController,
-              'Ej. 0991234567',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('TIPO DE DOCUMENTO'),
-            _buildDocumentTypeDropdown(),
-            const SizedBox(height: 14),
-            _buildLabel('NÚMERO DE DOCUMENTO'),
-            _buildField(
-              _documentNumberController,
-              'Ej. 1712345678',
-              icon: Icons.badge_outlined,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Checkbox(
-                  value: _acceptedTerms,
-                  onChanged: (value) =>
-                      setState(() => _acceptedTerms = value ?? false),
-                  activeColor: AppColors.secondary500,
-                ),
-                Expanded(
-                  child: Text(
-                    'Acepto los Términos y Condiciones',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.ink900.withValues(alpha: 0.7),
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.formMaxWidth,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCardPreview(),
+              const SizedBox(height: 16),
+              _buildUserSummaryCard(),
+              const SizedBox(height: 20),
+              _buildLabel('NÚMERO DE TARJETA'),
+              _buildField(
+                _cardNumberController,
+                '0000 0000 0000 0000',
+                icon: Icons.credit_card,
+                keyboardType: TextInputType.number,
+                inputFormatters: [_CardNumberFormatter()],
+              ),
+              const SizedBox(height: 14),
+              _buildLabel('NOMBRE DEL TITULAR'),
+              _buildField(
+                _holderNameController,
+                'Ingrese el nombre',
+                icon: Icons.person_outline,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('VENCIMIENTO'),
+                        _buildField(
+                          _expirationController,
+                          'MM/AA',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [_ExpirationDateFormatter()],
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 14),
+                  SizedBox(
+                    width: 100,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('CVV'),
+                        _buildField(
+                          _cvvController,
+                          '•••',
+                          keyboardType: TextInputType.number,
+                          obscure: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildLabel('CORREO'),
+              _buildField(
+                _emailController,
+                'correo@ejemplo.com',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 14),
+              _buildLabel('TELÉFONO'),
+              _buildField(
+                _phoneController,
+                'Ej. 0991234567',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 14),
+              _buildLabel('TIPO DE DOCUMENTO'),
+              _buildDocumentTypeDropdown(),
+              const SizedBox(height: 14),
+              _buildLabel('NÚMERO DE DOCUMENTO'),
+              _buildField(
+                _documentNumberController,
+                'Ej. 1712345678',
+                icon: Icons.badge_outlined,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _acceptedTerms,
+                    onChanged: (value) =>
+                        setState(() => _acceptedTerms = value ?? false),
+                    activeColor: AppColors.secondary500,
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Acepto los Términos y Condiciones',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.ink900.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(color: AppColors.danger700, fontSize: 12),
                 ),
               ],
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _errorMessage!,
-                style: TextStyle(color: AppColors.danger700, fontSize: 12),
+              const SizedBox(height: 18),
+              PrimaryButton(
+                label: 'Confirmar pago',
+                icon: Icons.lock_outline,
+                isLoading: _isSubmitting,
+                onPressed: _confirmPayment,
               ),
+              const SizedBox(height: 20),
             ],
-            const SizedBox(height: 18),
-            PrimaryButton(
-              label: 'Confirmar pago',
-              icon: Icons.lock_outline,
-              isLoading: _isSubmitting,
-              onPressed: _confirmPayment,
-            ),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );

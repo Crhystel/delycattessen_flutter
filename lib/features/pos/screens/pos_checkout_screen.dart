@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
@@ -165,58 +166,60 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
             onPressed: _exit,
           ),
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
+        body: ResponsiveCenter(
+          child: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    children: [
+                      _buildCustomerBanner(textTheme),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Resumen',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      for (final line in lines)
+                        CartLineTile(
+                          name: line.item.name,
+                          unitPrice: line.item.price,
+                          quantity: line.quantity,
+                          onIncrement: () => _changeQuantity(line.item.id, 1),
+                          onDecrement: () => _changeQuantity(line.item.id, -1),
+                          onRemove: canRemove
+                              ? () => _removeLine(line.item.id)
+                              : null,
+                        ),
+                      const Divider(height: AppSpacing.xl),
+                      _buildTotal(textTheme),
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        'Método de pago',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      for (final option in _options)
+                        _buildOption(option, textTheme),
+                      if (_walletShort) _buildBalanceWarning(textTheme),
+                    ],
+                  ),
+                ),
+                Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  children: [
-                    _buildCustomerBanner(textTheme),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Resumen',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    for (final line in lines)
-                      CartLineTile(
-                        name: line.item.name,
-                        unitPrice: line.item.price,
-                        quantity: line.quantity,
-                        onIncrement: () => _changeQuantity(line.item.id, 1),
-                        onDecrement: () => _changeQuantity(line.item.id, -1),
-                        onRemove: canRemove
-                            ? () => _removeLine(line.item.id)
-                            : null,
-                      ),
-                    const Divider(height: AppSpacing.xl),
-                    _buildTotal(textTheme),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      'Método de pago',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    for (final option in _options)
-                      _buildOption(option, textTheme),
-                    if (_walletShort) _buildBalanceWarning(textTheme),
-                  ],
+                  child: PrimaryButton(
+                    label: 'Cobrar \$${_total.toStringAsFixed(2)}',
+                    isLoading: _isSubmitting,
+                    onPressed: _options.isEmpty ? null : _charge,
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: PrimaryButton(
-                  label: 'Cobrar \$${_total.toStringAsFixed(2)}',
-                  isLoading: _isSubmitting,
-                  onPressed: _options.isEmpty ? null : _charge,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

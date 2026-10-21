@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../core/config/password_policy.dart';
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
@@ -186,40 +187,43 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           },
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _currentStep == 0 ? 'Paso 1 de 2' : 'Paso 2 de 2',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.brand500,
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.formMaxWidth,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentStep == 0 ? 'Paso 1 de 2' : 'Paso 2 de 2',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brand500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: _currentStep == 0 ? 0.5 : 1.0,
-                color: AppColors.brand500,
-                backgroundColor: AppColors.brand50,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(2),
-              ),
-              const SizedBox(height: 20),
-              if (_currentStep == 0) _buildStep1() else _buildStep2(),
-              const SizedBox(height: 24),
-              PrimaryButton(
-                label: _currentStep == 0 ? 'Siguiente' : 'Crear cuenta',
-                isLoading: _isSubmitting,
-                onPressed: () {
-                  _currentStep == 0 ? _goToStep2() : _submit();
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: _currentStep == 0 ? 0.5 : 1.0,
+                  color: AppColors.brand500,
+                  backgroundColor: AppColors.brand50,
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                const SizedBox(height: 20),
+                if (_currentStep == 0) _buildStep1() else _buildStep2(),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: _currentStep == 0 ? 'Siguiente' : 'Crear cuenta',
+                  isLoading: _isSubmitting,
+                  onPressed: () {
+                    _currentStep == 0 ? _goToStep2() : _submit();
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -528,30 +532,23 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   InputDecoration _decoration(String hint, {IconData? icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.secondary500) : null,
+      prefixIcon: icon != null
+          ? Icon(icon, color: AppColors.secondary500)
+          : null,
       suffixIcon: suffix,
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(
-          color: AppColors.secondary500,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.secondary500, width: 1.4),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(
-          color: AppColors.secondary500,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.secondary500, width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(
-          color: AppColors.secondary700,
-          width: 1.8,
-        ),
+        borderSide: const BorderSide(color: AppColors.secondary700, width: 1.8),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );

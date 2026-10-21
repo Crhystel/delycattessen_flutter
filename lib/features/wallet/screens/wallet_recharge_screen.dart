@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
@@ -230,7 +231,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       body: Stack(
         children: [
           const FloatingBubbles(corner: BubbleCorner.topRight),
-          SafeArea(
+          ResponsiveCenter(child: SafeArea(
             child: Column(
               children: [
                 _buildHeader(context),
@@ -279,7 +280,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
                 ),
               ],
             ),
-          ),
+          )),
         ],
       ),
     );

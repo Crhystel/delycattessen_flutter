@@ -16,10 +16,7 @@ enum BubbleCorner {
 class FloatingBubbles extends StatefulWidget {
   final BubbleCorner corner;
 
-  const FloatingBubbles({
-    super.key,
-    required this.corner,
-  });
+  const FloatingBubbles({super.key, required this.corner});
 
   @override
   State<FloatingBubbles> createState() => _FloatingBubblesState();
@@ -33,6 +30,7 @@ class _FloatingBubblesState extends State<FloatingBubbles>
   static const double _figmaFrameWidth = 402.0;
   static const double _baseBubbleWidth = 144.0;
   static const double _baseBubbleHeight = 123.0;
+  static const double _maxScale = 1.4;
 
   @override
   void initState() {
@@ -68,9 +66,10 @@ class _FloatingBubblesState extends State<FloatingBubbles>
 
   @override
   Widget build(BuildContext context) {
-    // Proportional scaling according to Figma 402w frame
+    // Escala proporcional al frame de 402 del Figma, con tope para que en
+    // tablets (800-1280 de ancho) las burbujas no crezcan sin límite.
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final scale = screenWidth / _figmaFrameWidth;
+    final scale = (screenWidth / _figmaFrameWidth).clamp(0.0, _maxScale);
     final bubbleWidth = _baseBubbleWidth * scale;
     final bubbleHeight = _baseBubbleHeight * scale;
 
@@ -133,7 +132,8 @@ class _FloatingBubblesState extends State<FloatingBubbles>
         break;
     }
 
-    final isTop = widget.corner == BubbleCorner.topLeft ||
+    final isTop =
+        widget.corner == BubbleCorner.topLeft ||
         widget.corner == BubbleCorner.topRight;
 
     return IgnorePointer(

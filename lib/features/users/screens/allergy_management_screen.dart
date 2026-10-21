@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -162,185 +163,191 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
       appBar: AppTheme.lightAppBar(
         title: Text('Alergias de ${widget.personName}'),
       ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.secondary500),
-              )
-            : _loadFailed
-            ? Center(
-                child: EmptyState(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'No pudimos cargar las alergias',
-                  message: 'Revisa tu conexión e inténtalo de nuevo.',
-                  actionLabel: 'Reintentar',
-                  onAction: _load,
-                ),
-              )
-            : Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Registradas',
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _selectedAllergens.isEmpty
-                              ? _buildEmptyRegistered(textTheme)
-                              : Wrap(
-                                  spacing: AppSpacing.sm,
-                                  runSpacing: AppSpacing.sm,
-                                  children: _selectedAllergens.map((allergen) {
-                                    return InputChip(
-                                      label: Text(
-                                        allergen.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.brand700,
-                                        ),
-                                      ),
-                                      backgroundColor: AppColors.brand50,
-                                      side: BorderSide.none,
-                                      deleteIconColor: AppColors.brand700,
-                                      onDeleted: () =>
-                                          _removeAllergen(allergen),
-                                    );
-                                  }).toList(),
-                                ),
-                          const SizedBox(height: AppSpacing.xl),
-                          AppCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Añadir una alergia',
-                                  style: textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                DropdownButtonFormField<Allergen>(
-                                  initialValue: _dropdownValue,
-                                  items: _availableToAdd
-                                      .map(
-                                        (a) => DropdownMenuItem(
-                                          value: a,
-                                          child: Text(a.name),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) =>
-                                      setState(() => _dropdownValue = value),
-                                  decoration: _fieldDecoration('Selecciona'),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 46,
-                                  child: ElevatedButton.icon(
-                                    onPressed: _dropdownValue == null
-                                        ? null
-                                        : _addSelected,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.secondary500,
-                                      foregroundColor: Colors.white,
-                                      disabledBackgroundColor: AppColors
-                                          .secondary500
-                                          .withValues(alpha: 0.4),
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: AppRadius.fullAll,
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.add, size: 18),
-                                    label: const Text(
-                                      'Añadir',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                if (!_showNewAllergenField)
-                                  TextButton(
-                                    onPressed: () => setState(
-                                      () => _showNewAllergenField = true,
-                                    ),
-                                    child: const Text(
-                                      '¿No encuentras la alergia? Agrégala',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.secondary500,
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  _buildNewAllergenForm(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: BoxDecoration(
-                              color: AppColors.brand50,
-                              borderRadius: AppRadius.smAll,
-                              border: const Border(
-                                left: BorderSide(
-                                  color: AppColors.brand500,
-                                  width: 4,
-                                ),
+      body: ResponsiveCenter(
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.secondary500,
+                  ),
+                )
+              : _loadFailed
+              ? Center(
+                  child: EmptyState(
+                    icon: Icons.cloud_off_outlined,
+                    title: 'No pudimos cargar las alergias',
+                    message: 'Revisa tu conexión e inténtalo de nuevo.',
+                    actionLabel: 'Reintentar',
+                    onAction: _load,
+                  ),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Registradas',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.warning_amber_rounded,
-                                  size: 20,
-                                  color: AppColors.brand700,
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    'Los productos con estas alergias se marcarán '
-                                    'automáticamente en el menú de ${widget.personName}.',
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: AppColors.brand700,
-                                      fontWeight: FontWeight.w600,
+                            const SizedBox(height: AppSpacing.md),
+                            _selectedAllergens.isEmpty
+                                ? _buildEmptyRegistered(textTheme)
+                                : Wrap(
+                                    spacing: AppSpacing.sm,
+                                    runSpacing: AppSpacing.sm,
+                                    children: _selectedAllergens.map((
+                                      allergen,
+                                    ) {
+                                      return InputChip(
+                                        label: Text(
+                                          allergen.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.brand700,
+                                          ),
+                                        ),
+                                        backgroundColor: AppColors.brand50,
+                                        side: BorderSide.none,
+                                        deleteIconColor: AppColors.brand700,
+                                        onDeleted: () =>
+                                            _removeAllergen(allergen),
+                                      );
+                                    }).toList(),
+                                  ),
+                            const SizedBox(height: AppSpacing.xl),
+                            AppCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Añadir una alergia',
+                                    style: textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: AppSpacing.md),
+                                  DropdownButtonFormField<Allergen>(
+                                    initialValue: _dropdownValue,
+                                    items: _availableToAdd
+                                        .map(
+                                          (a) => DropdownMenuItem(
+                                            value: a,
+                                            child: Text(a.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (value) =>
+                                        setState(() => _dropdownValue = value),
+                                    decoration: _fieldDecoration('Selecciona'),
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 46,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _dropdownValue == null
+                                          ? null
+                                          : _addSelected,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.secondary500,
+                                        foregroundColor: Colors.white,
+                                        disabledBackgroundColor: AppColors
+                                            .secondary500
+                                            .withValues(alpha: 0.4),
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: AppRadius.fullAll,
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.add, size: 18),
+                                      label: const Text(
+                                        'Añadir',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  if (!_showNewAllergenField)
+                                    TextButton(
+                                      onPressed: () => setState(
+                                        () => _showNewAllergenField = true,
+                                      ),
+                                      child: const Text(
+                                        '¿No encuentras la alergia? Agrégala',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.secondary500,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    _buildNewAllergenForm(),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: AppSpacing.lg),
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.brand50,
+                                borderRadius: AppRadius.smAll,
+                                border: const Border(
+                                  left: BorderSide(
+                                    color: AppColors.brand500,
+                                    width: 4,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 20,
+                                    color: AppColors.brand700,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      'Los productos con estas alergias se marcarán '
+                                      'automáticamente en el menú de ${widget.personName}.',
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: AppColors.brand700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      AppSpacing.sm,
-                      AppSpacing.xl,
-                      AppSpacing.lg,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        AppSpacing.sm,
+                        AppSpacing.xl,
+                        AppSpacing.lg,
+                      ),
+                      child: PrimaryButton(
+                        label: 'Guardar cambios',
+                        icon: Icons.save_outlined,
+                        isLoading: _isSaving,
+                        onPressed: _save,
+                      ),
                     ),
-                    child: PrimaryButton(
-                      label: 'Guardar cambios',
-                      icon: Icons.save_outlined,
-                      isLoading: _isSaving,
-                      onPressed: _save,
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+        ),
       ),
     );
   }

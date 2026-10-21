@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -12,11 +13,7 @@ class DishDetailScreen extends StatefulWidget {
   final MenuDish dish;
   final Function(int) onAdd;
 
-  const DishDetailScreen({
-    super.key,
-    required this.dish,
-    required this.onAdd,
-  });
+  const DishDetailScreen({super.key, required this.dish, required this.onAdd});
 
   @override
   State<DishDetailScreen> createState() => _DishDetailScreenState();
@@ -32,112 +29,117 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: double.infinity,
-                height: 280,
-                color: AppColors.ink50,
-                child: dish.imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: dish.imageUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(
-                          context,
-                          MediaQuery.sizeOf(context).width,
-                        ),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 280),
-                        placeholder: (_, _) => const Center(
-                          child: CircularProgressIndicator(
+      body: ResponsiveCenter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 280,
+                  color: AppColors.ink50,
+                  child: dish.imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: dish.imageUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: AppImageCacheHelper.cacheSize(
+                            context,
+                            MediaQuery.sizeOf(context).width,
+                          ),
+                          memCacheHeight: AppImageCacheHelper.cacheSize(
+                            context,
+                            280,
+                          ),
+                          placeholder: (_, _) => const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.secondary500,
+                            ),
+                          ),
+                          errorWidget: (_, _, _) => const Icon(
+                            Icons.fastfood,
+                            size: 100,
                             color: AppColors.secondary500,
                           ),
-                        ),
-                        errorWidget: (_, _, _) => const Icon(
+                        )
+                      : const Icon(
                           Icons.fastfood,
                           size: 100,
                           color: AppColors.secondary500,
                         ),
-                      )
-                    : const Icon(
-                        Icons.fastfood,
-                        size: 100,
-                        color: AppColors.secondary500,
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          size: 20,
+                          color: AppColors.ink900,
+                        ),
+                        onPressed: () => Navigator.pop(context),
                       ),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        size: 20,
-                        color: AppColors.ink900,
-                      ),
-                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          dish.name,
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            dish.name,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
+                        const SizedBox(width: AppSpacing.md),
+                        Text(
+                          '\$${dish.price.toStringAsFixed(2)}',
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.brand700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (dish.description.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
-                        '\$${dish.price.toStringAsFixed(2)}',
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brand700,
+                        dish.description,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.ink900.withValues(alpha: 0.65),
                         ),
                       ),
                     ],
-                  ),
-                  if (dish.description.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      dish.description,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.65),
+                    if (dish.allergens.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      _buildSectionTitle('Alérgenos identificados'),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: dish.allergens
+                            .map((a) => _buildChip(a, isAllergen: true))
+                            .toList(),
                       ),
-                    ),
+                    ],
                   ],
-                  if (dish.allergens.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildSectionTitle('Alérgenos identificados'),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: dish.allergens
-                          .map((a) => _buildChip(a, isAllergen: true))
-                          .toList(),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
-          ),
-          _buildBottomBar(),
-        ],
+            _buildBottomBar(),
+          ],
+        ),
       ),
     );
   }
@@ -200,7 +202,10 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.remove, color: AppColors.secondary500),
+                    icon: const Icon(
+                      Icons.remove,
+                      color: AppColors.secondary500,
+                    ),
                     onPressed: () {
                       if (_quantity > 1) setState(() => _quantity--);
                     },

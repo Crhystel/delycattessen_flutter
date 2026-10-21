@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -176,7 +177,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
     if (day.isBlockedByParentalControl) {
       showWarningSnackBar(
-        day.blockedReason ?? 'Este día no está habilitado por el control parental.',
+        day.blockedReason ??
+            'Este día no está habilitado por el control parental.',
         title: 'Día bloqueado',
       );
       return;
@@ -184,7 +186,9 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
     if (_cart.isNotEmpty) {
       final currentFormatted = _selectedDay != null
-          ? DateFormatter.formatLong(DateFormatter.parseIsoDate(_selectedDay!.date))
+          ? DateFormatter.formatLong(
+              DateFormatter.parseIsoDate(_selectedDay!.date),
+            )
           : 'el día actual';
       final confirmed = await AppConfirmationDialog.show(
         context,
@@ -267,35 +271,38 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            if (_selectedChild != null) _buildChildBanner(children),
-            const SizedBox(height: AppSpacing.sm),
-            if (!_isLoading && _days.isNotEmpty) _buildDaysSelector(),
-            const SizedBox(height: AppSpacing.xs),
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.wideMaxWidth,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              if (_selectedChild != null) _buildChildBanner(children),
+              const SizedBox(height: AppSpacing.sm),
+              if (!_isLoading && _days.isNotEmpty) _buildDaysSelector(),
+              const SizedBox(height: AppSpacing.xs),
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.secondary500,
+                        ),
+                      )
+                    : _errorMessage != null
+                    ? _buildErrorView()
+                    : _days.isEmpty
+                    ? _buildEmptyView()
+                    : RefreshIndicator(
                         color: AppColors.secondary500,
+                        onRefresh: _refreshMenu,
+                        child: _buildDishList(),
                       ),
-                    )
-                  : _errorMessage != null
-                      ? _buildErrorView()
-                      : _days.isEmpty
-                          ? _buildEmptyView()
-                          : RefreshIndicator(
-                              color: AppColors.secondary500,
-                              onRefresh: _refreshMenu,
-                              child: _buildDishList(),
-                            ),
-            ),
-            if (total > 0 && _selectedDay != null)
-              _buildCartSummary(total, _selectedDay!),
-          ],
+              ),
+              if (total > 0 && _selectedDay != null)
+                _buildCartSummary(total, _selectedDay!),
+            ],
+          ),
         ),
       ),
     );
@@ -344,7 +351,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Buscar...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.secondary500),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: AppColors.secondary500,
+              ),
               suffixIcon: _searchController.text.isEmpty
                   ? null
                   : IconButton(
@@ -462,8 +472,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                         color: isBlocked
                             ? Colors.grey.shade200
                             : isSelected
-                                ? AppColors.secondary500
-                                : AppColors.secondary50,
+                            ? AppColors.secondary500
+                            : AppColors.secondary50,
                         shape: BoxShape.circle,
                         border: isBlocked
                             ? Border.all(color: Colors.grey.shade400)
@@ -492,12 +502,14 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                       weekdayShort,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                         color: isBlocked
                             ? Colors.grey.shade500
                             : isSelected
-                                ? AppColors.secondary500
-                                : AppColors.ink900.withValues(alpha: 0.7),
+                            ? AppColors.secondary500
+                            : AppColors.ink900.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -522,13 +534,15 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
             title: _searchQuery.isNotEmpty
                 ? 'No encontramos "$_searchQuery"'
                 : 'No hay platillos asignados para este día',
-            message: _searchQuery.isNotEmpty ? 'Prueba con otro término.' : null,
+            message: _searchQuery.isNotEmpty
+                ? 'Prueba con otro término.'
+                : null,
           ),
         ],
       );
     }
 
-    return ListView.builder(
+    return ResponsiveItemList(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.lg),
       itemCount: dishes.length,
@@ -640,8 +654,14 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                     ? CachedNetworkImage(
                         imageUrl: dish.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(context, 100),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 75),
+                        memCacheWidth: AppImageCacheHelper.cacheSize(
+                          context,
+                          100,
+                        ),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(
+                          context,
+                          75,
+                        ),
                         placeholder: (_, _) => const Center(
                           child: SizedBox(
                             width: 16,
@@ -742,7 +762,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         child: EmptyState(
           icon: Icons.restaurant_menu,
           title: 'Aún no hay un menú publicado para la institución.',
-          message: 'Cuando la institución publique el menú mensual, aparecerá aquí.',
+          message:
+              'Cuando la institución publique el menú mensual, aparecerá aquí.',
           actionLabel: 'Actualizar',
           onAction: _refreshMenu,
         ),

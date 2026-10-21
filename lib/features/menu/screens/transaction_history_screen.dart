@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
@@ -108,7 +109,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             children: [
               _buildPurpleHeader(),
               Expanded(
-                child: RefreshIndicator(
+                child: ResponsiveCenter(child: RefreshIndicator(
                   color: AppColors.secondary500,
                   onRefresh: _loadTransactions,
                   child: _isLoading
@@ -136,7 +137,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                           ),
                         )
                       : _buildList(),
-                ),
+                )),
               ),
             ],
           ),
@@ -157,7 +158,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         AppSpacing.lg,
         AppSpacing.xl,
       ),
-      child: Column(
+      // El fondo morado ocupa todo el ancho; el contenido se centra en tablet.
+      child: ResponsiveCenter(
+        child: _buildHeaderContent(textTheme),
+      ),
+    );
+  }
+
+  Widget _buildHeaderContent(TextTheme textTheme) {
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -224,7 +233,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ),
           ),
         ],
-      ),
     );
   }
 

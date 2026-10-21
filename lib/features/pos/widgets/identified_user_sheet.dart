@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -89,7 +90,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                       24,
                       40 + MediaQuery.of(context).padding.bottom,
                     ),
-                    child: Column(
+                    child: ResponsiveCenter(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (user.allergies.isNotEmpty) ...[
@@ -112,7 +113,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                           ),
                         ),
                       ],
-                    ),
+                    )),
                   ),
                 ),
               ),
@@ -143,7 +144,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
         12,
         56,
       ),
-      child: Column(
+      child: ResponsiveCenter(child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -198,7 +199,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
             ],
           ),
         ],
-      ),
+      )),
     );
   }
 

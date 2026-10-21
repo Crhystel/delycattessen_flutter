@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'light_app_bar.dart';
+import '../layout/responsive.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
@@ -91,61 +92,64 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
           widget.isCreating ? 'Crea tu PIN de pago' : 'Confirma tu pago',
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: AppColors.secondary50,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock_outline_rounded,
-                  size: 36,
-                  color: AppColors.secondary500,
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.formMaxWidth,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondary50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 36,
+                    color: AppColors.secondary500,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              widget.isCreating
-                  ? 'Crea un PIN de 4 dígitos para confirmar tus recargas de saldo de forma segura.'
-                  : 'Ingresa tu PIN de 4 dígitos para confirmar esta recarga.',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink900.withValues(alpha: 0.65),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildPinField(
-              _pinController,
-              widget.isCreating ? 'Nuevo PIN' : 'PIN',
-            ),
-            if (widget.isCreating) ...[
               const SizedBox(height: AppSpacing.lg),
-              _buildPinField(_confirmController, 'Confirma tu PIN'),
-            ],
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.md),
               Text(
-                _errorMessage!,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.danger700,
+                widget.isCreating
+                    ? 'Crea un PIN de 4 dígitos para confirmar tus recargas de saldo de forma segura.'
+                    : 'Ingresa tu PIN de 4 dígitos para confirmar esta recarga.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.ink900.withValues(alpha: 0.65),
                 ),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              _buildPinField(
+                _pinController,
+                widget.isCreating ? 'Nuevo PIN' : 'PIN',
+              ),
+              if (widget.isCreating) ...[
+                const SizedBox(height: AppSpacing.lg),
+                _buildPinField(_confirmController, 'Confirma tu PIN'),
+              ],
+              if (_errorMessage != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  _errorMessage!,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.danger700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.xl),
+              PrimaryButton(
+                label: 'Confirmar',
+                isLoading: _isSubmitting,
+                onPressed: _submit,
+              ),
             ],
-            const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(
-              label: 'Confirmar',
-              isLoading: _isSubmitting,
-              onPressed: _submit,
-            ),
-          ],
+          ),
         ),
       ),
     );

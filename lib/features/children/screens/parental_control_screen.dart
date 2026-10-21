@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -127,14 +128,14 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
           const RepaintBoundary(
             child: FloatingBubbles(corner: BubbleCorner.bottomRight),
           ),
-          SafeArea(
+          ResponsiveCenter(child: SafeArea(
             child: Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.viewInsetsOf(context).bottom,
               ),
               child: child,
             ),
-          ),
+          )),
         ],
       ),
     );

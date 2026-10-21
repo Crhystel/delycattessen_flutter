@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -187,17 +188,20 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            if (widget.user != null) _buildUserBanner(widget.user!),
-            _buildCategoryChips(),
-            const SizedBox(height: AppSpacing.xs),
-            Expanded(child: _buildBody()),
-            if (_cart.isNotEmpty) _buildCartBar(),
-          ],
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.wideMaxWidth,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              if (widget.user != null) _buildUserBanner(widget.user!),
+              _buildCategoryChips(),
+              const SizedBox(height: AppSpacing.xs),
+              Expanded(child: _buildBody()),
+              if (_cart.isNotEmpty) _buildCartBar(),
+            ],
+          ),
         ),
       ),
     );
@@ -320,7 +324,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
                 ),
               ],
             )
-          : ListView.builder(
+          : ResponsiveItemList(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,

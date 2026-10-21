@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
@@ -290,6 +291,29 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     );
   }
 
+  /// Fila de platillos con columnas fijas (3 en teléfono, 5 en tablet): si
+  /// hay menos platillos, los espacios sobrantes quedan vacíos para que las
+  /// tarjetas no se estiren.
+  Widget _buildDishPreviewRow(MenuDay day, int childId) {
+    final slots = AppLayout.isTablet(context) ? 5 : 3;
+    final dishes = day.dishes.take(slots).toList();
+    final parsedDate = DateFormatter.parseIsoDate(day.date);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < slots; i++)
+          Expanded(
+            child: i < dishes.length
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: _buildDishPreviewCard(dishes[i], childId, parsedDate),
+                  )
+                : const SizedBox.shrink(),
+          ),
+      ],
+    );
+  }
+
   Widget _buildMonthlyMenuSection(Child child, TextTheme textTheme) {
     final day = _firstAvailableMenuDay;
 
@@ -345,18 +369,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
             ),
           )
         else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: day.dishes.take(3).map((dish) {
-              final parsedDate = DateFormatter.parseIsoDate(day.date);
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: _buildDishPreviewCard(dish, child.id, parsedDate),
-                ),
-              );
-            }).toList(),
-          ),
+          _buildDishPreviewRow(day, child.id),
       ],
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -169,45 +170,48 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
-                AppSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  if (!widget.embedded)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.ink900,
+      body: ResponsiveCenter(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    if (!widget.embedded)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: AppColors.ink900,
+                        ),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      onPressed: () => Navigator.pop(context),
+                    Text(
+                      'Mis pedidos',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink900,
+                          ),
                     ),
-                  Text(
-                    'Mis pedidos',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.ink900,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (widget.embedded)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: ChildSelectorChip(label: 'Pedidos de'),
-              ),
-            const SizedBox(height: AppSpacing.sm),
-            Expanded(child: _buildBody()),
-          ],
+              if (widget.embedded)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: ChildSelectorChip(label: 'Pedidos de'),
+                ),
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(child: _buildBody()),
+            ],
+          ),
         ),
       ),
     );

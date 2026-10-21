@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
@@ -166,23 +167,26 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            if (widget.banner != null) widget.banner!,
-            const SizedBox(height: AppSpacing.sm),
-            if (showFilters && categories.isNotEmpty)
-              CategoryFilterBar(
-                categories: categories,
-                selected: _selectedCategory,
-                onSelected: (category) =>
-                    setState(() => _selectedCategory = category),
-              ),
-            const SizedBox(height: AppSpacing.xs),
-            Expanded(child: _buildBody()),
-          ],
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.wideMaxWidth,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              if (widget.banner != null) widget.banner!,
+              const SizedBox(height: AppSpacing.sm),
+              if (showFilters && categories.isNotEmpty)
+                CategoryFilterBar(
+                  categories: categories,
+                  selected: _selectedCategory,
+                  onSelected: (category) =>
+                      setState(() => _selectedCategory = category),
+                ),
+              const SizedBox(height: AppSpacing.xs),
+              Expanded(child: _buildBody()),
+            ],
+          ),
         ),
       ),
     );
@@ -249,7 +253,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
                 ),
               ],
             )
-          : ListView.builder(
+          : ResponsiveItemList(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
