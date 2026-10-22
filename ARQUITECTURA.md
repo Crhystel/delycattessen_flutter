@@ -54,7 +54,7 @@ No se crean carpetas vacías: se agregan cuando existe el primer archivo.
 
 ## Patrones establecidos — reutilízalos
 
-- **`BaseApiService` + `ErrorHandlerMixin`:** todo service de nuestro backend extiende `BaseApiService` (GET/POST/PUT/PATCH/multipart con token y errores centralizados). Los errores del backend llegan como `ApiException`; los de red como `NetworkException`. Para mostrarlos: `errorMessageOf(e)`.
+- **`BaseApiService` + `ErrorHandlerMixin`:** todo service de nuestro backend extiende `BaseApiService` (GET/POST/PUT/PATCH/multipart con token y errores centralizados). Los errores del backend y de red llegan como `ApiException` con un mensaje ya legible. Para mostrarlos: `errorMessageOf(e)`.
 - **`ApiConfig`:** todas las URLs del backend. La base viene de `Env.apiBaseUrl`.
 - **`TokenStorage`:** única fuente del JWT.
 - **Estrategia por pasarela:** `RechargeGateway` (la decide el backend) + `RechargeLauncher` por pasarela. Agregar una pasarela = un valor del enum y un launcher; la pantalla no cambia.

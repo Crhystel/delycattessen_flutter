@@ -25,24 +25,19 @@ class CardFormData {
     required this.documentType,
     required this.acceptedTerms,
   });
-}
-
-/// Valida el formulario de tarjeta antes de enviarlo.
-class CardFormValidator {
-  CardFormValidator._();
 
   /// Mensaje del primer problema encontrado, o null si el formulario es válido.
-  static String? validate(CardFormData data) {
-    if (data.cardNumber.replaceAll(' ', '').length < 16 ||
-        data.holderName.isEmpty ||
-        data.expiration.length < 5 ||
-        data.cvv.length < 3) {
+  String? validate() {
+    if (cardNumber.replaceAll(' ', '').length < 16 ||
+        holderName.isEmpty ||
+        expiration.length < 5 ||
+        cvv.length < 3) {
       return 'Completa todos los campos de la tarjeta correctamente.';
     }
-    if (data.phone.isEmpty || data.documentNumber.isEmpty) {
+    if (phone.isEmpty || documentNumber.isEmpty) {
       return 'Ingresa tu teléfono y documento de identidad.';
     }
-    if (!data.acceptedTerms) {
+    if (!acceptedTerms) {
       return 'Debes aceptar los Términos y Condiciones.';
     }
     return null;

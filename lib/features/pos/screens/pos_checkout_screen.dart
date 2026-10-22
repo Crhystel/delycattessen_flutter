@@ -24,8 +24,6 @@ class CheckoutLine {
   final int quantity;
 
   const CheckoutLine({required this.item, required this.quantity});
-
-  double get subtotal => item.price * quantity;
 }
 
 /// Último paso del POS: elegir método de pago y cobrar. El total que se ve
@@ -35,15 +33,7 @@ class PosCheckoutScreen extends StatefulWidget {
   final IdentifiedUser? user;
   final List<CheckoutLine> lines;
 
-  /// Opcional para inyectar otra implementación (por ejemplo en tests).
-  final PosService? posService;
-
-  const PosCheckoutScreen({
-    super.key,
-    required this.lines,
-    this.user,
-    this.posService,
-  });
+  const PosCheckoutScreen({super.key, required this.lines, this.user});
 
   @override
   State<PosCheckoutScreen> createState() => _PosCheckoutScreenState();
@@ -51,7 +41,7 @@ class PosCheckoutScreen extends StatefulWidget {
 
 class _PosCheckoutScreenState extends State<PosCheckoutScreen>
     with NotificationMixin {
-  late final PosService _posService = widget.posService ?? PosService();
+  final PosService _posService = PosService();
   late final List<PaymentMethodOption> _options;
   late PaymentMethod _method;
   bool _isSubmitting = false;
@@ -147,10 +137,7 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        errorMessageOf(e),
-        title: 'No se pudo cobrar',
-      );
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo cobrar');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

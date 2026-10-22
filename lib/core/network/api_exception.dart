@@ -8,8 +8,3 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
-
-/// No se pudo llegar al servidor (sin internet, caído, tiempo agotado).
-class NetworkException extends ApiException {
-  const NetworkException(super.message);
-}

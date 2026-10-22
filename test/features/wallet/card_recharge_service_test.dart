@@ -90,9 +90,9 @@ CardRechargeService _service(
 );
 
 void main() {
-  group('CardFormValidator.validate', () {
+  group('CardFormData.validate', () {
     test('accepts a complete form', () {
-      expect(CardFormValidator.validate(_data()), isNull);
+      expect(_data().validate(), isNull);
     });
 
     test('rejects an incomplete card', () {
@@ -103,7 +103,7 @@ void main() {
         _data(cvv: '12'),
       ]) {
         expect(
-          CardFormValidator.validate(data),
+          data.validate(),
           'Completa todos los campos de la tarjeta correctamente.',
         );
       }
@@ -111,18 +111,18 @@ void main() {
 
     test('requires phone and document number', () {
       expect(
-        CardFormValidator.validate(_data(phone: '')),
+        _data(phone: '').validate(),
         'Ingresa tu teléfono y documento de identidad.',
       );
       expect(
-        CardFormValidator.validate(_data(documentNumber: '')),
+        _data(documentNumber: '').validate(),
         'Ingresa tu teléfono y documento de identidad.',
       );
     });
 
     test('requires accepting the terms', () {
       expect(
-        CardFormValidator.validate(_data(acceptedTerms: false)),
+        _data(acceptedTerms: false).validate(),
         'Debes aceptar los Términos y Condiciones.',
       );
     });

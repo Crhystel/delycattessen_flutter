@@ -8,8 +8,6 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/document_type.dart';
 import '../services/card_recharge_service.dart';
-import '../services/card_tokenizer.dart';
-import '../services/wallet_service.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Inserts a space every 4 digits as the user types the card number.
@@ -62,17 +60,11 @@ class RechargeCardFormScreen extends StatefulWidget {
   final String childName;
   final double amount;
 
-  /// Opcionales para inyectar otras implementaciones (por ejemplo en tests).
-  final WalletService? walletService;
-  final CardTokenizer? cardTokenizer;
-
   const RechargeCardFormScreen({
     super.key,
     required this.walletId,
     required this.childName,
     required this.amount,
-    this.walletService,
-    this.cardTokenizer,
   });
 
   @override
@@ -81,10 +73,7 @@ class RechargeCardFormScreen extends StatefulWidget {
 
 class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     with NotificationMixin {
-  late final CardRechargeService _rechargeService = CardRechargeService(
-    cardTokenizer: widget.cardTokenizer,
-    walletService: widget.walletService,
-  );
+  final _rechargeService = CardRechargeService();
   final _cardNumberController = TextEditingController();
   final _holderNameController = TextEditingController();
   final _expirationController = TextEditingController();
@@ -121,7 +110,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       documentType: _documentType,
       acceptedTerms: _acceptedTerms,
     );
-    final validationError = CardFormValidator.validate(data);
+    final validationError = data.validate();
     if (validationError != null) {
       setState(() => _errorMessage = validationError);
       return;
@@ -143,9 +132,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       _showResult(status);
     } catch (e) {
       if (!mounted) return;
-      setState(
-        () => _errorMessage = errorMessageOf(e),
-      );
+      setState(() => _errorMessage = errorMessageOf(e));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

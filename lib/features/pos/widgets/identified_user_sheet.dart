@@ -7,7 +7,6 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/pos_identification_model.dart';
 import '../providers/preorder_delivery_controller.dart';
-import '../services/pos_service.dart';
 import 'amount_card.dart';
 import 'pending_preorder_card.dart';
 import 'status_card.dart';
@@ -22,10 +21,7 @@ enum IdentifiedUserAction { addProducts }
 class IdentifiedUserSheet extends StatefulWidget {
   final IdentifiedUser user;
 
-  /// Opcional para inyectar otra implementación (por ejemplo en tests).
-  final PosService? posService;
-
-  const IdentifiedUserSheet({super.key, required this.user, this.posService});
+  const IdentifiedUserSheet({super.key, required this.user});
 
   @override
   State<IdentifiedUserSheet> createState() => _IdentifiedUserSheetState();
@@ -33,9 +29,7 @@ class IdentifiedUserSheet extends StatefulWidget {
 
 class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
     with NotificationMixin {
-  late final PreOrderDeliveryController _delivery = PreOrderDeliveryController(
-    posService: widget.posService,
-  );
+  final _delivery = PreOrderDeliveryController();
 
   // Solo presentación: tarjetas plegables del diseño del Figma.
   static const int _collapsedAllergyCount = 3;

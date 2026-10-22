@@ -78,7 +78,7 @@ void main() {
     test('handleNetworkError builds a connection error message', () {
       final error = handler.handleNetworkError('boom');
 
-      expect(error, isA<NetworkException>());
+      expect(error, isA<ApiException>());
       expect(error.message, startsWith('Error de conexión'));
     });
   });

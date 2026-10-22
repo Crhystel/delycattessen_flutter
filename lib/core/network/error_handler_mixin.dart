@@ -65,7 +65,7 @@ mixin ErrorHandlerMixin {
 
   /// Processes network errors (SocketException, etc.) during the request.
   ApiException handleNetworkError(dynamic error) {
-    return NetworkException(
+    return ApiException(
       'Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error',
     );
   }
