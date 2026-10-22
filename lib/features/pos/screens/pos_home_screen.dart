@@ -6,8 +6,8 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/floating_bubbles.dart';
-import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../auth/services/auth_service.dart';
 import '../models/pos_identification_model.dart';
 import 'face_recognition_scan_screen.dart';
 import 'qr_scan_screen.dart';
@@ -23,6 +23,8 @@ class PosHomeScreen extends StatefulWidget {
 }
 
 class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
+  final _authService = AuthService();
+
   String _getCurrentDayFormatted() {
     const days = [
       'lunes',
@@ -84,7 +86,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
     );
 
     if (shouldLogout && mounted) {
-      await TokenStorage.clear();
+      await _authService.logout();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),

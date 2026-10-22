@@ -32,6 +32,13 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     final pin = _pinController.text;
     if (pin.length != 4) {

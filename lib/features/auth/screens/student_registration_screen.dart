@@ -53,6 +53,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     _loadInstitutions();
   }
 
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _secondNameController.dispose();
+    _firstLastNameController.dispose();
+    _secondLastNameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadInstitutions() async {
     try {
       final results = await Future.wait([

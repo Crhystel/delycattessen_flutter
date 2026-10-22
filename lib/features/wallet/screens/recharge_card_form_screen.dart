@@ -114,6 +114,18 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  @override
+  void dispose() {
+    _cardNumberController.dispose();
+    _holderNameController.dispose();
+    _expirationController.dispose();
+    _cvvController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _documentNumberController.dispose();
+    super.dispose();
+  }
+
   Future<void> _confirmPayment() async {
     if (_cardNumberController.text.replaceAll(' ', '').length < 16 ||
         _holderNameController.text.isEmpty ||
