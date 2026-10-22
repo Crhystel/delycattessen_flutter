@@ -1,78 +1,111 @@
 # Arquitectura del proyecto — D'Elycattessen (Flutter)
 
-Este documento explica cómo está organizado el código para que cualquier persona que se una al proyecto sepa **dónde poner cada cosa** sin duplicar archivos ni romper la estructura existente.
+Este documento explica cómo está organizado el código para que cualquier persona que se una al proyecto sepa **dónde poner cada cosa** y bajo qué reglas se desarrolla.
 
 ## Idea general: organización por *feature*, no por tipo de archivo
 
-En vez de tener carpetas globales `screens/`, `models/`, `services/` con todo mezclado, cada módulo de negocio (login, menú, billetera, etc.) vive en su propia carpeta bajo `lib/features/`, con sus propias subcarpetas internas. Esto evita que un archivo de "menú" y uno de "auth" terminen en la misma carpeta genérica sin relación entre sí.
+Cada módulo de negocio vive en su carpeta bajo `lib/features/`, con sus propias subcarpetas. Lo que usan **dos o más features** va en `lib/core/`.
 
 ```
 lib/
-├── main.dart                # Punto de entrada de la app
-├── core/                    # Código transversal, compartido por TODAS las features
-│   ├── config/               # Configuración/env (claves públicas, flags)
-│   ├── network/               # Cliente HTTP base, manejo de errores, endpoints
-│   ├── storage/               # Persistencia local (tokens, etc.)
-│   ├── theme/                 # Colores y estilos globales
-│   └── widgets/               # Widgets reutilizables entre features (nav bar, dialogs...)
-└── features/                 # Un módulo de negocio por carpeta
-    ├── auth/                  # Login, registro de padres/estudiantes
-    ├── children/               # Listado y detalle de hijos
-    ├── menu/                   # Catálogo, carrito, detalle de producto, pre-órdenes
-    ├── users/                   # Gestión de alergias/intolerancias
-    └── wallet/                  # Recarga y billetera (Kushki/Payphone)
+├── main.dart
+├── core/
+│   ├── config/    env.dart                      Variables de entorno (--dart-define)
+│   ├── layout/    responsive.dart               AppLayout, ResponsiveCenter (tablet)
+│   ├── network/   api_config, api_exception,    Endpoints, errores tipados, cliente HTTP base
+│   │              base_api_service, error_handler_mixin
+│   ├── storage/   token_storage.dart            Único acceso al JWT
+│   ├── theme/     app_colors, app_spacing,      Tokens de diseño y tema
+│   │              app_radius, app_theme, app_notification_style
+│   ├── utils/     date_formatter, error_message, app_image_cache_helper
+│   └── widgets/   app_bottom_sheet, app_card, app_confirmation_dialog,
+│                  app_notification_dialog/messenger, app_scaffold, empty_state,
+│                  light_app_bar, primary_button, child_avatar_chip, floating_bubbles,
+│                  notification_header, photo_source_dialog, photo_guidelines_screen,
+│                  face_capture_camera_screen
+└── features/
+    ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, rol (UserRole)
+    ├── children/     Hijos del padre, control parental, ParentShell (navegación del padre), ChildrenProvider
+    ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
+    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos
+    ├── pos/          Caja: identificación (rostro/QR), venta, checkout, crédito del docente
+    ├── users/        Gestión de alergias
+    └── wallet/       Billetera, recargas (Payphone/Kushki), PIN de pago, historial de movimientos
 ```
 
-## Qué va dentro de cada `feature/<nombre>/`
+## Qué lleva cada carpeta de una feature
 
-Cada feature se subdivide siempre igual, en hasta 3 carpetas:
-
-- **`models/`** — Clases de datos puras (`fromJson`/`toJson`). Sin lógica de red ni de UI.
-- **`services/`** — Toda la comunicación con el backend (HTTP). Ningún widget debe llamar `http.get`/`http.post` directamente; siempre pasa por un `Service` de esta carpeta.
-- **`screens/`** — Pantallas (widgets de UI) de esa feature. Consumen los `services/` y `models/` de la misma feature.
-
-Ejemplo real (`features/auth/`):
-```
-auth/
-├── models/auth_models.dart      # LoginRequest, LoginResponse, Institution, etc.
-├── services/auth_service.dart   # AuthService extends BaseApiService
-└── screens/login_screen.dart, parent_register_screen.dart, ...
-```
-
-Si una feature es muy simple y todavía no tiene servicio propio (ej. una pantalla de solo lectura), no crees una carpeta `services/` vacía — agrégala cuando exista el primer archivo que la necesite.
-
-## Qué va en `core/` (y qué NO)
-
-`core/` es solo para lo que se reutiliza en **más de una feature**. Antes de poner algo aquí, pregúntate: "¿esto lo usan al menos 2 módulos distintos?". Si la respuesta es no, va dentro de la feature correspondiente, no en `core/`.
-
-| Carpeta | Contenido | Ejemplo actual |
+| Carpeta | Contenido | Ejemplos |
 |---|---|---|
-| `core/config/` | Variables de entorno / configuración pública | `Env.kushkiPublicMerchantId` (via `String.fromEnvironment`) |
-| `core/network/` | Cliente HTTP base y catálogo de endpoints | `BaseApiService`, `ErrorHandlerMixin`, `ApiConfig` |
-| `core/storage/` | Persistencia local | `TokenStorage` (guarda/lee tokens JWT) |
-| `core/theme/` | Colores y estilos compartidos | `AppColors` |
-| `core/widgets/` | Widgets de UI reutilizables entre features | `CustomBottomNav`, `CustomHeaderShape`, `BaseMenuScreen`, `AppNotificationDialog`, `FloatingBubbles` |
+| `models/` | Datos puros y enums | `Child`, `UserRole`, `RechargeGateway`, `DocumentType` |
+| `services/` | Backend, pasarelas y flujos que orquestan servicios | `AuthService`, `WalletService`, `KushkiService`, `CardRechargeService` |
+| `providers/` | Estado con `ChangeNotifier` | `ChildrenProvider`, `ParentMenuController`, `PreOrderDeliveryController` |
+| `screens/` | Pantallas completas | `MenuScreen`, `PosCheckoutScreen` |
+| `widgets/` | Widgets propios de la feature | `IdentifiedUserSheet`, `StatusCard`, `CustomBottomNav` |
+| `utils/` | Reglas puras y helpers | `CartRules`, `PaymentMethodPolicy`, `RechargeLaunchers`, `routeAfterAuth` |
 
-## Patrones ya establecidos — reutilízalos, no los reinventes
+No se crean carpetas vacías: se agregan cuando existe el primer archivo.
 
-- **`BaseApiService` + `ErrorHandlerMixin`** (`core/network/`): todo `Service` de una feature debe extender `BaseApiService`. Este ya trae `performGetRequest`, `performPostRequest`, `performPutRequest` y `performMultipartPostRequest`, con manejo de headers, token y errores centralizado. **No** escribas un nuevo servicio que arme `http.get`/`http.post` a mano — extiende `BaseApiService` como hace `AuthService`.
-- **`ApiConfig`** (`core/network/api_config.dart`): todas las URLs del backend viven aquí como constantes/métodos estáticos. No hardcodees una URL dentro de un `Service` — agrégala a `ApiConfig` primero.
-- **`TokenStorage`**: única fuente para leer/guardar el JWT. No dupliques el manejo de tokens en otra parte.
+## Qué va en `core/` (y qué no)
 
-## Convenciones de nombres
+`core/` es solo para lo que se reutiliza en **más de una feature**. Pregunta antes de poner algo ahí: "¿lo usan al menos 2 módulos?". Si no, va en la feature. Por eso, por ejemplo, el escáner (`BaseScannerScreen`) vive en `pos`, el contador de requisitos de contraseña en `auth` y la barra inferior del padre en `children`.
 
-- Un archivo por clase principal, nombre en `snake_case` (ej. `auth_service.dart` → `AuthService`).
-- Sufijos consistentes: `*_screen.dart` (UI), `*_service.dart` (HTTP), `*_models.dart` o `*_model.dart` (datos).
-- Los imports dentro del proyecto son relativos (`../../../core/...`), no uses paquete completo (`package:delycattessen_flutter/...`) salvo que ya se use así en el archivo que estés editando.
+`core/` **nunca importa de `features/`**.
 
-## Antes de crear un archivo nuevo, revisa esto para no duplicar
+## Patrones establecidos — reutilízalos
 
-1. **¿Ya existe una carpeta de esta feature?** Revisa `lib/features/` antes de crear una nueva — reutiliza la existente si el módulo ya tiene una.
-2. **¿Esto es HTTP?** Va en `services/` de la feature, extendiendo `BaseApiService`. La URL va primero en `ApiConfig`.
-3. **¿Esto es un modelo de datos?** Va en `models/` de la feature, no dentro de `screens/`.
-4. **¿Este widget se usa en más de una feature?** Va en `core/widgets/`. Si solo lo usa una pantalla, va junto a esa pantalla dentro de la misma feature (o inline si es pequeño).
-5. **¿Es un secreto o configuración (API key, merchant ID, base URL sensible)?** Va vía `core/config/env.dart` con `String.fromEnvironment` / `--dart-define`, nunca hardcodeado en el widget o servicio. Ver `env.example.json` como referencia de qué variables existen.
+- **`BaseApiService` + `ErrorHandlerMixin`:** todo service de nuestro backend extiende `BaseApiService` (GET/POST/PUT/PATCH/multipart con token y errores centralizados). Los errores del backend llegan como `ApiException`; los de red como `NetworkException`. Para mostrarlos: `errorMessageOf(e)`.
+- **`ApiConfig`:** todas las URLs del backend. La base viene de `Env.apiBaseUrl`.
+- **`TokenStorage`:** única fuente del JWT.
+- **Estrategia por pasarela:** `RechargeGateway` (la decide el backend) + `RechargeLauncher` por pasarela. Agregar una pasarela = un valor del enum y un launcher; la pantalla no cambia.
+- **Políticas por tabla:** `PaymentMethodPolicy` decide qué métodos de pago se ofrecen según el rol. Agregar un método = una entrada en sus tablas.
+- **Abstracciones por rol:** `AllergyOwner` y `ProductCatalogSource` evitan `if/else` por rol en las pantallas.
+- **Lógica fuera de la pantalla:** si una pantalla empieza a calcular, validar o consultar resultados, extrae un `provider`/`service` (ejemplos: `ParentMenuController`, `CardRechargeService`, `PreOrderDeliveryController`) y deja a la pantalla solo pintar.
+- **Inyección por constructor:** los providers y services nuevos reciben sus dependencias con valor por defecto, para poder simularlas en tests.
 
-## Notas de estado del proyecto
+## Reglas de capas
 
-- Hubo una migración reciente de una estructura antigua (`lib/ui/...`, `lib/data/...`) hacia la estructura por feature descrita arriba. Si encuentras código nuevo bajo `lib/ui/` o `lib/data/`, probablemente es remanente de la estructura vieja — no agregues archivos ahí, muévelos/créalos siguiendo el patrón de `lib/features/` y `lib/core/`.
+- Ninguna pantalla ni widget llama `http.*`: todo pasa por un `service`.
+- Las URLs del backend solo existen en `ApiConfig`; el JWT solo se toca vía `TokenStorage` (cerrar sesión: `AuthService.logout()`).
+- `core/` no importa de `features/`. Una feature puede usar `models/`, `services/` o `providers/` de otra, evitando crear ciclos nuevos.
+- Los modelos no tienen lógica de red ni de UI; los services y providers no usan `BuildContext`.
+- Para mostrar un error al usuario se usa `errorMessageOf(e)`.
+
+## Convenciones de código
+
+- Un archivo por clase principal, en `snake_case`, con sufijos `*_screen`, `*_service`, `*_model(s)`, `*_provider` o `*_controller`, `*_policy`, `*_rules`.
+- Imports relativos dentro de `lib/`; `package:delycattessen_flutter/...` solo en `test/`.
+- Colores, espacios y radios solo desde `AppColors`, `AppSpacing`, `AppRadius` y `AppTheme`.
+- Código en inglés; textos de cara al usuario en español.
+- Todo controller, timer o listener se libera en `dispose()`; tras un `await` se comprueba `mounted` antes de usar `context`.
+
+## Configuración y secretos
+
+- Variables por `--dart-define` o `--dart-define-from-file=env.json`. `env.json` no se sube; `env.example.json` lista las variables: `API_BASE_URL`, `KUSHKI_PUBLIC_MERCHANT_ID`, `KUSHKI_BASE_URL`.
+- Nunca se hardcodea una clave, token o URL sensible en un widget o service.
+
+## Pruebas
+
+`test/` replica la estructura de `lib/` (`test/features/<feature>/…` y `test/core/…`). Hay pruebas de políticas, reglas, modelos, providers y services. Los services se simulan heredando de la clase real o implementando su interfaz; HTTP con `MockClient`.
+
+## Antes de crear un archivo nuevo
+
+1. ¿Ya existe una carpeta de esta feature? Reutilízala.
+2. ¿Es HTTP? → `services/` de la feature, extendiendo `BaseApiService`; la URL primero en `ApiConfig`.
+3. ¿Es un modelo? → `models/`.
+4. ¿Es estado o lógica de una pantalla? → `providers/` o `services/`.
+5. ¿Lo usan 2+ features? → `core/`; si no, junto a la pantalla que lo usa.
+6. ¿Es un secreto o configuración? → `core/config/env.dart` y `env.example.json`.
+
+## Git
+
+- Ramas `main` y `develop`; se trabaja sobre `develop`.
+- Conventional Commits en español (`feat:`, `fix:`, `refactor:`, `test:`, `style:`, `docs:`), con la historia de usuario cuando aplique.
+- Un commit por cambio lógico: no se mezclan refactor, formato y funcionalidad nueva. Antes de entregar: `flutter analyze` y `flutter test`. Formatea solo los archivos que tocaste.
+
+## Estado actual y deuda conocida
+
+- Ciclos entre features (`auth`↔`children`, `menu`↔`children`, `menu`↔`wallet`, `auth`↔`pos`) y `ChildrenProvider` compartido desde `children` por `menu` y `wallet`.
+- Unos 25 sitios aún crean sus services con `XService()` dentro de pantallas; se migra a inyección por constructor, empezando por wallet y POS. `BaseApiService` tampoco admite un `http.Client` inyectable.
+- Pantallas largas que aún mezclan UI y llamadas a services: `children_list_screen`, `wallet_recharge_screen`, `member_home_screen`, `orders_screen`.
+- Colores y radios escritos a mano que deberían estar en `AppColors`/`AppRadius`; textos fijos en español sin localización.
