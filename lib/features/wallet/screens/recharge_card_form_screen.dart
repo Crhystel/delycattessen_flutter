@@ -8,6 +8,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/document_type.dart';
 import '../services/card_recharge_service.dart';
+import '../widgets/kushki_badge.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Inserts a space every 4 digits as the user types the card number.
@@ -173,6 +174,8 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildCardPreview(),
+              const SizedBox(height: 12),
+              const KushkiBadge(),
               const SizedBox(height: 16),
               _buildUserSummaryCard(),
               const SizedBox(height: 20),

@@ -84,6 +84,10 @@ No se crean carpetas vacías: se agregan cuando existe el primer archivo.
 - Variables por `--dart-define` o `--dart-define-from-file=env.json`. `env.json` no se sube; `env.example.json` lista las variables: `API_BASE_URL`, `KUSHKI_PUBLIC_MERCHANT_ID`, `KUSHKI_BASE_URL`.
 - Nunca se hardcodea una clave, token o URL sensible en un widget o service.
 
+## Recursos gráficos
+
+Las imágenes y logos van en `assets/images/` (declarada en `pubspec.yaml`) y los SVG se dibujan con `flutter_svg`. Ejemplo: el logo de Kushki (`kushki_logo.svg`) se muestra con `KushkiBadge` en el formulario de tarjeta. Se usa solo para identificar a la pasarela; los logos de terceros no se modifican.
+
 ## Pruebas
 
 `test/` replica la estructura de `lib/` (`test/features/<feature>/…` y `test/core/…`). Hay pruebas de políticas, reglas, modelos, providers y services. Los services se simulan heredando de la clase real o implementando su interfaz; HTTP con `MockClient`.
