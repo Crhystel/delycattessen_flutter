@@ -56,7 +56,7 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
       CheckoutLine(item: _itemsById[entry.key]!, quantity: entry.value),
   ];
 
-  double get _total => _lines.fold(0.0, (sum, l) => sum + l.subtotal);
+  double get _total => CartRules.total(_cart, (id) => _itemsById[id]?.price);
 
   bool get _walletShort =>
       _method == PaymentMethod.wallet &&

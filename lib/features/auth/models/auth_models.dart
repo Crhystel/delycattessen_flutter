@@ -1,3 +1,5 @@
+import 'user_role.dart';
+
 class LoginRequest {
   final String username;
   final String password;
@@ -132,13 +134,15 @@ class MeResponse {
     required this.mustChangePassword,
   });
 
+  UserRole? get userRole => UserRole.fromApi(role);
+
   factory MeResponse.fromJson(Map<String, dynamic> json) {
     return MeResponse(
       id: json['id'] as int,
       email: json['email'] as String?,
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
-      role: json['role'] as String? ?? 'STUDENT',
+      role: json['role'] as String? ?? UserRole.student.apiValue,
       hasChildren: json['has_children'] as bool? ?? false,
       hasPaymentPin: json['has_payment_pin'] as bool? ?? false,
       mustChangePassword: json['must_change_password'] as bool? ?? false,

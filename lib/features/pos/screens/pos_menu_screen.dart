@@ -94,16 +94,9 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   List<MenuItem> get _visibleItems =>
       filterItems(_items, category: _selectedCategory, query: _searchQuery);
 
-  double get _total {
-    var total = 0.0;
-    for (final entry in _cart.entries) {
-      final item = _itemsById[entry.key];
-      if (item != null) total += item.price * entry.value;
-    }
-    return total;
-  }
+  double get _total => CartRules.total(_cart, (id) => _itemsById[id]?.price);
 
-  int get _cartCount => _cart.values.fold(0, (sum, q) => sum + q);
+  int get _cartCount => CartRules.itemCount(_cart);
 
   void _addToCart(MenuItem item, int quantity) {
     final current = _cart[item.id] ?? 0;

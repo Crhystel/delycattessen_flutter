@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/models/user_role.dart';
 import '../models/pos_identification_model.dart';
 import '../models/sale_models.dart';
 
@@ -24,9 +25,6 @@ class PaymentMethodOption {
 class PaymentMethodPolicy {
   PaymentMethodPolicy._();
 
-  static const String _studentRole = 'STUDENT';
-  static const String _teacherRole = 'TEACHER';
-
   static const Map<PaymentMethod, PaymentMethodOption> _options = {
     PaymentMethod.wallet: PaymentMethodOption(
       method: PaymentMethod.wallet,
@@ -50,9 +48,9 @@ class PaymentMethodPolicy {
 
   /// Roles que pueden usar cada método con cliente identificado.
   /// Efectivo no exige rol (sin cliente = venta rápida).
-  static const Map<PaymentMethod, Set<String>> _allowedRoles = {
-    PaymentMethod.credit: {_teacherRole},
-    PaymentMethod.wallet: {_studentRole},
+  static const Map<PaymentMethod, Set<UserRole>> _allowedRoles = {
+    PaymentMethod.credit: {UserRole.teacher},
+    PaymentMethod.wallet: {UserRole.student},
   };
 
   /// Datos de presentación de [method] (null si no está registrado).
@@ -70,7 +68,7 @@ class PaymentMethodPolicy {
   static bool _isAllowed(PaymentMethod method, IdentifiedUser? user) {
     final roles = _allowedRoles[method];
     if (roles == null) return true; // sin restricción de rol (efectivo)
-    return user != null && roles.contains(user.role);
+    return user != null && roles.contains(user.userRole);
   }
 
   /// Método sugerido al abrir el checkout: el propio del cliente (saldo o

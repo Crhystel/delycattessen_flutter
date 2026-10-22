@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/auth_models.dart';
+import '../models/user_role.dart';
 import '../../children/screens/parent_shell.dart';
 import '../screens/student_registration_screen.dart';
 import '../../pos/screens/pos_home_screen.dart';
@@ -15,7 +16,8 @@ void routeAfterAuth(
   MeResponse me, {
   required String usernameFallback,
 }) {
-  if (me.role == 'OPERATIONS_STAFF') {
+  final role = me.userRole;
+  if (role == UserRole.operationsStaff) {
     final displayName = me.firstName.isNotEmpty
         ? me.firstName
         : (usernameFallback.isNotEmpty
@@ -25,8 +27,8 @@ void routeAfterAuth(
       MaterialPageRoute(builder: (_) => PosHomeScreen(userName: displayName)),
       (route) => false,
     );
-  } else if (me.role == 'STUDENT' || me.role == 'TEACHER') {
-    final fallbackName = me.role == 'TEACHER' ? 'Docente' : 'Estudiante';
+  } else if (role == UserRole.student || role == UserRole.teacher) {
+    final fallbackName = role == UserRole.teacher ? 'Docente' : 'Estudiante';
     final displayName = me.firstName.isNotEmpty
         ? '${me.firstName} ${me.lastName}'.trim()
         : (usernameFallback.isNotEmpty ? usernameFallback : fallbackName);
@@ -34,7 +36,7 @@ void routeAfterAuth(
       MaterialPageRoute(
         builder: (_) => MemberHomeScreen(
           initialUserName: displayName,
-          isTeacher: me.role == 'TEACHER',
+          isTeacher: role == UserRole.teacher,
         ),
       ),
       (route) => false,

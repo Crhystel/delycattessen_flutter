@@ -1,3 +1,5 @@
+import '../../auth/models/user_role.dart';
+
 class PendingPreOrderItem {
   final String dishName;
   final int quantity;
@@ -109,7 +111,9 @@ class IdentifiedUser {
     );
   }
 
-  bool get isTeacher => role == 'TEACHER';
+  UserRole? get userRole => UserRole.fromApi(role);
+
+  bool get isTeacher => userRole == UserRole.teacher;
 
   Map<String, dynamic> toJson() {
     return {

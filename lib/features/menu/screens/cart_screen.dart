@@ -76,7 +76,10 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
   }
 
   double get _total {
-    return _lines.fold(0, (sum, line) => sum + (line.key.price * line.value));
+    return CartRules.total(_editableCart, (id) {
+      final matches = widget.dishes.where((d) => d.id == id);
+      return matches.isEmpty ? null : matches.first.price;
+    });
   }
 
   List<MenuDish> get _unsafeCartItems {

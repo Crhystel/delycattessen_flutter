@@ -20,6 +20,7 @@ import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_picker_sheet.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
+import '../utils/cart_rules.dart';
 import 'cart_screen.dart';
 import 'dish_detail_screen.dart';
 
@@ -262,11 +263,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   @override
   Widget build(BuildContext context) {
     final children = context.watch<ChildrenProvider>().children;
-    final total = _cart.entries.fold<double>(0, (sum, entry) {
-      if (_selectedDay == null) return sum;
-      final matches = _selectedDay!.dishes.where((d) => d.id == entry.key);
-      if (matches.isEmpty) return sum;
-      return sum + (matches.first.price * entry.value);
+    final dishes = _selectedDay?.dishes ?? const <MenuDish>[];
+    final total = CartRules.total(_cart, (id) {
+      final matches = dishes.where((d) => d.id == id);
+      return matches.isEmpty ? null : matches.first.price;
     });
 
     return Scaffold(
@@ -746,7 +746,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
               });
             },
             child: Text(
-              'Ver carrito (${_cart.values.fold(0, (sum, q) => sum + q)})',
+              'Ver carrito (${CartRules.itemCount(_cart)})',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
