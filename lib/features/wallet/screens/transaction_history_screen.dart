@@ -8,6 +8,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
+import '../widgets/consumption_invoice.dart';
 import '../widgets/transaction_kind_badge.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -389,6 +390,22 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final kind = transaction.kind;
     final isRecharge = kind == TransactionKind.recharge;
 
+    if (!isRecharge) {
+      AppBottomSheet.show<void>(
+        context,
+        title: transaction.displayName,
+        subtitle: ConsumptionInvoice.formatDate(transaction.createdAt),
+        isScrollControlled: true,
+        builder: (_) => SingleChildScrollView(
+          child: ConsumptionInvoice(
+            studentName: widget.personName,
+            transaction: transaction,
+          ),
+        ),
+      );
+      return;
+    }
+
     AppBottomSheet.show<void>(
       context,
       title: transaction.displayName,
@@ -400,32 +417,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Divider(height: AppSpacing.xl),
-            if (isRecharge) ...[
-              _buildDetailRow(
-                'Método',
-                transaction.gateway.isNotEmpty
-                    ? transaction.gateway
-                    : 'No especificado',
-              ),
-              _buildDetailRow(
-                'Estado',
-                transaction.status == 'failed' ? 'Fallida' : 'Exitosa',
-              ),
-            ] else if (transaction.items.isNotEmpty) ...[
-              ...transaction.items.map(
-                (item) => _buildDetailRow(
-                  '${item.quantity}x ${item.dishName}',
-                  '\$${(item.priceAtPurchase * item.quantity).toStringAsFixed(2)}',
-                ),
-              ),
-              const Divider(height: AppSpacing.xl),
-            ] else
-              Text(
-                'No hay detalle disponible para este movimiento.',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.ink900.withValues(alpha: 0.55),
-                ),
-              ),
+            _buildDetailRow(
+              'Método',
+              transaction.gateway.isNotEmpty
+                  ? transaction.gateway
+                  : 'No especificado',
+            ),
+            _buildDetailRow(
+              'Estado',
+              transaction.status == 'failed' ? 'Fallida' : 'Exitosa',
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
