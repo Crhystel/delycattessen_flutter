@@ -12,6 +12,8 @@ import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_selector_chip.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
+import '../utils/order_filters.dart';
+import '../widgets/order_date_filter_bar.dart';
 import '../widgets/order_origin_badge.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -44,6 +46,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   /// Aviso cuando solo uno de los dos orígenes (preórdenes / compras en caja) falló.
   String? _partialWarning;
+  OrderDateRange _range = OrderDateRange.all;
   int? _studentId;
   ChildrenProvider? _childrenProvider;
 
@@ -89,10 +92,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     try {
       return (entries: await load(), error: null);
     } catch (e) {
-      return (
-        entries: const <OrderEntry>[],
-        error: errorMessageOf(e),
-      );
+      return (entries: const <OrderEntry>[], error: errorMessageOf(e));
     }
   }
 
@@ -209,7 +209,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   child: ChildSelectorChip(label: 'Pedidos de'),
                 ),
-              const SizedBox(height: AppSpacing.sm),
+              if (!_isLoading && _errorMessage == null && _orders.isNotEmpty)
+                OrderDateFilterBar(
+                  selected: _range,
+                  onSelected: (range) => setState(() => _range = range),
+                )
+              else
+                const SizedBox(height: AppSpacing.sm),
               Expanded(child: _buildBody()),
             ],
           ),
@@ -264,9 +270,27 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
 
+    final orders = filterOrdersByRange(_orders, _range);
+    if (orders.isEmpty) {
+      return RefreshIndicator(
+        color: AppColors.secondary500,
+        onRefresh: _fetchOrders,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            EmptyState(
+              icon: Icons.event_busy_outlined,
+              title: 'No hay pedidos en este periodo',
+              message: 'Prueba con otro filtro de fecha.',
+            ),
+          ],
+        ),
+      );
+    }
+
     // Se agrupa en "Por retirar" (pendientes, ordenadas por fecha de entrega más próxima)
     // e "Historial" (el resto, ordenadas por creación descendente).
-    final pending = _orders.where((o) => o.isPendingPickup).toList()
+    final pending = orders.where((o) => o.isPendingPickup).toList()
       ..sort((a, b) {
         if (a.deliveryDate.isNotEmpty && b.deliveryDate.isNotEmpty) {
           return a.deliveryDate.compareTo(b.deliveryDate);
@@ -274,7 +298,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         return a.createdAt.compareTo(b.createdAt);
       });
 
-    final history = _orders.where((o) => !o.isPendingPickup).toList()
+    final history = orders.where((o) => !o.isPendingPickup).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final rows = <Object>[
