@@ -6,36 +6,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../models/wallet_models.dart';
+import '../models/document_type.dart';
+import '../services/card_recharge_service.dart';
 import '../services/card_tokenizer.dart';
 import '../services/wallet_service.dart';
-import '../services/kushki_service.dart';
-
-enum DocumentType { cedula, ruc, pasaporte }
-
-extension DocumentTypeLabel on DocumentType {
-  String get label {
-    switch (this) {
-      case DocumentType.cedula:
-        return 'Cédula de identidad';
-      case DocumentType.ruc:
-        return 'RUC';
-      case DocumentType.pasaporte:
-        return 'Pasaporte';
-    }
-  }
-
-  String get apiCode {
-    switch (this) {
-      case DocumentType.cedula:
-        return 'CC';
-      case DocumentType.ruc:
-        return 'RUC';
-      case DocumentType.pasaporte:
-        return 'PPT';
-    }
-  }
-}
 
 /// Inserts a space every 4 digits as the user types the card number.
 class _CardNumberFormatter extends TextInputFormatter {
@@ -106,10 +80,10 @@ class RechargeCardFormScreen extends StatefulWidget {
 
 class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     with NotificationMixin {
-  late final WalletService _walletService =
-      widget.walletService ?? WalletService();
-  late final CardTokenizer _cardTokenizer =
-      widget.cardTokenizer ?? KushkiService();
+  late final CardRechargeService _rechargeService = CardRechargeService(
+    cardTokenizer: widget.cardTokenizer,
+    walletService: widget.walletService,
+  );
   final _cardNumberController = TextEditingController();
   final _holderNameController = TextEditingController();
   final _expirationController = TextEditingController();
@@ -136,27 +110,19 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   }
 
   Future<void> _confirmPayment() async {
-    if (_cardNumberController.text.replaceAll(' ', '').length < 16 ||
-        _holderNameController.text.isEmpty ||
-        _expirationController.text.length < 5 ||
-        _cvvController.text.length < 3) {
-      setState(
-        () => _errorMessage =
-            'Completa todos los campos de la tarjeta correctamente.',
-      );
-      return;
-    }
-    if (_phoneController.text.isEmpty ||
-        _documentNumberController.text.isEmpty) {
-      setState(
-        () => _errorMessage = 'Ingresa tu teléfono y documento de identidad.',
-      );
-      return;
-    }
-    if (!_acceptedTerms) {
-      setState(
-        () => _errorMessage = 'Debes aceptar los Términos y Condiciones.',
-      );
+    final data = CardFormData(
+      cardNumber: _cardNumberController.text,
+      holderName: _holderNameController.text,
+      expiration: _expirationController.text,
+      cvv: _cvvController.text,
+      phone: _phoneController.text,
+      documentNumber: _documentNumberController.text,
+      documentType: _documentType,
+      acceptedTerms: _acceptedTerms,
+    );
+    final validationError = CardFormValidator.validate(data);
+    if (validationError != null) {
+      setState(() => _errorMessage = validationError);
       return;
     }
 
@@ -166,32 +132,16 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     });
 
     try {
-      final expirationParts = _expirationController.text.split('/');
-      final token = await _cardTokenizer.tokenizeCard(
-        cardNumber: _cardNumberController.text,
-        cvv: _cvvController.text,
-        expiryMonth: expirationParts[0],
-        expiryYear: expirationParts[1],
-        holderName: _holderNameController.text,
+      final status = await _rechargeService.recharge(
+        walletId: widget.walletId,
         amount: widget.amount,
+        data: data,
+        isCancelled: () => !mounted,
       );
-
-      final response = await _walletService.recharge(
-        RechargeRequest(
-          walletId: widget.walletId,
-          amount: widget.amount,
-          kushkiToken: token,
-          documentType: _documentType.apiCode,
-          documentNumber: _documentNumberController.text,
-          phoneNumber: _phoneController.text,
-        ),
-      );
-
       if (!mounted) return;
-      if (response.isProcessingAsync) {
-        await _pollUntilResolved();
-      }
+      _showResult(status);
     } catch (e) {
+      if (!mounted) return;
       setState(
         () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
       );
@@ -200,33 +150,22 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     }
   }
 
-  Future<void> _pollUntilResolved() async {
-    for (var i = 0; i < 7; i++) {
-      await Future.delayed(const Duration(seconds: 2));
-      try {
-        final transactions = await _walletService.getTransactions(
-          widget.walletId,
+  void _showResult(CardRechargeStatus status) {
+    switch (status) {
+      case CardRechargeStatus.credited:
+        _showSuccess();
+      case CardRechargeStatus.rejected:
+        setState(
+          () => _errorMessage = 'La recarga fue rechazada. Intenta de nuevo.',
         );
-        final latest = transactions.isNotEmpty ? transactions.first : null;
-        if (latest != null && latest.status != 'pending') {
-          if (!mounted) return;
-          if (latest.status == 'success') {
-            _showSuccess();
-          } else {
-            setState(
-              () =>
-                  _errorMessage = 'La recarga fue rechazada. Intenta de nuevo.',
-            );
-          }
-          return;
-        }
-      } catch (_) {}
-    }
-    if (mounted) {
-      setState(
-        () => _errorMessage =
-            'La recarga está tardando más de lo normal. Revisa el historial en unos minutos.',
-      );
+      case CardRechargeStatus.timedOut:
+        setState(
+          () => _errorMessage =
+              'La recarga está tardando más de lo normal. Revisa el historial en unos minutos.',
+        );
+      case CardRechargeStatus.submitted:
+      case CardRechargeStatus.cancelled:
+        break;
     }
   }
 
