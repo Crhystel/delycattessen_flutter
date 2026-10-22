@@ -16,6 +16,7 @@ import '../models/sale_models.dart';
 import '../services/pos_service.dart';
 import '../utils/payment_method_policy.dart';
 import '../widgets/pos_sale_success_sheet.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Línea del carrito que se cobra en el checkout.
 class CheckoutLine {
@@ -147,7 +148,7 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo cobrar',
       );
     } finally {

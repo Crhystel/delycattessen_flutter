@@ -318,8 +318,8 @@ class MenuItem {
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
-    var allergensList = json['allergens'] as List? ?? [];
-    var ingredientsList = json['ingredients'] as List? ?? [];
+    final allergensList = json['allergens'] as List? ?? [];
+    final ingredientsList = json['ingredients'] as List? ?? [];
     return MenuItem(
       id: json['id'],
       name: json['name'],

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/pos_service.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Estado de la entrega de preórdenes pendientes de un usuario identificado:
 /// cuáles ya se entregaron y cuál se está confirmando.
@@ -26,7 +27,7 @@ class PreOrderDeliveryController extends ChangeNotifier {
       _deliveredIds.add(preOrderId);
       return null;
     } catch (e) {
-      return e.toString().replaceFirst('Exception: ', '');
+      return errorMessageOf(e);
     } finally {
       _submittingId = null;
       notifyListeners();

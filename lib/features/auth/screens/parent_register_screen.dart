@@ -11,6 +11,7 @@ import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'student_registration_screen.dart';
+import '../../../core/utils/error_message.dart';
 
 class ParentRegisterScreen extends StatefulWidget {
   const ParentRegisterScreen({super.key});
@@ -73,7 +74,7 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
         context,
         type: NotificationType.danger,
         title: 'No se pudo completar el registro',
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: errorMessageOf(e),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

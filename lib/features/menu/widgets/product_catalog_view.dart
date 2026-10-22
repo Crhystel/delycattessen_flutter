@@ -15,6 +15,7 @@ import 'catalog_header.dart';
 import 'catalog_item_card.dart';
 import 'catalog_section.dart';
 import 'category_filter_bar.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Catálogo de productos de solo consulta (el backend únicamente permite
 /// preordenar platillos del menú mensual). Es genérico: de dónde salen los
@@ -116,7 +117,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     } catch (e) {
       if (!mounted || token != _loadToken) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = errorMessageOf(e);
         _isLoading = false;
       });
     }

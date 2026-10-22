@@ -27,9 +27,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       );
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }
@@ -48,9 +46,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       );
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }
@@ -69,9 +65,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       );
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }
@@ -85,9 +79,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       final response = await http.get(Uri.parse(url), headers: headers);
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }
@@ -112,9 +104,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       final response = await http.Response.fromStream(streamedResponse);
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }
@@ -139,9 +129,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
       final response = await http.Response.fromStream(streamedResponse);
       return handleResponse(response);
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow;
-      }
+      if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
     }
   }

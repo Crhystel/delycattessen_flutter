@@ -1,11 +1,12 @@
 import '../config/env.dart';
 
 class ApiConfig {
-  // Requiere celular conectado por USB con:
+  // Por defecto es el servidor local (ver Env.apiBaseUrl). En un celular
+  // conectado por USB requiere:
   //   adb reverse tcp:8000 tcp:8000
   // Se usa localhost en vez de la IP de Wi-Fi porque el router bloquea la
   // comunicación directa celular-PC en esta red (aislamiento de clientes).
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = Env.apiBaseUrl;
 
   static const String tokenRefresh = '$baseUrl/token/refresh/';
   static const String login = '$baseUrl/users/login/';

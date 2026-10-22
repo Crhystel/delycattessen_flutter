@@ -8,6 +8,7 @@ import '../theme/app_spacing.dart';
 import 'app_bottom_sheet.dart';
 import 'app_notification_messenger.dart';
 import 'photo_guidelines_screen.dart';
+import '../utils/error_message.dart';
 
 class PhotoSourceDialog {
   static Future<File?> show(
@@ -60,7 +61,7 @@ class PhotoSourceDialog {
             context,
             type: NotificationType.danger,
             title: 'No se pudo abrir la galería',
-            message: e.toString().replaceFirst('Exception: ', ''),
+            message: errorMessageOf(e),
           );
         }
       }

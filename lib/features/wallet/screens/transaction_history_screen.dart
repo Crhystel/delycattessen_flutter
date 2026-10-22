@@ -9,6 +9,7 @@ import '../../../core/widgets/floating_bubbles.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
 import '../widgets/transaction_kind_badge.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Movimientos a mostrar más un [header] opcional fijo sobre la lista
 /// (p. ej. el acumulado del mes a crédito).
@@ -87,7 +88,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = errorMessageOf(e);
         _isLoading = false;
       });
     }

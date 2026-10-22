@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_colors.dart';
 import 'app_notification_messenger.dart';
+import '../utils/error_message.dart';
 
 class FaceCaptureCameraScreen extends StatefulWidget {
   final String title;
@@ -109,7 +110,7 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen>
       if (mounted) {
         setState(() => _isCapturing = false);
         showErrorSnackBar(
-          e.toString().replaceFirst('Exception: ', ''),
+          errorMessageOf(e),
           title: 'No se pudo capturar la foto',
         );
       }
@@ -128,7 +129,7 @@ class _FaceCaptureCameraScreenState extends State<FaceCaptureCameraScreen>
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
-          e.toString().replaceFirst('Exception: ', ''),
+          errorMessageOf(e),
           title: 'No se pudo seleccionar la imagen',
         );
       }

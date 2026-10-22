@@ -10,6 +10,7 @@ import '../models/document_type.dart';
 import '../services/card_recharge_service.dart';
 import '../services/card_tokenizer.dart';
 import '../services/wallet_service.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Inserts a space every 4 digits as the user types the card number.
 class _CardNumberFormatter extends TextInputFormatter {
@@ -143,7 +144,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     } catch (e) {
       if (!mounted) return;
       setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+        () => _errorMessage = errorMessageOf(e),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

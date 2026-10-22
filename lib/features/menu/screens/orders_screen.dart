@@ -13,6 +13,7 @@ import '../../children/widgets/child_selector_chip.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import '../widgets/order_origin_badge.dart';
+import '../../../core/utils/error_message.dart';
 
 class OrdersScreen extends StatefulWidget {
   final int? studentId;
@@ -90,7 +91,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     } catch (e) {
       return (
         entries: const <OrderEntry>[],
-        error: e.toString().replaceFirst('Exception: ', ''),
+        error: errorMessageOf(e),
       );
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Centraliza la lista de hijos del padre autenticado. Antes, cada pantalla
 /// (ChildrenList, Menu, Wallet, Orders) pedía getChildren() por su cuenta
@@ -63,7 +64,7 @@ class ChildrenProvider extends ChangeNotifier {
       _children = await _authService.getChildren();
       _hasLoadedOnce = true;
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = errorMessageOf(e);
     } finally {
       _isLoading = false;
       notifyListeners();

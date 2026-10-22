@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
+import '../../../core/utils/error_message.dart';
 
 class FaceRecognitionScanScreen extends BaseScannerScreen {
   const FaceRecognitionScanScreen({super.key});
@@ -115,7 +116,7 @@ class _FaceRecognitionScanScreenState
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
-          e.toString().replaceFirst('Exception: ', ''),
+          errorMessageOf(e),
           title: 'Identificación fallida',
         );
         setState(() => _isProcessing = false);

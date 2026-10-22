@@ -12,6 +12,7 @@ import 'parent_register_screen.dart';
 import 'change_password_screen.dart';
 import 'forgot_password_screen.dart';
 import '../utils/auth_routing.dart';
+import '../../../core/utils/error_message.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> with NotificationMixin {
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo iniciar sesión',
       );
     } finally {

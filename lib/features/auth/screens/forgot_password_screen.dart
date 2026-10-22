@@ -11,6 +11,7 @@ import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../widgets/auth_form_layout.dart';
 import '../widgets/auth_text_field.dart';
+import '../../../core/utils/error_message.dart';
 
 enum _ResetStep { requestCode, setNewPassword, done }
 
@@ -63,7 +64,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
-          e.toString().replaceFirst('Exception: ', ''),
+          errorMessageOf(e),
           title: 'No se pudo enviar el código',
         );
       }
@@ -144,7 +145,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo restablecer la contraseña',
       );
     } finally {

@@ -12,6 +12,7 @@ import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
 import '../services/wallet_service.dart';
 import '../utils/recharge_launcher.dart';
+import '../../../core/utils/error_message.dart';
 
 class ChildOption {
   final int walletId;
@@ -189,7 +190,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo procesar la recarga',
       );
     } finally {

@@ -4,6 +4,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import '../utils/cart_rules.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Estado y reglas de la pantalla de menú del padre: carga del menú mensual,
 /// día elegido, carrito y búsqueda. La pantalla solo pinta y pide confirmaciones.
@@ -87,7 +88,7 @@ class ParentMenuController extends ChangeNotifier {
       _days = days;
       _selectedDay = targetDay;
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = errorMessageOf(e);
     } finally {
       _isLoading = false;
       notifyListeners();

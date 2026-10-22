@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+import 'api_exception.dart';
 
 /// Mixin pattern: centralizes HTTP error handling and response decoding.
 /// Service classes will use `with ErrorHandlerMixin`.
@@ -51,13 +54,18 @@ mixin ErrorHandlerMixin {
         errorMessage = 'Error $statusCode: ${response.reasonPhrase}';
       }
 
-      throw Exception(errorMessage);
+      throw ApiException(errorMessage);
     }
   }
 
-  /// Processes network errors (SocketException, etc.) or internal errors during the request.
-  Exception handleNetworkError(dynamic error) {
-    return Exception(
+  /// true si [error] es un fallo de red (sin conexión o tiempo agotado) y no
+  /// una respuesta del servidor ni un error de programación.
+  bool isNetworkFailure(Object error) =>
+      error is http.ClientException || error is TimeoutException;
+
+  /// Processes network errors (SocketException, etc.) during the request.
+  ApiException handleNetworkError(dynamic error) {
+    return NetworkException(
       'Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error',
     );
   }

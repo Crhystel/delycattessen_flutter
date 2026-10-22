@@ -19,6 +19,7 @@ import '../../users/services/allergy_owner.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
 import 'parental_control_screen.dart';
+import '../../../core/utils/error_message.dart';
 
 class ChildDetailScreen extends StatefulWidget {
   final Child child;
@@ -185,7 +186,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
       if (!mounted) return;
       setState(() => _isUpdatingPhoto = false);
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'Error al actualizar',
       );
     }

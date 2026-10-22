@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
-import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -13,6 +12,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../models/allergy_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../services/allergy_owner.dart';
+import '../../../core/utils/error_message.dart';
 
 class AllergyManagementScreen extends StatefulWidget {
   final AllergyOwner owner;
@@ -112,7 +112,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo agregar',
       );
     } finally {
@@ -143,7 +143,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo guardar',
       );
     } finally {

@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
@@ -18,6 +17,7 @@ import '../../menu/widgets/catalog_section.dart';
 import '../../menu/widgets/category_filter_bar.dart';
 import '../models/pos_identification_model.dart';
 import 'pos_checkout_screen.dart';
+import '../../../core/utils/error_message.dart';
 
 /// selección de productos para el usuario
 /// identificado. Los productos que contienen alérgenos del usuario quedan
@@ -77,7 +77,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = errorMessageOf(e);
         _isLoading = false;
       });
     }

@@ -10,6 +10,7 @@ import '../widgets/password_requirements.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_routing.dart';
+import '../../../core/utils/error_message.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   final MeResponse me;
@@ -100,7 +101,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo actualizar la contraseña',
       );
     } finally {

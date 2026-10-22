@@ -13,6 +13,7 @@ import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../../children/screens/parent_shell.dart';
 import 'login_screen.dart';
+import '../../../core/utils/error_message.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -164,7 +165,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
+        errorMessageOf(e),
         title: 'No se pudo crear la cuenta',
       );
     } finally {

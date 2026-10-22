@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/utils/error_message.dart';
 
 /// Reusable PIN screen. In "create" mode, asks the user to type a 4-digit
 /// PIN twice (confirmation). In "verify" mode, asks for the existing PIN
@@ -60,7 +61,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         Navigator.of(context).pop(true);
       } catch (e) {
         setState(
-          () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+          () => _errorMessage = errorMessageOf(e),
         );
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
@@ -80,7 +81,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         }
       } catch (e) {
         setState(
-          () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
+          () => _errorMessage = errorMessageOf(e),
         );
       } finally {
         if (mounted) setState(() => _isSubmitting = false);

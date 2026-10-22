@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/layout/responsive.dart';
-import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -15,6 +14,7 @@ import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import '../utils/cart_rules.dart';
 import '../widgets/cart_line_tile.dart';
+import '../../../core/utils/error_message.dart';
 
 class CartScreen extends StatefulWidget {
   final int studentId;
@@ -146,7 +146,7 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      final rawError = e.toString().replaceFirst('Exception: ', '');
+      final rawError = errorMessageOf(e);
       showErrorSnackBar(rawError, title: 'No se pudo procesar el pedido');
     } finally {
       if (mounted) setState(() => _isLoading = false);

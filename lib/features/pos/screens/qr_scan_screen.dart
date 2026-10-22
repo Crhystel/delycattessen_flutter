@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
+import '../../../core/utils/error_message.dart';
 
 class QrScanScreen extends BaseScannerScreen {
   const QrScanScreen({super.key});
@@ -54,7 +55,7 @@ class _QrScanScreenState extends BaseScannerScreenState<QrScanScreen> {
     } catch (e) {
       if (mounted) {
         showErrorSnackBar(
-          e.toString().replaceFirst('Exception: ', ''),
+          errorMessageOf(e),
           title: 'Código QR inválido',
         );
         // Cooldown before scanning again
