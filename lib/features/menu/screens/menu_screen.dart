@@ -19,8 +19,7 @@ import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_picker_sheet.dart';
 import '../models/menu_models.dart';
-import '../services/menu_service.dart';
-import '../utils/cart_rules.dart';
+import '../providers/parent_menu_controller.dart';
 import 'cart_screen.dart';
 import 'dish_detail_screen.dart';
 
@@ -49,25 +48,26 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
-  final MenuService _menuService = MenuService();
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  List<MenuDay> _days = [];
-  MenuDay? _selectedDay;
-
-  final Map<int, int> _cart = {}; // dishId -> quantity
+  final ParentMenuController _menu = ParentMenuController();
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
-  String _searchQuery = '';
 
   Child? _selectedChild;
   bool _hasInitializedSelectedChild = false;
   late final ChildrenProvider _childrenProvider;
 
+  // Lecturas del estado del menú, que vive en [_menu].
+  bool get _isLoading => _menu.isLoading;
+  String? get _errorMessage => _menu.errorMessage;
+  List<MenuDay> get _days => _menu.days;
+  MenuDay? get _selectedDay => _menu.selectedDay;
+  Map<int, int> get _cart => _menu.cart;
+  String get _searchQuery => _menu.searchQuery;
+
   @override
   void initState() {
     super.initState();
+    _menu.addListener(_onMenuChanged);
     _childrenProvider = context.read<ChildrenProvider>();
     _childrenProvider.addListener(_onSelectedChildChanged);
 
@@ -79,10 +79,16 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
   @override
   void dispose() {
+    _menu.removeListener(_onMenuChanged);
+    _menu.dispose();
     _childrenProvider.removeListener(_onSelectedChildChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onMenuChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onSelectedChildChanged() {
@@ -103,7 +109,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     }
     final initial = _childrenProvider.selectedChild;
     if (initial == null) {
-      setState(() => _isLoading = false);
+      _menu.stopLoading();
       return;
     }
 
@@ -114,36 +120,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     _fetchMonthlyMenu(initial.id);
   }
 
-  Future<void> _fetchMonthlyMenu(int studentId) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final days = await _menuService.getStudentMonthlyMenu(studentId);
-      if (!mounted) return;
-
-      MenuDay? targetDay;
-      if (widget.initialDate != null) {
-        final initialIso = DateFormatter.toIsoDate(widget.initialDate!);
-        targetDay = days.where((d) => d.date == initialIso).firstOrNull;
-      }
-      targetDay ??= days.isNotEmpty ? days.first : null;
-
-      setState(() {
-        _days = days;
-        _selectedDay = targetDay;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-        _isLoading = false;
-      });
-    }
-  }
+  Future<void> _fetchMonthlyMenu(int studentId) =>
+      _menu.load(studentId, initialDate: widget.initialDate);
 
   Future<void> _refreshMenu() async {
     if (_selectedChild != null) {
@@ -166,10 +144,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       if (!confirmed) return;
     }
 
-    setState(() {
-      _selectedChild = newChild;
-      _cart.clear();
-    });
+    _menu.clearCart();
+    setState(() => _selectedChild = newChild);
     _fetchMonthlyMenu(newChild.id);
   }
 
@@ -203,19 +179,12 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       if (!confirmed) return;
     }
 
-    setState(() {
-      _selectedDay = day;
-      _cart.clear();
-      _searchController.clear();
-      _searchQuery = '';
-    });
+    _searchController.clear();
+    _menu.selectDay(day);
   }
 
-  void _addToCart(int dishId, int quantity) {
-    setState(() {
-      _cart[dishId] = (_cart[dishId] ?? 0) + quantity;
-    });
-  }
+  void _addToCart(int dishId, int quantity) =>
+      _menu.addToCart(dishId, quantity);
 
   void _showAllergenBlockedDialog(MenuDish dish) {
     final childName = _selectedChild != null
@@ -238,17 +207,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
-      setState(() => _searchQuery = value.trim().toLowerCase());
+      _menu.setSearchQuery(value);
     });
-  }
-
-  List<MenuDish> get _visibleDishes {
-    if (_selectedDay == null) return [];
-    final dishes = _selectedDay!.dishes;
-    if (_searchQuery.isEmpty) return dishes;
-    return dishes
-        .where((d) => d.name.toLowerCase().contains(_searchQuery))
-        .toList();
   }
 
   void _openChildSwitcher(List<Child> children) {
@@ -263,11 +223,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   @override
   Widget build(BuildContext context) {
     final children = context.watch<ChildrenProvider>().children;
-    final dishes = _selectedDay?.dishes ?? const <MenuDish>[];
-    final total = CartRules.total(_cart, (id) {
-      final matches = dishes.where((d) => d.id == id);
-      return matches.isEmpty ? null : matches.first.price;
-    });
+    final total = _menu.total;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -523,7 +479,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   }
 
   Widget _buildDishList() {
-    final dishes = _visibleDishes;
+    final dishes = _menu.visibleDishes;
 
     if (dishes.isEmpty) {
       return ListView(
@@ -735,18 +691,15 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                 ),
               ).then((result) {
                 if (result == true) {
-                  setState(() => _cart.clear());
+                  _menu.clearCart();
                   _childrenProvider.refresh();
                 } else if (result is Map<int, int>) {
-                  setState(() {
-                    _cart.clear();
-                    _cart.addAll(result);
-                  });
+                  _menu.replaceCart(result);
                 }
               });
             },
             child: Text(
-              'Ver carrito (${CartRules.itemCount(_cart)})',
+              'Ver carrito (${_menu.cartItemCount})',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
