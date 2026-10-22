@@ -14,6 +14,9 @@ abstract class ProductCatalogSource {
 
   Future<List<MenuItem>> loadItems();
 
+  /// Promotions in force today in the same institution as the products.
+  Future<List<Promotion>> loadPromotions();
+
   /// Ids de los alérgenos registrados de la persona.
   Future<Set<int>> loadAllergenIds();
 }
@@ -44,6 +47,10 @@ class StudentCatalogSource implements ProductCatalogSource {
       _menuService.getMenu(studentId: studentId);
 
   @override
+  Future<List<Promotion>> loadPromotions() =>
+      _menuService.getActivePromotions(studentId: studentId);
+
+  @override
   Future<Set<int>> loadAllergenIds() async =>
       (await _allergyOwner.load()).map((a) => a.id).toSet();
 }
@@ -65,6 +72,10 @@ class TeacherCatalogSource implements ProductCatalogSource {
 
   @override
   Future<List<MenuItem>> loadItems() => _menuService.getMenu();
+
+  @override
+  Future<List<Promotion>> loadPromotions() =>
+      _menuService.getActivePromotions();
 
   @override
   Future<Set<int>> loadAllergenIds() async =>

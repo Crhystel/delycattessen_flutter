@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
@@ -15,6 +16,7 @@ import 'catalog_header.dart';
 import 'catalog_item_card.dart';
 import 'catalog_section.dart';
 import 'category_filter_bar.dart';
+import 'promotion_banner.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Catálogo de productos de solo consulta (el backend únicamente permite
@@ -58,6 +60,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   bool _isLoading = false;
   String? _errorMessage;
   List<MenuItem> _items = const [];
+  List<Promotion> _promotions = const [];
   Set<int> _allergenIds = const {};
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
@@ -92,6 +95,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     if (source == null) {
       setState(() {
         _items = const [];
+        _promotions = const [];
         _allergenIds = const {};
         _errorMessage = null;
         _isLoading = false;
@@ -106,12 +110,15 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       // Peticiones en paralelo; se esperan por separado para conservar los tipos.
       final itemsFuture = source.loadItems();
       final allergensFuture = source.loadAllergenIds();
+      final promotionsFuture = _loadPromotions(source);
       final items = await itemsFuture;
       final allergenIds = await allergensFuture;
+      final promotions = await promotionsFuture;
       if (!mounted || token != _loadToken) return;
       setState(() {
         _items = items;
         _allergenIds = allergenIds;
+        _promotions = promotions;
         _isLoading = false;
       });
     } catch (e) {
@@ -120,6 +127,16 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
         _errorMessage = errorMessageOf(e);
         _isLoading = false;
       });
+    }
+  }
+
+  // The banner is secondary: if promotions fail to load, the catalog is
+  // still shown, just without the banner.
+  Future<List<Promotion>> _loadPromotions(ProductCatalogSource source) async {
+    try {
+      return await source.loadPromotions();
+    } on ApiException {
+      return const [];
     }
   }
 
@@ -176,6 +193,8 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
             children: [
               _buildHeader(),
               if (widget.banner != null) widget.banner!,
+              if (showFilters && _promotions.isNotEmpty)
+                PromotionBanner(promotions: _promotions),
               const SizedBox(height: AppSpacing.sm),
               if (showFilters && categories.isNotEmpty)
                 CategoryFilterBar(
@@ -279,6 +298,8 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
+        if (item.discountPercentage != null)
+          CatalogBadge.discount(item.discountPercentage!),
         if (item.stock > 0 && item.stock <= _lowStockThreshold)
           CatalogBadge.info('Quedan ${item.stock}'),
       ],

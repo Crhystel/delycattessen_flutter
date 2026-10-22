@@ -55,6 +55,9 @@ class ApiConfig {
   // Catalog: productos de la sede del usuario (padres: ?student_id=)
   static const String catalogMenu = '$baseUrl/catalog/menu/';
 
+  // Promotions in force for the user's institution (parents: ?student_id=)
+  static const String activePromotions = '$baseUrl/catalog/promotions/active/';
+
   // Monthly Menu & Dishes
   static String studentMonthlyMenu(int studentId) =>
       '$baseUrl/catalog/students/$studentId/monthly_menu/';

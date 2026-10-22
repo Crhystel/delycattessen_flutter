@@ -32,6 +32,13 @@ class CatalogBadge extends StatelessWidget {
       icon = Icons.warning_amber_rounded,
       onRemove = null;
 
+  const CatalogBadge.discount(int percentage, {super.key})
+    : label = '-$percentage%',
+      background = AppColors.successBg,
+      foreground = AppColors.success700,
+      icon = Icons.local_offer_rounded,
+      onRemove = null;
+
   const CatalogBadge.info(this.label, {super.key, this.onRemove})
     : background = AppColors.secondary50,
       foreground = AppColors.secondary700,

@@ -305,6 +305,9 @@ class MenuItem {
   final List<Allergen> allergens;
   final int stock;
 
+  /// Discount of the promotion in force today, null without one.
+  final int? discountPercentage;
+
   MenuItem({
     required this.id,
     required this.name,
@@ -315,6 +318,7 @@ class MenuItem {
     required this.ingredients,
     required this.allergens,
     this.stock = 0,
+    this.discountPercentage,
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
@@ -324,12 +328,51 @@ class MenuItem {
       id: json['id'],
       name: json['name'],
       description: json['description'] ?? '',
-      price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
+      // final_price already includes today's promotion (HU-03.3); it is the
+      // price the POS charges, so totals shown here match the sale.
+      price:
+          double.tryParse(
+            (json['final_price'] ?? json['price'] ?? '0.00').toString(),
+          ) ??
+          0.0,
       imageUrl: json['image'] as String?,
       category: json['category'] as String? ?? '',
       stock: json['stock'] as int? ?? 0,
+      discountPercentage: json['discount_percentage'] as int?,
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
+    );
+  }
+}
+
+/// Promotion in force for the user's institution (HU-03.3), shown as a
+/// banner above the product catalog.
+class Promotion {
+  final int id;
+  final int discountPercentage;
+  final DateTime endDate;
+  final String? imageUrl;
+  final List<String> productNames;
+
+  Promotion({
+    required this.id,
+    required this.discountPercentage,
+    required this.endDate,
+    this.imageUrl,
+    this.productNames = const [],
+  });
+
+  factory Promotion.fromJson(Map<String, dynamic> json) {
+    final products = json['products'] as List? ?? [];
+    return Promotion(
+      id: json['id'] as int,
+      discountPercentage: json['discount_percentage'] as int,
+      endDate: DateTime.parse(json['end_date'] as String),
+      imageUrl: json['image'] as String?,
+      productNames: products
+          .whereType<Map<String, dynamic>>()
+          .map((p) => p['name'].toString())
+          .toList(),
     );
   }
 }

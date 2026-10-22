@@ -69,4 +69,19 @@ class MenuService extends BaseApiService {
         .map((json) => MenuItem.fromJson(json as Map<String, dynamic>))
         .toList();
   }
+
+  /// Promotions in force today in the institution of [studentId] (parents)
+  /// or in the user's own institution.
+  Future<List<Promotion>> getActivePromotions({int? studentId}) async {
+    final uri = Uri.parse(ApiConfig.activePromotions).replace(
+      queryParameters: studentId != null
+          ? {'student_id': studentId.toString()}
+          : null,
+    );
+    final response = await performGetRequest(uri.toString());
+    return (response as List)
+        .whereType<Map<String, dynamic>>()
+        .map(Promotion.fromJson)
+        .toList();
+  }
 }
