@@ -29,7 +29,10 @@ class ScannerFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: filled ? Colors.black : Colors.transparent,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE5A93C), width: filled ? 3 : 5),
+        border: Border.all(
+          color: const Color(0xFFE5A93C),
+          width: filled ? 3 : 5,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(

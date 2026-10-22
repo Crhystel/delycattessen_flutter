@@ -56,9 +56,7 @@ class CatalogHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Padding(
-            padding: EdgeInsets.only(
-              left: showBackButton ? AppSpacing.md : 0,
-            ),
+            padding: EdgeInsets.only(left: showBackButton ? AppSpacing.md : 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

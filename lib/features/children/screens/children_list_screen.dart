@@ -64,7 +64,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
 
   void _syncMenuPreview() {
     final provider = context.read<ChildrenProvider>();
-    final child = provider.selectedChild ??
+    final child =
+        provider.selectedChild ??
         (provider.children.isNotEmpty ? provider.children.first : null);
     if (child != null && child.id != _loadedStudentId) {
       _loadMonthlyMenuPreview(child.id);
@@ -166,9 +167,12 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     final textTheme = Theme.of(context).textTheme;
 
     // Si cambiaron los hijos o el seleccionado, sincronizar preview
-    final currentTarget = childrenProvider.selectedChild ??
+    final currentTarget =
+        childrenProvider.selectedChild ??
         (children.isNotEmpty ? children.first : null);
-    if (currentTarget != null && currentTarget.id != _loadedStudentId && !_isLoadingMenuDay) {
+    if (currentTarget != null &&
+        currentTarget.id != _loadedStudentId &&
+        !_isLoadingMenuDay) {
       Future.microtask(() => _loadMonthlyMenuPreview(currentTarget.id));
     }
 
@@ -232,7 +236,9 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.secondary500),
+                    child: CircularProgressIndicator(
+                      color: AppColors.secondary500,
+                    ),
                   ),
                 )
               else if (childrenProvider.errorMessage != null)
@@ -306,7 +312,11 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
             child: i < dishes.length
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: _buildDishPreviewCard(dishes[i], childId, parsedDate),
+                    child: _buildDishPreviewCard(
+                      dishes[i],
+                      childId,
+                      parsedDate,
+                    ),
                   )
                 : const SizedBox.shrink(),
           ),
@@ -394,15 +404,23 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: AspectRatio(
                 aspectRatio: 1,
                 child: dish.imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: dish.imageUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(context, 120),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(context, 120),
+                        memCacheWidth: AppImageCacheHelper.cacheSize(
+                          context,
+                          120,
+                        ),
+                        memCacheHeight: AppImageCacheHelper.cacheSize(
+                          context,
+                          120,
+                        ),
                         placeholder: (_, _) => Container(
                           color: AppColors.ink50,
                           child: const Center(

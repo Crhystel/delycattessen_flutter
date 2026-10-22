@@ -351,9 +351,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
   }
 
   void _openCreditHistory() {
-    Navigator.of(
-      context,
-    ).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CreditHistoryScreen(
           personName: _qrData?.fullName.isNotEmpty == true

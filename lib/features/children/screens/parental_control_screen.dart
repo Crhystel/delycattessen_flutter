@@ -128,14 +128,16 @@ class _ParentalControlScreenState extends State<ParentalControlScreen>
           const RepaintBoundary(
             child: FloatingBubbles(corner: BubbleCorner.bottomRight),
           ),
-          ResponsiveCenter(child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ResponsiveCenter(
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: child,
               ),
-              child: child,
             ),
-          )),
+          ),
         ],
       ),
     );

@@ -231,56 +231,60 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       body: Stack(
         children: [
           const FloatingBubbles(corner: BubbleCorner.topRight),
-          ResponsiveCenter(child: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Selecciona a quién recargar',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: AppColors.ink900.withValues(alpha: 0.6),
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildChildSelector(
-                          children,
-                          selectedChild,
-                          isLoadingChildren,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildBalanceCard(selectedChild),
-                        const SizedBox(height: 24),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Monto a recargar',
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
+          ResponsiveCenter(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Selecciona a quién recargar',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.ink900.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildAmountField(),
-                        const SizedBox(height: 14),
-                        _buildQuickAmountChips(),
-                        const SizedBox(height: 28),
-                        _buildRechargeButton(),
-                      ],
+                          const SizedBox(height: 12),
+                          _buildChildSelector(
+                            children,
+                            selectedChild,
+                            isLoadingChildren,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildBalanceCard(selectedChild),
+                          const SizedBox(height: 24),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Monto a recargar',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildAmountField(),
+                          const SizedBox(height: 14),
+                          _buildQuickAmountChips(),
+                          const SizedBox(height: 28),
+                          _buildRechargeButton(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );

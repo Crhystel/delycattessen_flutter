@@ -41,7 +41,10 @@ class _AuthTextFieldState extends State<AuthTextField> {
       keyboardType: widget.keyboardType,
       onChanged: widget.onChanged,
       inputFormatters: widget.inputFormatters,
-      style: const TextStyle(color: AppColors.ink900, fontWeight: FontWeight.w600),
+      style: const TextStyle(
+        color: AppColors.ink900,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         hintText: widget.hint,
         filled: true,

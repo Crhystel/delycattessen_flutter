@@ -233,9 +233,17 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                             backgroundColor: AppColors.ink50,
                             backgroundImage: child.profilePictureUrl != null
                                 ? ResizeImage(
-                                    CachedNetworkImageProvider(child.profilePictureUrl!),
-                                    width: AppImageCacheHelper.cacheSize(context, 80),
-                                    height: AppImageCacheHelper.cacheSize(context, 80),
+                                    CachedNetworkImageProvider(
+                                      child.profilePictureUrl!,
+                                    ),
+                                    width: AppImageCacheHelper.cacheSize(
+                                      context,
+                                      80,
+                                    ),
+                                    height: AppImageCacheHelper.cacheSize(
+                                      context,
+                                      80,
+                                    ),
                                   )
                                 : null,
                             child: _isUpdatingPhoto
@@ -290,123 +298,127 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
                 ],
               ),
             ),
-            ResponsiveCenter(child: Transform.translate(
-              offset: const Offset(0, -30),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.teal500,
-                    borderRadius: AppRadius.mdAll,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+            ResponsiveCenter(
+              child: Transform.translate(
+                offset: const Offset(0, -30),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.credit_card,
-                            color: Colors.white70,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Saldo Actual',
-                            style: textTheme.bodySmall?.copyWith(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.teal500,
+                      borderRadius: AppRadius.mdAll,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.credit_card,
                               color: Colors.white70,
+                              size: 16,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '\$${(child.balance ?? 0).toStringAsFixed(2)}',
-                        style: textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 30,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _goToWallet(context),
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.add,
-                            color: AppColors.teal500,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Recargar saldo',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.teal500,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      GestureDetector(
-                        onTap: () => _goToHistory(context),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.brand500,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.receipt_long,
-                                size: 16,
-                                color: AppColors.ink900,
+                            const SizedBox(width: 6),
+                            Text(
+                              'Saldo Actual',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.white70,
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Ver historial de movimientos',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '\$${(child.balance ?? 0).toStringAsFixed(2)}',
+                          style: textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 30,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _goToWallet(context),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.add,
+                              color: AppColors.teal500,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Recargar saldo',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.teal500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        GestureDetector(
+                          onTap: () => _goToHistory(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.brand500,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.receipt_long,
+                                  size: 16,
                                   color: AppColors.ink900,
                                 ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 16,
-                                color: AppColors.ink900,
-                              ),
-                            ],
+                                SizedBox(width: 8),
+                                Text(
+                                  'Ver historial de movimientos',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.ink900,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: AppColors.ink900,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            )),
+            ),
             ResponsiveCenter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),

@@ -27,7 +27,11 @@ class ChildAvatarChip extends StatelessWidget {
         radius: radius,
         backgroundColor: AppColors.secondary50,
         backgroundImage: hasImage
-            ? ResizeImage(CachedNetworkImageProvider(imageUrl!), width: size, height: size)
+            ? ResizeImage(
+                CachedNetworkImageProvider(imageUrl!),
+                width: size,
+                height: size,
+              )
             : null,
         child: hasImage
             ? null

@@ -66,14 +66,12 @@ class CustomBottomNav extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.navActiveCircle : Colors.transparent,
+              color: isSelected
+                  ? AppColors.navActiveCircle
+                  : Colors.transparent,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 2),
           Text(

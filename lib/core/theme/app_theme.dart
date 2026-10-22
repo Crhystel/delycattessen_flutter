@@ -87,7 +87,9 @@ class AppTheme {
           backgroundColor: AppColors.secondary500,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
           elevation: 0,
           textStyle: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,

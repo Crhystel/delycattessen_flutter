@@ -90,30 +90,32 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                       24,
                       40 + MediaQuery.of(context).padding.bottom,
                     ),
-                    child: ResponsiveCenter(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (user.allergies.isNotEmpty) ...[
-                          _buildAllergyCard(user),
-                          const SizedBox(height: 20),
-                        ],
-                        if (user.pendingOrders.isNotEmpty) ...[
-                          _buildPreOrdersCard(user),
-                          const SizedBox(height: 20),
-                        ],
-                        _buildSuccessCard(),
-                        const SizedBox(height: 16),
-                        Center(
-                          child: Text(
-                            'Método: ${user.identificationMethod == "FACE_RECOGNITION" ? "Reconocimiento facial" : "Código QR"}',
-                            style: GoogleFonts.nunito(
-                              fontSize: 12,
-                              color: AppColors.ink900.withValues(alpha: 0.4),
+                    child: ResponsiveCenter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (user.allergies.isNotEmpty) ...[
+                            _buildAllergyCard(user),
+                            const SizedBox(height: 20),
+                          ],
+                          if (user.pendingOrders.isNotEmpty) ...[
+                            _buildPreOrdersCard(user),
+                            const SizedBox(height: 20),
+                          ],
+                          _buildSuccessCard(),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: Text(
+                              'Método: ${user.identificationMethod == "FACE_RECOGNITION" ? "Reconocimiento facial" : "Código QR"}',
+                              style: GoogleFonts.nunito(
+                                fontSize: 12,
+                                color: AppColors.ink900.withValues(alpha: 0.4),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    )),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -144,62 +146,64 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
         12,
         56,
       ),
-      child: ResponsiveCenter(child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Hola $firstName!',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+      child: ResponsiveCenter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Hola $firstName!',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.nunito(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              // Terminar la atención de este usuario y volver al inicio del POS.
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white),
-                tooltip: 'Terminar atención',
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          Text(
-            '${user.roleDisplay} · ${user.institution ?? "Sin institución"}',
-            style: GoogleFonts.nunito(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.8),
+                // Terminar la atención de este usuario y volver al inicio del POS.
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  tooltip: 'Terminar atención',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Container(
-                width: 104,
-                height: 104,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: Colors.white,
-                  size: 60,
-                ),
+            Text(
+              '${user.roleDisplay} · ${user.institution ?? "Sin institución"}',
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
-              const SizedBox(width: 16),
-              Expanded(child: _buildAmountCard(user)),
-              const SizedBox(width: 12),
-            ],
-          ),
-        ],
-      )),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Container(
+                  width: 104,
+                  height: 104,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Colors.white,
+                    size: 60,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: _buildAmountCard(user)),
+                const SizedBox(width: 12),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

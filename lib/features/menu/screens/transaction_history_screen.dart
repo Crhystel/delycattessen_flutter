@@ -109,35 +109,37 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             children: [
               _buildPurpleHeader(),
               Expanded(
-                child: ResponsiveCenter(child: RefreshIndicator(
-                  color: AppColors.secondary500,
-                  onRefresh: _loadTransactions,
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.secondary500,
-                          ),
-                        )
-                      : _errorMessage != null
-                      ? _buildMessage(
-                          EmptyState(
-                            icon: Icons.cloud_off_outlined,
-                            title: 'No pudimos cargar los movimientos',
-                            message: _errorMessage,
-                            actionLabel: 'Reintentar',
-                            onAction: _loadTransactions,
-                          ),
-                        )
-                      : _transactions.isEmpty
-                      ? _buildMessage(
-                          EmptyState(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'Aún no hay movimientos',
-                            message: widget.emptyMessage,
-                          ),
-                        )
-                      : _buildList(),
-                )),
+                child: ResponsiveCenter(
+                  child: RefreshIndicator(
+                    color: AppColors.secondary500,
+                    onRefresh: _loadTransactions,
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.secondary500,
+                            ),
+                          )
+                        : _errorMessage != null
+                        ? _buildMessage(
+                            EmptyState(
+                              icon: Icons.cloud_off_outlined,
+                              title: 'No pudimos cargar los movimientos',
+                              message: _errorMessage,
+                              actionLabel: 'Reintentar',
+                              onAction: _loadTransactions,
+                            ),
+                          )
+                        : _transactions.isEmpty
+                        ? _buildMessage(
+                            EmptyState(
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Aún no hay movimientos',
+                              message: widget.emptyMessage,
+                            ),
+                          )
+                        : _buildList(),
+                  ),
+                ),
               ),
             ],
           ),
@@ -159,80 +161,78 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         AppSpacing.xl,
       ),
       // El fondo morado ocupa todo el ancho; el contenido se centra en tablet.
-      child: ResponsiveCenter(
-        child: _buildHeaderContent(textTheme),
-      ),
+      child: ResponsiveCenter(child: _buildHeaderContent(textTheme)),
     );
   }
 
   Widget _buildHeaderContent(TextTheme textTheme) {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                tooltip: 'Volver',
-                onPressed: () => Navigator.of(context).maybePop(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              tooltip: 'Volver',
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(
+              child: Text(
+                widget.title,
+                style: textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: const EdgeInsets.only(left: AppSpacing.md),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
-                child: Text(
-                  widget.title,
-                  style: textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.personName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Detalles de compra',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Padding(
-            padding: const EdgeInsets.only(left: AppSpacing.md),
-            child: Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person_outline,
-                    color: Colors.white,
-                    size: 34,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.personName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Detalles de compra',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
+      ],
     );
   }
 

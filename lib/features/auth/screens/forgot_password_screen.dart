@@ -222,7 +222,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         TextButton(
           onPressed: _isResending || _isLoading ? null : _handleResendCode,
           child: Text(
-            _isResending ? 'Enviando código...' : '¿No te llegó? Reenviar código',
+            _isResending
+                ? 'Enviando código...'
+                : '¿No te llegó? Reenviar código',
             style: const TextStyle(
               color: AppColors.teal700,
               fontWeight: FontWeight.w700,
