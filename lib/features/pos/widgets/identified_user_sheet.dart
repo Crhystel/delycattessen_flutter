@@ -3,11 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/pos_identification_model.dart';
+import '../providers/preorder_delivery_controller.dart';
 import '../services/pos_service.dart';
+import 'amount_card.dart';
+import 'pending_preorder_card.dart';
+import 'status_card.dart';
 
 /// Acción elegida por el cajero al cerrar la hoja del usuario identificado.
 enum IdentifiedUserAction { addProducts }
@@ -19,7 +22,10 @@ enum IdentifiedUserAction { addProducts }
 class IdentifiedUserSheet extends StatefulWidget {
   final IdentifiedUser user;
 
-  const IdentifiedUserSheet({super.key, required this.user});
+  /// Opcional para inyectar otra implementación (por ejemplo en tests).
+  final PosService? posService;
+
+  const IdentifiedUserSheet({super.key, required this.user, this.posService});
 
   @override
   State<IdentifiedUserSheet> createState() => _IdentifiedUserSheetState();
@@ -27,35 +33,42 @@ class IdentifiedUserSheet extends StatefulWidget {
 
 class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
     with NotificationMixin {
-  final PosService _posService = PosService();
-  final Set<int> _deliveredPreOrderIds = {};
-  int? _submittingPreOrderId;
+  late final PreOrderDeliveryController _delivery = PreOrderDeliveryController(
+    posService: widget.posService,
+  );
 
   // Solo presentación: tarjetas plegables del diseño del Figma.
   static const int _collapsedAllergyCount = 3;
   bool _showAllAllergies = false;
   bool _showPreOrders = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _delivery.addListener(_onDeliveryChanged);
+  }
+
+  @override
+  void dispose() {
+    _delivery.removeListener(_onDeliveryChanged);
+    _delivery.dispose();
+    super.dispose();
+  }
+
+  void _onDeliveryChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _markAsDelivered(int preOrderId) async {
-    setState(() => _submittingPreOrderId = preOrderId);
-    try {
-      await _posService.markPreOrderDelivered(preOrderId);
-      if (!mounted) return;
-      setState(() {
-        _deliveredPreOrderIds.add(preOrderId);
-        _submittingPreOrderId = null;
-      });
+    final error = await _delivery.markAsDelivered(preOrderId);
+    if (!mounted) return;
+    if (error == null) {
       showSuccessSnackBar(
         'El pedido se marcó como entregado.',
         title: 'Entrega confirmada',
       );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _submittingPreOrderId = null);
-      showErrorSnackBar(
-        e.toString().replaceFirst('Exception: ', ''),
-        title: 'No se pudo confirmar la entrega',
-      );
+    } else {
+      showErrorSnackBar(error, title: 'No se pudo confirmar la entrega');
     }
   }
 
@@ -215,7 +228,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
         ? user.creditAccumulated
         : user.balance;
     if (amount == null) return const SizedBox.shrink();
-    return _AmountCard(
+    return AmountCard(
       icon: user.isTeacher
           ? Icons.account_balance_outlined
           : Icons.account_balance_wallet_outlined,
@@ -229,7 +242,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
         ? user.allergies
         : user.allergies.take(_collapsedAllergyCount).toList();
     final canExpand = user.allergies.length > _collapsedAllergyCount;
-    return _StatusCard(
+    return StatusCard(
       accent: AppColors.danger500,
       background: AppColors.dangerBg,
       icon: Icons.report_gmailerrorred_rounded,
@@ -272,7 +285,7 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
 
   Widget _buildPreOrdersCard(IdentifiedUser user) {
     final count = user.pendingOrders.length;
-    return _StatusCard(
+    return StatusCard(
       accent: AppColors.brand500,
       background: AppColors.brand50,
       icon: Icons.event_available_outlined,
@@ -288,7 +301,12 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
                 for (final preOrder in user.pendingOrders)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildPreOrderCard(preOrder),
+                    child: PendingPreOrderCard(
+                      preOrder: preOrder,
+                      isDelivered: _delivery.isDelivered(preOrder.preOrderId),
+                      isSubmitting: _delivery.isSubmitting(preOrder.preOrderId),
+                      onDeliver: () => _markAsDelivered(preOrder.preOrderId),
+                    ),
                   ),
               ],
             )
@@ -346,345 +364,6 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
             onPressed: () =>
                 Navigator.of(context).pop(IdentifiedUserAction.addProducts),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreOrderCard(PendingPreOrder preOrder) {
-    final isDelivered = _deliveredPreOrderIds.contains(preOrder.preOrderId);
-    final isSubmitting = _submittingPreOrderId == preOrder.preOrderId;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.brand50,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.receipt_long,
-                color: AppColors.brand700,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pedido pendiente por entregar',
-                      style: GoogleFonts.nunito(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.brand700,
-                      ),
-                    ),
-                    if (preOrder.deliveryDate.isNotEmpty)
-                      Text(
-                        'Fecha de entrega: ${preOrder.deliveryDate}',
-                        style: GoogleFonts.nunito(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brand700.withValues(alpha: 0.8),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (final item in preOrder.items)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.brand500,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${item.quantity}',
-                      style: GoogleFonts.nunito(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      item.dishName,
-                      style: GoogleFonts.nunito(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: isDelivered
-                ? Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.successBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppColors.success500,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Entregado',
-                          style: GoogleFonts.nunito(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.success700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ElevatedButton.icon(
-                    onPressed: isSubmitting
-                        ? null
-                        : () => _markAsDelivered(preOrder.preOrderId),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brand500,
-                      foregroundColor: AppColors.ink900,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.smAll,
-                      ),
-                    ),
-                    icon: isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.ink900,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.check,
-                            color: AppColors.ink900,
-                            size: 18,
-                          ),
-                    label: Text(
-                      isSubmitting ? 'Confirmando...' : 'Marcar como entregado',
-                      style: GoogleFonts.nunito(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tarjeta blanca del encabezado con el monto (saldo o crédito del mes).
-class _AmountCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final double amount;
-
-  const _AmountCard({
-    required this.icon,
-    required this.label,
-    required this.amount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.teal500,
-                  ),
-                ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '\$${amount.toStringAsFixed(2)}',
-                    style: GoogleFonts.nunito(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.teal500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.teal500, AppColors.secondary500],
-              ),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tarjeta de estado del Figma (alergias en rojo, preórdenes en naranja):
-/// icono, título con contador, subtítulo, contenido y enlace "Ver ... >".
-class _StatusCard extends StatelessWidget {
-  final Color accent;
-  final Color background;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final int count;
-  final Widget? child;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _StatusCard({
-    required this.accent,
-    required this.background,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.count,
-    this.child,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent, width: 1.2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: accent, size: 44),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.nunito(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: accent,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.nunito(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 24,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '$count',
-                  style: GoogleFonts.nunito(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (child != null) ...[const SizedBox(height: 12), child!],
-          if (actionLabel != null) ...[
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: onAction,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        actionLabel!,
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, color: accent),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
