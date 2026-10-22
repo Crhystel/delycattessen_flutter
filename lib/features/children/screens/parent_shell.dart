@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/custom_bottom_nav.dart';
+import '../widgets/custom_bottom_nav.dart';
 import '../../menu/screens/parent_menu_tab.dart';
 import '../../menu/screens/orders_screen.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';

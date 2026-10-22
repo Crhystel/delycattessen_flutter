@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../config/password_policy.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_radius.dart';
+import '../utils/password_policy.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 
 /// Guía en vivo de los requisitos de contraseña: gris (sin escribir),
 /// verde (cumple) o rojo (falta).

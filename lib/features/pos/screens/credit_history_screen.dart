@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../menu/screens/transaction_history_screen.dart';
+import '../../wallet/screens/transaction_history_screen.dart';
 import '../services/pos_service.dart';
 import '../widgets/credit_summary_card.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_spacing.dart';
+import '../../../core/theme/app_spacing.dart';
 
 /// Rounded yellow viewfinder frame with an animated scan line. The concrete
 /// scanner (QR or camera feed) goes in [child]. Shared by every scanner screen.

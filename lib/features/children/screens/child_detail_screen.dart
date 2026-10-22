@@ -12,7 +12,7 @@ import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../wallet/screens/wallet_recharge_screen.dart';
-import '../../menu/screens/transaction_history_screen.dart';
+import '../../wallet/screens/transaction_history_screen.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
 import '../../users/services/allergy_owner.dart';

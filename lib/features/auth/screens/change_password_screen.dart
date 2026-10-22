@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/config/password_policy.dart';
+import '../utils/password_policy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../widgets/auth_form_layout.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/password_requirements.dart';
+import '../widgets/password_requirements.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_routing.dart';

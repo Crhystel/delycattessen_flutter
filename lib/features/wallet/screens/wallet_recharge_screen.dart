@@ -7,7 +7,7 @@ import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/pin_entry_screen.dart';
+import 'pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
 import '../services/wallet_service.dart';

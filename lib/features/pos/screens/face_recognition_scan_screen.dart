@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/base_scanner_screen.dart';
+import '../widgets/base_scanner_screen.dart';
 
 import '../services/pos_service.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// Destinos de la barra inferior. Orden fijo: el índice es el de la pestaña
 /// en el ParentShell, así agregar o mover un destino se hace en un solo lugar.

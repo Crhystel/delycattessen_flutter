@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'light_app_bar.dart';
-import '../layout/responsive.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_theme.dart';
-import 'primary_button.dart';
+import '../../../core/layout/responsive.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/primary_button.dart';
 
 /// Reusable PIN screen. In "create" mode, asks the user to type a 4-digit
 /// PIN twice (confirmation). In "verify" mode, asks for the existing PIN

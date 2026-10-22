@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../layout/responsive.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import 'app_notification_messenger.dart';
+import '../../../core/layout/responsive.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import 'scanner_overlay.dart';
 
 /// Template Method Pattern: Defines the immutable standard scaffold and layout

@@ -6,9 +6,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
-import '../../wallet/models/wallet_models.dart';
-import '../../wallet/services/wallet_service.dart';
-import '../../wallet/widgets/transaction_kind_badge.dart';
+import '../models/wallet_models.dart';
+import '../services/wallet_service.dart';
+import '../widgets/transaction_kind_badge.dart';
 
 /// Movimientos a mostrar más un [header] opcional fijo sobre la lista
 /// (p. ej. el acumulado del mes a crédito).
