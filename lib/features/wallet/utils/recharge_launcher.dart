@@ -4,6 +4,7 @@ import '../models/recharge_gateway.dart';
 import '../models/wallet_models.dart';
 import '../screens/payphone_webview_screen.dart';
 import '../screens/recharge_card_form_screen.dart';
+import '../services/card_tokenizer.dart';
 import '../services/wallet_service.dart';
 
 /// Datos de la recarga que cada pasarela necesita para arrancar.
@@ -54,6 +55,11 @@ class PayphoneRechargeLauncher implements RechargeLauncher {
 
 /// Kushki: el formulario de tarjeta tokeniza y registra la recarga.
 class KushkiRechargeLauncher implements RechargeLauncher {
+  final WalletService? walletService;
+  final CardTokenizer? cardTokenizer;
+
+  KushkiRechargeLauncher({this.walletService, this.cardTokenizer});
+
   @override
   Future<bool> start(BuildContext context, RechargeRequestData data) async {
     final result = await Navigator.of(context).push<bool>(
@@ -62,6 +68,8 @@ class KushkiRechargeLauncher implements RechargeLauncher {
           walletId: data.walletId,
           childName: data.childName,
           amount: data.amount,
+          walletService: walletService,
+          cardTokenizer: cardTokenizer,
         ),
       ),
     );

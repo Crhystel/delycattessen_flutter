@@ -34,7 +34,15 @@ class PosCheckoutScreen extends StatefulWidget {
   final IdentifiedUser? user;
   final List<CheckoutLine> lines;
 
-  const PosCheckoutScreen({super.key, required this.lines, this.user});
+  /// Opcional para inyectar otra implementación (por ejemplo en tests).
+  final PosService? posService;
+
+  const PosCheckoutScreen({
+    super.key,
+    required this.lines,
+    this.user,
+    this.posService,
+  });
 
   @override
   State<PosCheckoutScreen> createState() => _PosCheckoutScreenState();
@@ -42,7 +50,7 @@ class PosCheckoutScreen extends StatefulWidget {
 
 class _PosCheckoutScreenState extends State<PosCheckoutScreen>
     with NotificationMixin {
-  final PosService _posService = PosService();
+  late final PosService _posService = widget.posService ?? PosService();
   late final List<PaymentMethodOption> _options;
   late PaymentMethod _method;
   bool _isSubmitting = false;

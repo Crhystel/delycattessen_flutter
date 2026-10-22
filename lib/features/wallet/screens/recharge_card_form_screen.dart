@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/layout/responsive.dart';
-import '../../../core/widgets/light_app_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/wallet_models.dart';
+import '../services/card_tokenizer.dart';
 import '../services/wallet_service.dart';
 import '../services/kushki_service.dart';
 
@@ -87,11 +87,17 @@ class RechargeCardFormScreen extends StatefulWidget {
   final String childName;
   final double amount;
 
+  /// Opcionales para inyectar otras implementaciones (por ejemplo en tests).
+  final WalletService? walletService;
+  final CardTokenizer? cardTokenizer;
+
   const RechargeCardFormScreen({
     super.key,
     required this.walletId,
     required this.childName,
     required this.amount,
+    this.walletService,
+    this.cardTokenizer,
   });
 
   @override
@@ -100,7 +106,10 @@ class RechargeCardFormScreen extends StatefulWidget {
 
 class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     with NotificationMixin {
-  final _walletService = WalletService();
+  late final WalletService _walletService =
+      widget.walletService ?? WalletService();
+  late final CardTokenizer _cardTokenizer =
+      widget.cardTokenizer ?? KushkiService();
   final _cardNumberController = TextEditingController();
   final _holderNameController = TextEditingController();
   final _expirationController = TextEditingController();
@@ -158,7 +167,7 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
 
     try {
       final expirationParts = _expirationController.text.split('/');
-      final token = await KushkiService().tokenizeCard(
+      final token = await _cardTokenizer.tokenizeCard(
         cardNumber: _cardNumberController.text,
         cvv: _cvvController.text,
         expiryMonth: expirationParts[0],

@@ -1,3 +1,5 @@
+import '../config/env.dart';
+
 class ApiConfig {
   // Requiere celular conectado por USB con:
   //   adb reverse tcp:8000 tcp:8000
@@ -44,6 +46,10 @@ class ApiConfig {
   static const String creditHistory = '$baseUrl/pos/credit/history/';
   static String preOrderDeliver(int preOrderId) =>
       '$baseUrl/pos/preorders/$preOrderId/deliver/';
+
+  // Kushki: tokenización de tarjeta directa con la pasarela (no pasa por el
+  // backend). La base viene del entorno de compilación (UAT o producción).
+  static const String kushkiCardTokens = '${Env.kushkiBaseUrl}/card/v1/tokens';
 
   // Catalog: productos de la sede del usuario (padres: ?student_id=)
   static const String catalogMenu = '$baseUrl/catalog/menu/';
