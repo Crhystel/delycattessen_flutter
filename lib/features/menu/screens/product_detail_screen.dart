@@ -105,6 +105,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),
+                        if (item.hasDiscount) ...[
+                          Text(
+                            '\$${item.originalPrice.toStringAsFixed(2)}',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink900.withValues(alpha: 0.45),
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                        ],
                         Text(
                           '\$${item.price.toStringAsFixed(2)}',
                           style: textTheme.headlineSmall?.copyWith(

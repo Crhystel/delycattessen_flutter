@@ -305,6 +305,9 @@ class MenuItem {
   final List<Allergen> allergens;
   final int stock;
 
+  /// Price without today's discount; equals [price] when there is none.
+  final double originalPrice;
+
   /// Discount of the promotion in force today, null without one.
   final int? discountPercentage;
 
@@ -318,8 +321,12 @@ class MenuItem {
     required this.ingredients,
     required this.allergens,
     this.stock = 0,
+    double? originalPrice,
     this.discountPercentage,
-  });
+  }) : originalPrice = originalPrice ?? price;
+
+  /// True while a discount lowers the price (show the original crossed out).
+  bool get hasDiscount => originalPrice > price;
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     final allergensList = json['allergens'] as List? ?? [];
@@ -338,6 +345,7 @@ class MenuItem {
       imageUrl: json['image'] as String?,
       category: json['category'] as String? ?? '',
       stock: json['stock'] as int? ?? 0,
+      originalPrice: double.tryParse((json['price'] ?? '').toString()),
       discountPercentage: json['discount_percentage'] as int?,
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
@@ -375,4 +383,73 @@ class Promotion {
           .toList(),
     );
   }
+}
+
+/// Product of a [Combo] and how many units it includes.
+class ComboItem {
+  final int productId;
+  final String name;
+  final int quantity;
+
+  const ComboItem({
+    required this.productId,
+    required this.name,
+    required this.quantity,
+  });
+
+  factory ComboItem.fromJson(Map<String, dynamic> json) => ComboItem(
+    productId: json['product_id'] as int,
+    name: json['name'].toString(),
+    quantity: json['quantity'] as int? ?? 1,
+  );
+}
+
+/// Fixed-price bundle of products (e.g. sandwich + cola for $3.50) in force
+/// today. Shown as a banner; at the POS a tap adds it to the cart.
+class Combo {
+  final int id;
+  final String name;
+  final double price;
+
+  /// What the products cost bought separately.
+  final double regularPrice;
+  final String? imageUrl;
+  final DateTime endDate;
+  final List<ComboItem> items;
+
+  const Combo({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.regularPrice,
+    required this.endDate,
+    this.imageUrl,
+    this.items = const [],
+  });
+
+  factory Combo.fromJson(Map<String, dynamic> json) => Combo(
+    id: json['id'] as int,
+    name: json['name'].toString(),
+    price: double.tryParse(json['price'].toString()) ?? 0.0,
+    regularPrice:
+        double.tryParse((json['regular_price'] ?? '').toString()) ?? 0.0,
+    endDate: DateTime.parse(json['end_date'] as String),
+    imageUrl: json['image'] as String?,
+    items: (json['items'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(ComboItem.fromJson)
+        .toList(),
+  );
+}
+
+/// Offers in force for an institution: discounts and combos.
+class CatalogOffers {
+  final List<Promotion> promotions;
+  final List<Combo> combos;
+
+  const CatalogOffers({this.promotions = const [], this.combos = const []});
+
+  static const empty = CatalogOffers();
+
+  bool get isEmpty => promotions.isEmpty && combos.isEmpty;
 }

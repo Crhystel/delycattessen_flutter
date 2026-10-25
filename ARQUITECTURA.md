@@ -39,7 +39,7 @@ lib/
 |---|---|---|
 | `models/` | Datos puros y enums | `Child`, `UserRole`, `RechargeGateway`, `DocumentType` |
 | `services/` | Backend, pasarelas y flujos que orquestan servicios | `AuthService`, `WalletService`, `KushkiService`, `CardRechargeService` |
-| `providers/` | Estado con `ChangeNotifier` | `ChildrenProvider`, `ParentMenuController`, `PreOrderDeliveryController` |
+| `providers/` | Estado con `ChangeNotifier` | `ChildrenProvider`, `ParentMenuController`, `PreOrderDeliveryController`, `PosCartController` |
 | `screens/` | Pantallas completas | `MenuScreen`, `PosCheckoutScreen` |
 | `widgets/` | Widgets propios de la feature | `IdentifiedUserSheet`, `StatusCard`, `CustomBottomNav` |
 | `utils/` | Reglas puras y helpers | `CartRules`, `PaymentMethodPolicy`, `RechargeLaunchers`, `routeAfterAuth` |
@@ -60,7 +60,7 @@ No se crean carpetas vacías: se agregan cuando existe el primer archivo.
 - **Estrategia por pasarela:** `RechargeGateway` (la decide el backend) + `RechargeLauncher` por pasarela. Agregar una pasarela = un valor del enum y un launcher; la pantalla no cambia.
 - **Políticas por tabla:** `PaymentMethodPolicy` decide qué métodos de pago se ofrecen según el rol. Agregar un método = una entrada en sus tablas.
 - **Abstracciones por rol:** `AllergyOwner` y `ProductCatalogSource` evitan `if/else` por rol en las pantallas.
-- **Lógica fuera de la pantalla:** si una pantalla empieza a calcular, validar o consultar resultados, extrae un `provider`/`service` (ejemplos: `ParentMenuController`, `CardRechargeService`, `PreOrderDeliveryController`) y deja a la pantalla solo pintar.
+- **Lógica fuera de la pantalla:** si una pantalla empieza a calcular, validar o consultar resultados, extrae un `provider`/`service` (ejemplos: `ParentMenuController`, `CardRechargeService`, `PreOrderDeliveryController`, `PosCartController` — el carrito de caja con productos y combos, compartido por el menú y el checkout del POS) y deja a la pantalla solo pintar.
 - **Inyección por constructor:** los providers y services nuevos reciben sus dependencias con valor por defecto, para poder simularlas en tests.
 
 ## Reglas de capas

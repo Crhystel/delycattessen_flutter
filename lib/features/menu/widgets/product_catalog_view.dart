@@ -60,7 +60,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   bool _isLoading = false;
   String? _errorMessage;
   List<MenuItem> _items = const [];
-  List<Promotion> _promotions = const [];
+  CatalogOffers _offers = CatalogOffers.empty;
   Set<int> _allergenIds = const {};
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
@@ -95,7 +95,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     if (source == null) {
       setState(() {
         _items = const [];
-        _promotions = const [];
+        _offers = CatalogOffers.empty;
         _allergenIds = const {};
         _errorMessage = null;
         _isLoading = false;
@@ -110,15 +110,15 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       // Peticiones en paralelo; se esperan por separado para conservar los tipos.
       final itemsFuture = source.loadItems();
       final allergensFuture = source.loadAllergenIds();
-      final promotionsFuture = _loadPromotions(source);
+      final offersFuture = _loadOffers(source);
       final items = await itemsFuture;
       final allergenIds = await allergensFuture;
-      final promotions = await promotionsFuture;
+      final offers = await offersFuture;
       if (!mounted || token != _loadToken) return;
       setState(() {
         _items = items;
         _allergenIds = allergenIds;
-        _promotions = promotions;
+        _offers = offers;
         _isLoading = false;
       });
     } catch (e) {
@@ -130,13 +130,13 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     }
   }
 
-  // The banner is secondary: if promotions fail to load, the catalog is
+  // The banner is secondary: if the offers fail to load, the catalog is
   // still shown, just without the banner.
-  Future<List<Promotion>> _loadPromotions(ProductCatalogSource source) async {
+  Future<CatalogOffers> _loadOffers(ProductCatalogSource source) async {
     try {
-      return await source.loadPromotions();
+      return await source.loadOffers();
     } on ApiException {
-      return const [];
+      return CatalogOffers.empty;
     }
   }
 
@@ -193,8 +193,8 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
             children: [
               _buildHeader(),
               if (widget.banner != null) widget.banner!,
-              if (showFilters && _promotions.isNotEmpty)
-                PromotionBanner(promotions: _promotions),
+              if (showFilters && !_offers.isEmpty)
+                PromotionBanner(offers: _offers),
               const SizedBox(height: AppSpacing.sm),
               if (showFilters && categories.isNotEmpty)
                 CategoryFilterBar(
@@ -293,6 +293,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       name: item.name,
       description: item.description,
       price: item.price,
+      originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
       onTap: () => _onTapItem(item),

@@ -30,16 +30,28 @@ class SaleItemInput {
   };
 }
 
+/// Combo sold as one line at its fixed price.
+class SaleComboInput {
+  final int comboId;
+  final int quantity;
+
+  const SaleComboInput({required this.comboId, required this.quantity});
+
+  Map<String, dynamic> toJson() => {'combo_id': comboId, 'quantity': quantity};
+}
+
 /// Payload de `POST /api/pos/sales/`. Sin [userId] es una venta rápida
 /// (solo efectivo); el precio lo calcula el servidor.
 class SaleRequest {
   final PaymentMethod paymentMethod;
   final int? userId;
   final List<SaleItemInput> items;
+  final List<SaleComboInput> combos;
 
   const SaleRequest({
     required this.paymentMethod,
     required this.items,
+    this.combos = const [],
     this.userId,
   });
 
@@ -47,6 +59,7 @@ class SaleRequest {
     'payment_method': paymentMethod.apiValue,
     if (userId != null) 'user_id': userId,
     'items': items.map((i) => i.toJson()).toList(),
+    if (combos.isNotEmpty) 'combos': combos.map((c) => c.toJson()).toList(),
   };
 }
 

@@ -96,6 +96,9 @@ class CatalogItemCard extends StatelessWidget {
   final String name;
   final String description;
   final double price;
+
+  /// Price before a discount; shown crossed out next to [price].
+  final double? originalPrice;
   final String? imageUrl;
   final List<CatalogBadge> badges;
 
@@ -109,6 +112,7 @@ class CatalogItemCard extends StatelessWidget {
     required this.description,
     required this.price,
     required this.onTap,
+    this.originalPrice,
     this.imageUrl,
     this.badges = const [],
     this.dimmed = false,
@@ -172,6 +176,16 @@ class CatalogItemCard extends StatelessWidget {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
+                            if (originalPrice != null)
+                              Text(
+                                '\$${originalPrice!.toStringAsFixed(2)}',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.ink900.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
                             Text(
                               '\$${price.toStringAsFixed(2)}',
                               style: textTheme.titleMedium?.copyWith(

@@ -70,18 +70,33 @@ class MenuService extends BaseApiService {
         .toList();
   }
 
-  /// Promotions in force today in the institution of [studentId] (parents)
-  /// or in the user's own institution.
-  Future<List<Promotion>> getActivePromotions({int? studentId}) async {
-    final uri = Uri.parse(ApiConfig.activePromotions).replace(
-      queryParameters: studentId != null
-          ? {'student_id': studentId.toString()}
-          : null,
+  /// Discounts and combos in force today in the institution of [studentId]
+  /// (parents) or in the user's own institution.
+  Future<CatalogOffers> getActiveOffers({int? studentId}) async {
+    final query = studentId != null
+        ? {'student_id': studentId.toString()}
+        : null;
+    final promotionsFuture = performGetRequest(
+      Uri.parse(
+        ApiConfig.activePromotions,
+      ).replace(queryParameters: query).toString(),
     );
-    final response = await performGetRequest(uri.toString());
-    return (response as List)
-        .whereType<Map<String, dynamic>>()
-        .map(Promotion.fromJson)
-        .toList();
+    final combosFuture = performGetRequest(
+      Uri.parse(
+        ApiConfig.activeCombos,
+      ).replace(queryParameters: query).toString(),
+    );
+    final promotions = await promotionsFuture as List;
+    final combos = await combosFuture as List;
+    return CatalogOffers(
+      promotions: promotions
+          .whereType<Map<String, dynamic>>()
+          .map(Promotion.fromJson)
+          .toList(),
+      combos: combos
+          .whereType<Map<String, dynamic>>()
+          .map(Combo.fromJson)
+          .toList(),
+    );
   }
 }

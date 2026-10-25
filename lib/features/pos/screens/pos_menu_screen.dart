@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
@@ -15,7 +16,9 @@ import '../../menu/widgets/catalog_header.dart';
 import '../../menu/widgets/catalog_item_card.dart';
 import '../../menu/widgets/catalog_section.dart';
 import '../../menu/widgets/category_filter_bar.dart';
+import '../../menu/widgets/promotion_banner.dart';
 import '../models/pos_identification_model.dart';
+import '../providers/pos_cart_controller.dart';
 import 'pos_checkout_screen.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -39,8 +42,9 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   bool _isLoading = true;
   String? _errorMessage;
   List<MenuItem> _items = [];
-  Map<int, MenuItem> _itemsById = const {}; // índice para total/carrito
-  final Map<int, int> _cart = {}; // itemId -> quantity
+  Map<int, MenuItem> _itemsById = const {}; // índice para alérgenos de combos
+  CatalogOffers _offers = CatalogOffers.empty;
+  final PosCartController _cart = PosCartController();
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
 
@@ -52,14 +56,20 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     _userAllergies = (widget.user?.allergies ?? const <String>[])
         .map((a) => a.trim().toLowerCase())
         .toSet();
+    _cart.addListener(_onCartChanged);
     _loadMenu();
   }
 
   @override
   void dispose() {
+    _cart
+      ..removeListener(_onCartChanged)
+      ..dispose();
     _searchController.dispose();
     super.dispose();
   }
+
+  void _onCartChanged() => setState(() {});
 
   Future<void> _loadMenu() async {
     setState(() {
@@ -67,11 +77,15 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       _errorMessage = null;
     });
     try {
+      final offersFuture = _loadOffers();
       final items = await _menuService.getMenu();
+      final offers = await offersFuture;
       if (!mounted) return;
+      _cart.setCatalog(items);
       setState(() {
         _items = items;
         _itemsById = {for (final item in items) item.id: item};
+        _offers = offers;
         _isLoading = false;
       });
     } catch (e) {
@@ -80,6 +94,15 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
         _errorMessage = errorMessageOf(e);
         _isLoading = false;
       });
+    }
+  }
+
+  // The combo banner is secondary: without it the products can still be sold.
+  Future<CatalogOffers> _loadOffers() async {
+    try {
+      return await _menuService.getActiveOffers();
+    } on ApiException {
+      return CatalogOffers.empty;
     }
   }
 
@@ -94,20 +117,42 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   List<MenuItem> get _visibleItems =>
       filterItems(_items, category: _selectedCategory, query: _searchQuery);
 
-  double get _total => CartRules.total(_cart, (id) => _itemsById[id]?.price);
-
-  int get _cartCount => CartRules.itemCount(_cart);
+  void _warnStock(String productName) => showWarningSnackBar(
+    'No hay unidades suficientes de "$productName".',
+    title: 'Stock insuficiente',
+  );
 
   void _addToCart(MenuItem item, int quantity) {
-    final current = _cart[item.id] ?? 0;
-    if (item.stock > 0 && current + quantity > item.stock) {
-      showWarningSnackBar(
-        'Solo hay ${item.stock} unidades disponibles de "${item.name}".',
-        title: 'Stock insuficiente',
+    final short = _cart.addProduct(item, quantity);
+    if (short != null) _warnStock(short);
+  }
+
+  /// Tapping a combo banner adds all its products to the cart at once.
+  void _addCombo(Combo combo) {
+    final conflicts = {
+      for (final comboItem in combo.items)
+        if (_itemsById[comboItem.productId] case final item?)
+          ..._conflictingAllergens(item),
+    };
+    if (conflicts.isNotEmpty) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.danger,
+        title: 'Combo no disponible',
+        message:
+            '"${combo.name}" contiene ${conflicts.join(', ')}, registrados como alergias de ${widget.user?.fullName ?? 'el cliente'}.',
       );
       return;
     }
-    setState(() => _cart[item.id] = current + quantity);
+    final short = _cart.addCombo(combo);
+    if (short != null) {
+      _warnStock(short);
+      return;
+    }
+    showSuccessSnackBar(
+      '"${combo.name}" se agregó al carrito.',
+      title: 'Combo agregado',
+    );
   }
 
   Future<void> _clearCart() async {
@@ -119,12 +164,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       cancelLabel: 'Conservar',
       isDestructive: true,
     );
-    if (confirmed && mounted) setState(() => _cart.clear());
-  }
-
-  /// Quita el producto completo del carrito, sin importar su cantidad.
-  void _removeFromCart(int itemId) {
-    setState(() => _cart.remove(itemId));
+    if (confirmed && mounted) _cart.clear();
   }
 
   void _showAllergenBlockedDialog(MenuItem item, List<String> conflicts) {
@@ -155,26 +195,14 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   }
 
   void _onContinue() {
-    final lines = [
-      for (final entry in _cart.entries)
-        if (_itemsById[entry.key] case final item?)
-          CheckoutLine(item: item, quantity: entry.value),
-    ];
-    if (lines.isEmpty) return;
-    Navigator.push<Map<int, int>>(
+    if (_cart.isEmpty) return;
+    // The checkout edits this same cart, so the menu stays in sync.
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PosCheckoutScreen(user: widget.user, lines: lines),
+        builder: (_) => PosCheckoutScreen(user: widget.user, cart: _cart),
       ),
-    ).then((updatedCart) {
-      // El checkout devuelve el carrito editado (quitar/ajustar líneas).
-      if (!mounted || updatedCart == null) return;
-      setState(() {
-        _cart
-          ..clear()
-          ..addAll(updatedCart);
-      });
-    });
+    );
   }
 
   @override
@@ -189,10 +217,15 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
             children: [
               _buildHeader(),
               if (widget.user != null) _buildUserBanner(widget.user!),
+              if (!_isLoading && _offers.combos.isNotEmpty)
+                PromotionBanner(
+                  offers: CatalogOffers(combos: _offers.combos),
+                  onComboTap: _addCombo,
+                ),
               _buildCategoryChips(),
               const SizedBox(height: AppSpacing.xs),
               Expanded(child: _buildBody()),
-              if (_cart.isNotEmpty) _buildCartBar(),
+              if (!_cart.isEmpty) _buildCartBar(),
             ],
           ),
         ),
@@ -337,11 +370,12 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
 
   Widget _buildItemCard(MenuItem item) {
     final blocked = _conflictingAllergens(item).isNotEmpty;
-    final inCart = _cart[item.id] ?? 0;
+    final inCart = _cart.quantityOfProduct(item.id);
     return CatalogItemCard(
       name: item.name,
       description: item.description,
       price: item.price,
+      originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
       onTap: () => _onTapItem(item),
@@ -350,8 +384,8 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
         if (inCart > 0)
           CatalogBadge.info(
             '$inCart en carrito',
-            onRemove: CartRules.canRemoveLine(_cart.length)
-                ? () => _removeFromCart(item.id)
+            onRemove: CartRules.canRemoveLine(_cart.lineCount)
+                ? () => _cart.removeProduct(item.id)
                 : null,
           ),
       ],
@@ -380,7 +414,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           ),
           Expanded(
             child: Text(
-              '\$${_total.toStringAsFixed(2)}',
+              '\$${_cart.total.toStringAsFixed(2)}',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -398,7 +432,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
             ),
             onPressed: _onContinue,
             child: Text(
-              'Continuar ($_cartCount)',
+              'Continuar (${_cart.itemCount})',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
