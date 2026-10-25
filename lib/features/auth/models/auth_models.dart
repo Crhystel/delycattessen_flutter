@@ -117,7 +117,9 @@ class MeResponse {
   final int id;
   final String? email;
   final String firstName;
+  final String secondName;
   final String lastName;
+  final String secondLastName;
   final String role;
   final bool hasChildren;
   final bool hasPaymentPin;
@@ -127,7 +129,9 @@ class MeResponse {
     required this.id,
     this.email,
     required this.firstName,
+    this.secondName = '',
     required this.lastName,
+    this.secondLastName = '',
     required this.role,
     required this.hasChildren,
     required this.hasPaymentPin,
@@ -141,7 +145,9 @@ class MeResponse {
       id: json['id'] as int,
       email: json['email'] as String?,
       firstName: json['first_name'] as String? ?? '',
+      secondName: json['second_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
+      secondLastName: json['second_last_name'] as String? ?? '',
       role: json['role'] as String? ?? UserRole.student.apiValue,
       hasChildren: json['has_children'] as bool? ?? false,
       hasPaymentPin: json['has_payment_pin'] as bool? ?? false,
@@ -153,7 +159,10 @@ class MeResponse {
 class Child {
   final int id;
   final String firstName;
+  final String secondName;
   final String lastName;
+  final String secondLastName;
+  final String username;
   final String institutionName;
   final String? profilePictureUrl;
   final double? balance;
@@ -162,7 +171,10 @@ class Child {
   Child({
     required this.id,
     required this.firstName,
+    this.secondName = '',
     required this.lastName,
+    this.secondLastName = '',
+    this.username = '',
     required this.institutionName,
     this.profilePictureUrl,
     this.balance,
@@ -173,7 +185,10 @@ class Child {
     return Child(
       id: json['id'] as int,
       firstName: json['first_name'] as String,
+      secondName: json['second_name'] as String? ?? '',
       lastName: json['last_name'] as String,
+      secondLastName: json['second_last_name'] as String? ?? '',
+      username: json['username'] as String? ?? '',
       institutionName: json['institution_name'] as String? ?? '',
       profilePictureUrl: json['profile_picture'] as String?,
       balance: json['balance'] != null
@@ -199,5 +214,82 @@ class ChangePasswordRequest {
     'current_password': currentPassword,
     'new_password': newPassword,
     'confirm_password': confirmPassword,
+  };
+}
+
+/// Four name parts as the backend stores them (`last_name` is the first
+/// surname). Shared by the profile edits of parents, teachers and children.
+class PersonNames {
+  final String firstName;
+  final String secondName;
+  final String lastName;
+  final String secondLastName;
+
+  const PersonNames({
+    required this.firstName,
+    required this.lastName,
+    this.secondName = '',
+    this.secondLastName = '',
+  });
+
+  /// Error message for the user, or null when the names are valid.
+  String? validate() {
+    if (firstName.trim().isEmpty) return 'Ingresa el primer nombre.';
+    if (lastName.trim().isEmpty) return 'Ingresa el primer apellido.';
+    return null;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'first_name': firstName.trim(),
+    'second_name': secondName.trim(),
+    'last_name': lastName.trim(),
+    'second_last_name': secondLastName.trim(),
+  };
+}
+
+/// Body of `PATCH /api/users/me/profile/` (parent or teacher).
+class ProfileUpdate {
+  static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  final PersonNames names;
+  final String email;
+
+  const ProfileUpdate({required this.names, required this.email});
+
+  String? validate() {
+    final namesError = names.validate();
+    if (namesError != null) return namesError;
+    if (!_emailPattern.hasMatch(email.trim())) {
+      return 'Ingresa un correo válido.';
+    }
+    return null;
+  }
+
+  Map<String, dynamic> toJson() => {
+    ...names.toJson(),
+    'email': email.trim().toLowerCase(),
+  };
+}
+
+/// Body of `PATCH /api/users/children/<id>/` (the parent edits a child).
+class ChildProfileUpdate {
+  final PersonNames names;
+  final String username;
+
+  const ChildProfileUpdate({required this.names, required this.username});
+
+  String? validate() {
+    final namesError = names.validate();
+    if (namesError != null) return namesError;
+    if (username.trim().isEmpty) return 'Ingresa el nombre de usuario.';
+    if (username.trim().contains(' ')) {
+      return 'El nombre de usuario no puede tener espacios.';
+    }
+    return null;
+  }
+
+  Map<String, dynamic> toJson() => {
+    ...names.toJson(),
+    'username': username.trim(),
   };
 }

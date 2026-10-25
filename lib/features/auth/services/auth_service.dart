@@ -95,6 +95,27 @@ class AuthService extends BaseApiService {
     return MeResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// Updates the names and email of the logged-in parent or teacher.
+  Future<MeResponse> updateProfile(ProfileUpdate data) async {
+    final response = await performPatchRequest(
+      ApiConfig.meProfile,
+      data.toJson(),
+    );
+    return MeResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Updates the names and username of one of the parent's children.
+  Future<Child> updateChildProfile(
+    int studentId,
+    ChildProfileUpdate data,
+  ) async {
+    final response = await performPatchRequest(
+      ApiConfig.childProfile(studentId),
+      data.toJson(),
+    );
+    return Child.fromJson(response as Map<String, dynamic>);
+  }
+
   Future<List<Child>> getChildren() async {
     final response = await performGetRequest(ApiConfig.children);
     return (response as List)

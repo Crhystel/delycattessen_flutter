@@ -16,10 +16,15 @@ class ChangePasswordScreen extends StatefulWidget {
   final MeResponse me;
   final String usernameFallback;
 
+  /// Opened from the profile: on success it goes back instead of routing to
+  /// the home screen (used by the forced change after the first login).
+  final bool popOnSuccess;
+
   const ChangePasswordScreen({
     super.key,
     required this.me,
     required this.usernameFallback,
+    this.popOnSuccess = false,
   });
 
   @override
@@ -93,6 +98,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         ),
       );
       if (!mounted) return;
+      if (widget.popOnSuccess) {
+        showSuccessSnackBar(
+          'Tu contraseña se actualizó correctamente.',
+          title: 'Contraseña actualizada',
+        );
+        Navigator.of(context).pop();
+        return;
+      }
       routeAfterAuth(
         context,
         widget.me,
@@ -111,17 +124,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
 
   @override
   Widget build(BuildContext context) {
+    final fromProfile = widget.popOnSuccess;
     return PopScope(
-      canPop: false,
+      // The forced change after the first login cannot be skipped.
+      canPop: fromProfile,
       child: AuthFormLayout(
         icon: Icons.lock_reset,
         title: 'Cambia tu contraseña',
-        subtitle:
-            'Por seguridad, debes establecer una contraseña propia antes de continuar.',
+        subtitle: fromProfile
+            ? 'Escribe tu contraseña actual y la nueva.'
+            : 'Por seguridad, debes establecer una contraseña propia antes de continuar.',
+        showBackButton: fromProfile,
         children: [
           AuthTextField(
             controller: _currentPasswordController,
-            hint: 'Contraseña temporal',
+            hint: fromProfile ? 'Contraseña actual' : 'Contraseña temporal',
             icon: Icons.lock_clock_outlined,
             isPassword: true,
           ),

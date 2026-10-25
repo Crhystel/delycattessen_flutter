@@ -23,7 +23,10 @@ class ApiConfig {
   static String walletTransactions(int walletId) =>
       '$baseUrl/wallet/$walletId/transactions/';
   static const String me = '$baseUrl/users/me/';
+  static const String meProfile = '$baseUrl/users/me/profile/';
   static const String children = '$baseUrl/users/children/';
+  static String childProfile(int studentId) =>
+      '$baseUrl/users/children/$studentId/';
   static String childPhoto(int studentId) =>
       '$baseUrl/users/children/$studentId/photo/';
   static const String allergens = '$baseUrl/users/allergens/';

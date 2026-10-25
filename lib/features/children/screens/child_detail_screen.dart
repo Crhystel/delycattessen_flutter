@@ -15,6 +15,7 @@ import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../../wallet/screens/transaction_history_screen.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
+import 'edit_child_screen.dart';
 import '../../users/services/allergy_owner.dart';
 import '../models/parental_control_model.dart';
 import '../services/parental_control_service.dart';
@@ -34,7 +35,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     with NotificationMixin {
   late Child _currentChild;
   bool _isUpdatingPhoto = false;
-  bool _hasUpdatedPhoto = false;
+  // Tells the list to refresh when the photo or the data changed.
+  bool _hasChanges = false;
   final AuthService _authService = AuthService();
   final ParentalControlService _parentalService = ParentalControlService();
   List<Allergen>? _allergies; // null = cargando o no disponible
@@ -176,7 +178,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
       setState(() {
         _currentChild = updated;
         _isUpdatingPhoto = false;
-        _hasUpdatedPhoto = true;
+        _hasChanges = true;
       });
       showSuccessSnackBar(
         'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
@@ -190,6 +192,17 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
         title: 'Error al actualizar',
       );
     }
+  }
+
+  Future<void> _editData() async {
+    final updated = await Navigator.of(context).push<Child>(
+      MaterialPageRoute(builder: (_) => EditChildScreen(child: _currentChild)),
+    );
+    if (updated == null || !mounted) return;
+    setState(() {
+      _currentChild = updated;
+      _hasChanges = true;
+    });
   }
 
   @override
@@ -210,13 +223,22 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
               decoration: const BoxDecoration(color: AppColors.secondary500),
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () =>
-                          Navigator.of(context).pop(_hasUpdatedPhoto),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(_hasChanges),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.white,
+                        ),
+                        tooltip: 'Editar datos',
+                        onPressed: _isUpdatingPhoto ? null : _editData,
+                      ),
+                    ],
                   ),
                   GestureDetector(
                     onTap: _isUpdatingPhoto ? null : _updateProfilePicture,

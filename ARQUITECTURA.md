@@ -24,8 +24,8 @@ lib/
 │                  notification_header, photo_source_dialog, photo_guidelines_screen,
 │                  face_capture_camera_screen
 └── features/
-    ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, rol (UserRole)
-    ├── children/     Hijos del padre, control parental, ParentShell (navegación del padre), ChildrenProvider
+    ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, editar perfil (padre y docente), rol (UserRole)
+    ├── children/     Hijos del padre (incluye editar sus datos), control parental, ParentShell (navegación del padre), ChildrenProvider
     ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
     ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos
     ├── pos/          Caja: identificación (rostro/QR), venta, checkout, crédito del docente

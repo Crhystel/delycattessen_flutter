@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
@@ -15,6 +16,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
+import '../../auth/screens/edit_profile_screen.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../menu/models/menu_models.dart';
@@ -46,6 +48,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
   final _authService = AuthService();
   final _menuService = MenuService();
   String _userName = '';
+  MeResponse? _me;
 
   MenuDay? _firstAvailableMenuDay;
   bool _isLoadingMenuDay = false;
@@ -96,14 +99,35 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     try {
       final me = await _authService.getMe();
       if (!mounted) return;
-      setState(() {
-        _userName = me.firstName.isNotEmpty
-            ? me.firstName
-            : (me.email != null && me.email!.isNotEmpty
-                  ? me.email!.split('@').first
-                  : 'Usuario');
-      });
+      _showUser(me);
     } catch (_) {}
+  }
+
+  void _showUser(MeResponse me) {
+    setState(() {
+      _me = me;
+      _userName = me.firstName.isNotEmpty
+          ? me.firstName
+          : (me.email != null && me.email!.isNotEmpty
+                ? me.email!.split('@').first
+                : 'Usuario');
+    });
+  }
+
+  Future<void> _openProfile() async {
+    try {
+      final me = _me ?? await _authService.getMe();
+      if (!mounted) return;
+      final updated = await Navigator.of(context).push<MeResponse>(
+        MaterialPageRoute(
+          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
+        ),
+      );
+      if (updated != null && mounted) _showUser(updated);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo abrir tu perfil');
+    }
   }
 
   String _getTodaySpanish() {
@@ -214,6 +238,14 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.manage_accounts_outlined,
+                      color: AppColors.teal700,
+                    ),
+                    tooltip: 'Mi perfil',
+                    onPressed: _openProfile,
                   ),
                   IconButton(
                     icon: const Icon(Icons.logout, color: AppColors.teal700),
