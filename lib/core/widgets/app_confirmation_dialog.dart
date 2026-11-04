@@ -111,6 +111,9 @@ class AppConfirmationDialog extends StatelessWidget {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.teal700,
                               minimumSize: const Size.fromHeight(48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                              ),
                               side: const BorderSide(
                                 color: AppColors.teal500,
                                 width: 1.5,
@@ -120,10 +123,15 @@ class AppConfirmationDialog extends StatelessWidget {
                               ),
                             ),
                             onPressed: () => Navigator.of(context).pop(false),
-                            child: Text(
-                              cancelLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                cancelLabel,
+                                maxLines: 1,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
                           ),
@@ -133,6 +141,10 @@ class AppConfirmationDialog extends StatelessWidget {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                              ),
+                              alignment: Alignment.center,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: AppRadius.smAll,
                               ),
@@ -145,10 +157,15 @@ class AppConfirmationDialog extends StatelessWidget {
                                   : AppColors.ink900,
                             ),
                             onPressed: () => Navigator.of(context).pop(true),
-                            child: Text(
-                              confirmLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                confirmLabel,
+                                maxLines: 1,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
                           ),
