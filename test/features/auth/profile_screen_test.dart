@@ -29,6 +29,25 @@ void main() {
     expect(find.text('Guardar cambios'), findsNothing);
   });
 
+  testWidgets('a parent registered with only an email gets a letter avatar', (
+    tester,
+  ) async {
+    await openScreen(
+      tester,
+      ProfileScreen(
+        me: testMe(
+          firstName: '',
+          lastName: '',
+          email: 'maria@mail.com',
+          role: 'PARENT',
+        ),
+      ),
+    );
+
+    expect(find.text('M'), findsOneWidget);
+    expect(find.text('?'), findsNothing);
+  });
+
   testWidgets('has no allergies row unless the caller provides it', (
     tester,
   ) async {

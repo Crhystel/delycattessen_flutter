@@ -65,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'Mi perfil',
         children: [
           ProfileSummaryCard(
-            leading: InitialsAvatar(name: _me.displayName),
+            leading: InitialsAvatar(name: _me.displayName, fallback: _me.email),
             title: _me.displayName.isEmpty ? 'Mi perfil' : _me.displayName,
             subtitle: _me.email,
           ),
