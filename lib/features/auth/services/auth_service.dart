@@ -180,6 +180,18 @@ class AuthService extends BaseApiService {
   }
 
   Future<void> changePassword(ChangePasswordRequest data) async {
-    await performPostRequest(ApiConfig.changePassword, data.toJson());
+    final response = await performPostRequest(
+      ApiConfig.changePassword,
+      data.toJson(),
+    );
+    // El backend cierra las demás sesiones al cambiar la contraseña y entrega
+    // tokens nuevos para que este dispositivo conserve la suya.
+    if (response is Map<String, dynamic>) {
+      final access = response['access'];
+      final refresh = response['refresh'];
+      if (access is String && refresh is String) {
+        await TokenStorage.saveTokens(access: access, refresh: refresh);
+      }
+    }
   }
 }

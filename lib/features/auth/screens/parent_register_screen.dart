@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../utils/password_policy.dart';
+import '../utils/password_check.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../widgets/auth_form_layout.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../widgets/password_requirements.dart';
+import '../widgets/new_password_fields.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
@@ -36,22 +36,16 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
   }
 
   Future<void> _next() async {
-    if (!PasswordPolicy.isValid(_passwordController.text)) {
+    final issue = checkNewPassword(
+      _passwordController.text,
+      confirmation: _confirmController.text,
+    );
+    if (issue != null) {
       AppNotificationDialog.show(
         context,
         type: NotificationType.warning,
-        title: 'Contraseña insegura',
-        message:
-            'A tu contraseña le falta:\n${PasswordPolicy.missingSummary(_passwordController.text)}',
-      );
-      return;
-    }
-    if (_passwordController.text != _confirmController.text) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.warning,
-        title: 'Las contraseñas no coinciden',
-        message: 'Verifica que ambas contraseñas sean iguales.',
+        title: issue.title,
+        message: issue.message,
       );
       return;
     }
@@ -83,10 +77,6 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final passwordsMismatch =
-        _confirmController.text.isNotEmpty &&
-        _confirmController.text != _passwordController.text;
-
     return AuthFormLayout(
       showBackButton: true,
       onBack: () {
@@ -109,36 +99,12 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: AppSpacing.md),
-        AuthTextField(
-          controller: _passwordController,
-          hint: 'Contraseña',
-          icon: Icons.lock_outline,
-          isPassword: true,
-          onChanged: (_) => setState(() {}),
+        NewPasswordFields(
+          passwordController: _passwordController,
+          confirmController: _confirmController,
+          passwordHint: 'Contraseña',
+          confirmHint: 'Confirmar Contraseña',
         ),
-        PasswordRequirements(password: _passwordController.text),
-        const SizedBox(height: AppSpacing.md),
-        AuthTextField(
-          controller: _confirmController,
-          hint: 'Confirmar Contraseña',
-          icon: Icons.lock_outline,
-          isPassword: true,
-          onChanged: (_) => setState(() {}),
-        ),
-        if (passwordsMismatch)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Las contraseñas no coinciden',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
         const SizedBox(height: AppSpacing.xl),
         PrimaryButton(
           label: 'Siguiente',

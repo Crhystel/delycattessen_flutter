@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../utils/password_policy.dart';
+import '../utils/password_check.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../widgets/auth_form_layout.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../widgets/password_requirements.dart';
+import '../widgets/new_password_fields.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_routing.dart';
@@ -40,21 +40,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Repinta la guía de requisitos mientras el usuario escribe.
-    _newPasswordController.addListener(_onNewPasswordChanged);
-  }
-
-  void _onNewPasswordChanged() => setState(() {});
-
-  bool get _meetsPasswordPolicy => PasswordPolicy.rules.every(
-    (rule) => rule.test(_newPasswordController.text),
-  );
-
-  @override
   void dispose() {
-    _newPasswordController.removeListener(_onNewPasswordChanged);
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -73,18 +59,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
       );
       return;
     }
-    if (!_meetsPasswordPolicy) {
-      showWarningSnackBar(
-        'La nueva contraseña no cumple los requisitos de seguridad.',
-        title: 'Contraseña insegura',
-      );
-      return;
-    }
-    if (newPassword != confirm) {
-      showWarningSnackBar(
-        'Las contraseñas nuevas no coinciden.',
-        title: 'No coinciden',
-      );
+    final issue = checkNewPassword(newPassword, confirmation: confirm);
+    if (issue != null) {
+      showWarningSnackBar(issue.message, title: issue.title);
       return;
     }
 
@@ -143,19 +120,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             isPassword: true,
           ),
           const SizedBox(height: AppSpacing.md),
-          AuthTextField(
-            controller: _newPasswordController,
-            hint: 'Nueva contraseña',
-            icon: Icons.lock_outline,
-            isPassword: true,
-          ),
-          PasswordRequirements(password: _newPasswordController.text),
-          const SizedBox(height: AppSpacing.md),
-          AuthTextField(
-            controller: _confirmPasswordController,
-            hint: 'Confirmar nueva contraseña',
-            icon: Icons.lock_outline,
-            isPassword: true,
+          NewPasswordFields(
+            passwordController: _newPasswordController,
+            confirmController: _confirmPasswordController,
           ),
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(

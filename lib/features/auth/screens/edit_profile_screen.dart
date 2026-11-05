@@ -13,7 +13,8 @@ import 'change_password_screen.dart';
 
 /// Own profile of a parent or teacher: the four name parts and the email
 /// (which is also the login). Pops with the updated [MeResponse] after saving.
-/// [canChangePassword] adds the shortcut to change the password (parents).
+/// [canChangePassword] adds the shortcut to change the password (parents and
+/// teachers).
 class EditProfileScreen extends StatefulWidget {
   final MeResponse me;
   final bool canChangePassword;

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../utils/password_policy.dart';
+import '../utils/password_check.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -127,11 +127,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
       return;
     }
-    if (!PasswordPolicy.isValid(_passwordController.text)) {
-      showWarningSnackBar(
-        'A la contraseña le falta:\n${PasswordPolicy.missingSummary(_passwordController.text)}',
-        title: 'Contraseña insegura',
-      );
+    final passwordIssue = checkNewPassword(_passwordController.text);
+    if (passwordIssue != null) {
+      showWarningSnackBar(passwordIssue.message, title: passwordIssue.title);
       return;
     }
     if (!_acceptedTerms) {
@@ -164,10 +162,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        errorMessageOf(e),
-        title: 'No se pudo crear la cuenta',
-      );
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo crear la cuenta');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
