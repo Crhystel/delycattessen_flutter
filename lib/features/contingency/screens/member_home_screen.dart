@@ -124,13 +124,16 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     return 'Hoy es $dayName';
   }
 
-  /// Teachers edit their own names and email (students cannot).
+  /// Teachers edit their own names and email and can change their password
+  /// (students cannot).
   Future<void> _openProfile() async {
     try {
       final me = await AuthService().getMe();
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
-        MaterialPageRoute(builder: (_) => EditProfileScreen(me: me)),
+        MaterialPageRoute(
+          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
+        ),
       );
       // The greeting shows the name that comes with the QR data.
       if (updated != null && mounted) _loadQrToken();

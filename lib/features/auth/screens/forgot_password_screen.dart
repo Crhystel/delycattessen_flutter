@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/password_policy.dart';
+import '../utils/password_check.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../widgets/password_requirements.dart';
+import '../widgets/new_password_fields.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -49,11 +49,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
   // El backend busca el correo tal cual, y los correos se registran en minúsculas.
   String get _email => _emailController.text.trim().toLowerCase();
-
-  bool get _passwordsMismatch =>
-      _newPasswordController.text.isNotEmpty &&
-      _confirmPasswordController.text.isNotEmpty &&
-      _newPasswordController.text != _confirmPasswordController.text;
 
   Future<bool> _sendCode() async {
     try {
@@ -115,18 +110,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       );
       return;
     }
-    if (!PasswordPolicy.isValid(newPassword)) {
-      showWarningSnackBar(
-        'A tu contraseña le falta:\n${PasswordPolicy.missingSummary(newPassword)}',
-        title: 'Contraseña insegura',
-      );
-      return;
-    }
-    if (newPassword != _confirmPasswordController.text) {
-      showWarningSnackBar(
-        'Verifica que ambas contraseñas sean iguales.',
-        title: 'Las contraseñas no coinciden',
-      );
+    final issue = checkNewPassword(
+      newPassword,
+      confirmation: _confirmPasswordController.text,
+    );
+    if (issue != null) {
+      showWarningSnackBar(issue.message, title: issue.title);
       return;
     }
 
@@ -246,36 +235,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        AuthTextField(
-          controller: _newPasswordController,
-          hint: 'Nueva contraseña',
-          icon: Icons.lock_outline,
-          isPassword: true,
-          onChanged: (_) => setState(() {}),
+        NewPasswordFields(
+          passwordController: _newPasswordController,
+          confirmController: _confirmPasswordController,
         ),
-        PasswordRequirements(password: _newPasswordController.text),
-        const SizedBox(height: AppSpacing.md),
-        AuthTextField(
-          controller: _confirmPasswordController,
-          hint: 'Confirmar nueva contraseña',
-          icon: Icons.lock_outline,
-          isPassword: true,
-          onChanged: (_) => setState(() {}),
-        ),
-        if (_passwordsMismatch)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Las contraseñas no coinciden',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
         const SizedBox(height: AppSpacing.xl),
         PrimaryButton(
           label: 'Restablecer contraseña',

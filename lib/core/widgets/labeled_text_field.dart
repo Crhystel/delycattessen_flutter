@@ -6,12 +6,14 @@ import '../theme/app_spacing.dart';
 
 /// Purple label over an outlined text field, the style of the registration
 /// forms. Used by the profile edit screens of parents, teachers and children.
-class LabeledTextField extends StatelessWidget {
+/// With [isPassword] the text is hidden and a show/hide toggle is added.
+class LabeledTextField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final String hint;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
+  final bool isPassword;
 
   const LabeledTextField({
     super.key,
@@ -20,7 +22,15 @@ class LabeledTextField extends StatelessWidget {
     required this.hint,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.words,
+    this.isPassword = false,
   });
+
+  @override
+  State<LabeledTextField> createState() => _LabeledTextFieldState();
+}
+
+class _LabeledTextFieldState extends State<LabeledTextField> {
+  bool _obscure = true;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +47,7 @@ class LabeledTextField extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
             child: Text(
-              label,
+              widget.label,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.secondary500,
@@ -45,12 +55,15 @@ class LabeledTextField extends StatelessWidget {
             ),
           ),
           TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            textCapitalization: textCapitalization,
+            controller: widget.controller,
+            keyboardType: widget.keyboardType,
+            textCapitalization: widget.isPassword
+                ? TextCapitalization.none
+                : widget.textCapitalization,
+            obscureText: widget.isPassword && _obscure,
             style: const TextStyle(color: AppColors.ink900),
             decoration: InputDecoration(
-              hintText: hint,
+              hintText: widget.hint,
               filled: true,
               fillColor: Colors.white,
               border: border,
@@ -61,6 +74,15 @@ class LabeledTextField extends StatelessWidget {
                   width: 2,
                 ),
               ),
+              suffixIcon: widget.isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        color: AppColors.ink900,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                    )
+                  : null,
             ),
           ),
         ],
