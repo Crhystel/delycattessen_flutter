@@ -27,3 +27,20 @@ PasswordIssue? checkNewPassword(String password, {String? confirmation}) {
   }
   return null;
 }
+
+/// Check for changing the password of a signed-in user: the current password
+/// is required on top of what [checkNewPassword] validates. Shared by the
+/// profile form and the forced change after the first login.
+PasswordIssue? checkPasswordChange({
+  required String current,
+  required String password,
+  required String confirmation,
+}) {
+  if (current.isEmpty) {
+    return const PasswordIssue(
+      title: 'Datos incompletos',
+      message: 'Ingresa tu contraseña actual.',
+    );
+  }
+  return checkNewPassword(password, confirmation: confirmation);
+}

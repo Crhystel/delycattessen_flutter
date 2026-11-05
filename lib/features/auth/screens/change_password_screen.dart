@@ -12,19 +12,17 @@ import '../services/auth_service.dart';
 import '../utils/auth_routing.dart';
 import '../../../core/utils/error_message.dart';
 
+/// Forced password change after the first login (temporary password). The
+/// regular change lives in the profile form (`EditProfileScreen`); both share
+/// the same checks through `checkPasswordChange`.
 class ChangePasswordScreen extends StatefulWidget {
   final MeResponse me;
   final String usernameFallback;
-
-  /// Opened from the profile: on success it goes back instead of routing to
-  /// the home screen (used by the forced change after the first login).
-  final bool popOnSuccess;
 
   const ChangePasswordScreen({
     super.key,
     required this.me,
     required this.usernameFallback,
-    this.popOnSuccess = false,
   });
 
   @override
@@ -52,14 +50,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
     final newPassword = _newPasswordController.text;
     final confirm = _confirmPasswordController.text;
 
-    if (current.isEmpty || newPassword.isEmpty || confirm.isEmpty) {
-      showWarningSnackBar(
-        'Completa todos los campos.',
-        title: 'Datos incompletos',
-      );
-      return;
-    }
-    final issue = checkNewPassword(newPassword, confirmation: confirm);
+    final issue = checkPasswordChange(
+      current: current,
+      password: newPassword,
+      confirmation: confirm,
+    );
     if (issue != null) {
       showWarningSnackBar(issue.message, title: issue.title);
       return;
@@ -75,14 +70,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         ),
       );
       if (!mounted) return;
-      if (widget.popOnSuccess) {
-        showSuccessSnackBar(
-          'Tu contraseña se actualizó correctamente.',
-          title: 'Contraseña actualizada',
-        );
-        Navigator.of(context).pop();
-        return;
-      }
       routeAfterAuth(
         context,
         widget.me,
@@ -101,21 +88,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
 
   @override
   Widget build(BuildContext context) {
-    final fromProfile = widget.popOnSuccess;
     return PopScope(
       // The forced change after the first login cannot be skipped.
-      canPop: fromProfile,
+      canPop: false,
       child: AuthFormLayout(
         icon: Icons.lock_reset,
         title: 'Cambia tu contraseña',
-        subtitle: fromProfile
-            ? 'Escribe tu contraseña actual y la nueva.'
-            : 'Por seguridad, debes establecer una contraseña propia antes de continuar.',
-        showBackButton: fromProfile,
+        subtitle:
+            'Por seguridad, debes establecer una contraseña propia antes de continuar.',
+        showBackButton: false,
         children: [
           AuthTextField(
             controller: _currentPasswordController,
-            hint: fromProfile ? 'Contraseña actual' : 'Contraseña temporal',
+            hint: 'Contraseña temporal',
             icon: Icons.lock_clock_outlined,
             isPassword: true,
           ),

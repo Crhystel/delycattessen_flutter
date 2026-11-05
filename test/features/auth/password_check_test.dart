@@ -33,4 +33,46 @@ void main() {
       expect(issue!.title, 'Las contraseñas no coinciden');
     });
   });
+
+  group('checkPasswordChange', () {
+    test('accepts a valid change', () {
+      expect(
+        checkPasswordChange(
+          current: 'Old-Passw0rd!',
+          password: valid,
+          confirmation: valid,
+        ),
+        isNull,
+      );
+    });
+
+    test('requires the current password', () {
+      final issue = checkPasswordChange(
+        current: '',
+        password: valid,
+        confirmation: valid,
+      );
+
+      expect(issue!.title, 'Datos incompletos');
+    });
+
+    test('applies the new password rules', () {
+      expect(
+        checkPasswordChange(
+          current: 'Old-Passw0rd!',
+          password: 'abc',
+          confirmation: 'abc',
+        )!.title,
+        'Contraseña insegura',
+      );
+      expect(
+        checkPasswordChange(
+          current: 'Old-Passw0rd!',
+          password: valid,
+          confirmation: '${valid}x',
+        )!.title,
+        'Las contraseñas no coinciden',
+      );
+    });
+  });
 }
