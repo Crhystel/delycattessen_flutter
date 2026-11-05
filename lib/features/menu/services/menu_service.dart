@@ -76,18 +76,22 @@ class MenuService extends BaseApiService {
     final query = studentId != null
         ? {'student_id': studentId.toString()}
         : null;
-    final promotionsFuture = performGetRequest(
-      Uri.parse(
-        ApiConfig.activePromotions,
-      ).replace(queryParameters: query).toString(),
-    );
-    final combosFuture = performGetRequest(
-      Uri.parse(
-        ApiConfig.activeCombos,
-      ).replace(queryParameters: query).toString(),
-    );
-    final promotions = await promotionsFuture as List;
-    final combos = await combosFuture as List;
+    // Future.wait atiende los errores de ambas peticiones: si una falla (p. ej.
+    // cuenta desactivada), la otra no deja un error asíncrono sin capturar.
+    final responses = await Future.wait([
+      performGetRequest(
+        Uri.parse(
+          ApiConfig.activePromotions,
+        ).replace(queryParameters: query).toString(),
+      ),
+      performGetRequest(
+        Uri.parse(
+          ApiConfig.activeCombos,
+        ).replace(queryParameters: query).toString(),
+      ),
+    ]);
+    final promotions = responses[0] as List;
+    final combos = responses[1] as List;
     return CatalogOffers(
       promotions: promotions
           .whereType<Map<String, dynamic>>()

@@ -107,13 +107,16 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       _errorMessage = null;
     });
     try {
-      // Peticiones en paralelo; se esperan por separado para conservar los tipos.
-      final itemsFuture = source.loadItems();
-      final allergensFuture = source.loadAllergenIds();
-      final offersFuture = _loadOffers(source);
-      final items = await itemsFuture;
-      final allergenIds = await allergensFuture;
-      final offers = await offersFuture;
+      // Peticiones en paralelo con Future.wait: si una falla (p. ej. cuenta
+      // desactivada), el error de las demás no queda sin capturar.
+      final results = await Future.wait<Object>([
+        source.loadItems(),
+        source.loadAllergenIds(),
+        _loadOffers(source),
+      ]);
+      final items = results[0] as List<MenuItem>;
+      final allergenIds = results[1] as Set<int>;
+      final offers = results[2] as CatalogOffers;
       if (!mounted || token != _loadToken) return;
       setState(() {
         _items = items;
