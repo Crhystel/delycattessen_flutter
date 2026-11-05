@@ -15,6 +15,9 @@ class LabeledTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final bool isPassword;
 
+  /// Space below the field; 0 for the last field of a card.
+  final double bottomPadding;
+
   const LabeledTextField({
     super.key,
     required this.label,
@@ -23,6 +26,7 @@ class LabeledTextField extends StatefulWidget {
     this.keyboardType,
     this.textCapitalization = TextCapitalization.words,
     this.isPassword = false,
+    this.bottomPadding = AppSpacing.lg,
   });
 
   @override
@@ -40,7 +44,7 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
       borderSide: BorderSide(color: AppColors.secondary500, width: 1.4),
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      padding: EdgeInsets.only(bottom: widget.bottomPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

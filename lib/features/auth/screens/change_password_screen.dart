@@ -13,7 +13,7 @@ import '../utils/auth_routing.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Forced password change after the first login (temporary password). The
-/// regular change lives in the profile form (`EditProfileScreen`); both share
+/// regular change lives in the profile (`ProfilePasswordScreen`); both share
 /// the same checks through `checkPasswordChange`.
 class ChangePasswordScreen extends StatefulWidget {
   final MeResponse me;

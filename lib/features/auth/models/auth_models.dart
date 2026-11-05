@@ -140,6 +140,23 @@ class MeResponse {
 
   UserRole? get userRole => UserRole.fromApi(role);
 
+  PersonNames get names => PersonNames(
+    firstName: firstName,
+    secondName: secondName,
+    lastName: lastName,
+    secondLastName: secondLastName,
+  );
+
+  /// First name and first surname, for greetings and summaries.
+  String get displayName => _joinWords([firstName, lastName]);
+
+  /// The four name parts, for the profile list.
+  String get fullName =>
+      _joinWords([firstName, secondName, lastName, secondLastName]);
+
+  static String _joinWords(List<String> parts) =>
+      parts.where((part) => part.trim().isNotEmpty).join(' ');
+
   factory MeResponse.fromJson(Map<String, dynamic> json) {
     return MeResponse(
       id: json['id'] as int,
@@ -247,27 +264,35 @@ class PersonNames {
   };
 }
 
-/// Body of `PATCH /api/users/me/profile/` (parent or teacher).
+/// Body of `PATCH /api/users/me/profile/` (parent or teacher). Changing the
+/// email also needs [currentPassword]: the backend rejects it otherwise.
 class ProfileUpdate {
   static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   final PersonNames names;
   final String email;
+  final String? currentPassword;
 
-  const ProfileUpdate({required this.names, required this.email});
+  const ProfileUpdate({
+    required this.names,
+    required this.email,
+    this.currentPassword,
+  });
+
+  static bool isValidEmail(String email) =>
+      _emailPattern.hasMatch(email.trim());
 
   String? validate() {
     final namesError = names.validate();
     if (namesError != null) return namesError;
-    if (!_emailPattern.hasMatch(email.trim())) {
-      return 'Ingresa un correo válido.';
-    }
+    if (!isValidEmail(email)) return 'Ingresa un correo válido.';
     return null;
   }
 
   Map<String, dynamic> toJson() => {
     ...names.toJson(),
     'email': email.trim().toLowerCase(),
+    if (currentPassword != null) 'current_password': currentPassword,
   };
 }
 

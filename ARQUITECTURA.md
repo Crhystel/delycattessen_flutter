@@ -21,10 +21,12 @@ lib/
 │   └── widgets/   app_bottom_sheet, app_card, app_confirmation_dialog,
 │                  app_notification_dialog/messenger, app_scaffold, empty_state,
 │                  light_app_bar, primary_button, child_avatar_chip, floating_bubbles,
+│                  header_actions (botones de cuenta del encabezado), form_page,
+│                  form_section_card, profile_summary_card, labeled_text_field,
 │                  notification_header, photo_source_dialog, photo_guidelines_screen,
 │                  face_capture_camera_screen
 └── features/
-    ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, editar perfil (padre y docente), rol (UserRole)
+    ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, Mi perfil (padre y docente: menú con flechita a nombres, correo —pide la contraseña actual—, contraseña y, solo docente, alergias), rol (UserRole)
     ├── children/     Hijos del padre (incluye editar sus datos), control parental, ParentShell (navegación del padre), ChildrenProvider
     ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
     ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos

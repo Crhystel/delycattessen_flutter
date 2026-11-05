@@ -29,6 +29,7 @@ class AppTheme {
     List<Widget>? actions,
     PreferredSizeWidget? bottom,
     bool centerTitle = true,
+    Color backgroundColor = Colors.white,
   }) {
     return AppBar(
       title: title,
@@ -36,7 +37,7 @@ class AppTheme {
       actions: actions,
       bottom: bottom,
       centerTitle: centerTitle,
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       foregroundColor: AppColors.ink900,
       elevation: 0,
       iconTheme: const IconThemeData(color: AppColors.ink900),

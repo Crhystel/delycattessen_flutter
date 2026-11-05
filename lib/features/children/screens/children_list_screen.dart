@@ -14,9 +14,10 @@ import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
-import '../../auth/screens/edit_profile_screen.dart';
+import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../menu/models/menu_models.dart';
@@ -119,9 +120,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       final me = _me ?? await _authService.getMe();
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
-        MaterialPageRoute(
-          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
-        ),
+        MaterialPageRoute(builder: (_) => ProfileScreen(me: me)),
       );
       if (updated != null && mounted) _showUser(updated);
     } catch (e) {
@@ -211,7 +210,12 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            HeaderActions.topInset,
+            AppSpacing.xl,
+            AppSpacing.xl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -225,6 +229,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       children: [
                         Text(
                           '¡Hola ${_userName.isNotEmpty ? _userName : "Usuario"}!',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -239,18 +245,21 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.manage_accounts_outlined,
-                      color: AppColors.teal700,
-                    ),
-                    tooltip: 'Mi perfil',
-                    onPressed: _openProfile,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: AppColors.teal700),
-                    tooltip: 'Cerrar sesión',
-                    onPressed: _confirmLogout,
+                  const SizedBox(width: AppSpacing.md),
+                  HeaderActions(
+                    actions: [
+                      HeaderAction(
+                        icon: Icons.manage_accounts_outlined,
+                        tooltip: 'Mi perfil',
+                        onPressed: _openProfile,
+                      ),
+                      HeaderAction(
+                        icon: Icons.logout,
+                        tooltip: 'Cerrar sesión',
+                        onPressed: _confirmLogout,
+                        color: AppColors.danger700,
+                      ),
+                    ],
                   ),
                 ],
               ),

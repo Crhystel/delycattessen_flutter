@@ -6,6 +6,7 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/header_actions.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/pos_identification_model.dart';
@@ -160,18 +161,25 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
         builder: (context, constraints) {
           final pad = AppSpacing.xl * (s > 1 ? 2 : 1);
           return SingleChildScrollView(
-            padding: EdgeInsets.all(pad),
+            padding: EdgeInsets.fromLTRB(
+              pad,
+              HeaderActions.topInset * (s > 1 ? 2 : 1),
+              pad,
+              pad,
+            ),
             // Con espacio de sobra, las opciones quedan centradas en vertical
             // bajo el encabezado; si no cabe, la pantalla hace scroll.
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - pad * 2,
+                minHeight:
+                    constraints.maxHeight -
+                    pad -
+                    HeaderActions.topInset * (s > 1 ? 2 : 1),
               ),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: AppSpacing.lg * s),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -182,6 +190,8 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                             children: [
                               Text(
                                 'Hola ${widget.userName}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 24 * s,
@@ -200,14 +210,16 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                             ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: _confirmLogout,
-                          tooltip: 'Cerrar sesión',
-                          iconSize: 24 * s,
-                          icon: const Icon(
-                            Icons.logout_rounded,
-                            color: AppColors.teal700,
-                          ),
+                        const SizedBox(width: AppSpacing.md),
+                        HeaderActions(
+                          actions: [
+                            HeaderAction(
+                              icon: Icons.logout_rounded,
+                              tooltip: 'Cerrar sesión',
+                              onPressed: _confirmLogout,
+                              color: AppColors.danger700,
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -10,8 +10,9 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
-import '../../auth/screens/edit_profile_screen.dart';
+import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../menu/screens/teacher_products_screen.dart';
@@ -124,15 +125,16 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     return 'Hoy es $dayName';
   }
 
-  /// Teachers edit their own names and email and can change their password
-  /// (students cannot).
+  /// Teachers open their profile: names, email, password and their allergies
+  /// (students have no profile).
   Future<void> _openProfile() async {
     try {
       final me = await AuthService().getMe();
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
         MaterialPageRoute(
-          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
+          builder: (_) =>
+              ProfileScreen(me: me, onOpenAllergies: _openAllergies),
         ),
       );
       // The greeting shows the name that comes with the QR data.
@@ -181,47 +183,39 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.xl,
-          AppSpacing.xs,
+          HeaderActions.topInset,
           AppSpacing.xl,
           AppSpacing.xl,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Figma: cerrar sesión en la esquina superior, sobre las burbujas.
+            // Cuenta (perfil y cerrar sesión) en la esquina superior, sobre
+            // una píldora blanca para que se lea sobre las burbujas.
             Align(
               alignment: Alignment.centerRight,
-              child: Transform.translate(
-                offset: const Offset(AppSpacing.lg, 0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.isTeacher)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.manage_accounts_outlined,
-                          color: AppColors.ink900,
-                          size: 28,
-                        ),
-                        tooltip: 'Mi perfil',
-                        onPressed: _openProfile,
-                      ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.logout,
-                        color: AppColors.ink900,
-                        size: 28,
-                      ),
-                      tooltip: 'Cerrar sesión',
-                      onPressed: _confirmLogout,
+              child: HeaderActions(
+                actions: [
+                  if (widget.isTeacher)
+                    HeaderAction(
+                      icon: Icons.manage_accounts_outlined,
+                      tooltip: 'Mi perfil',
+                      onPressed: _openProfile,
                     ),
-                  ],
-                ),
+                  HeaderAction(
+                    icon: Icons.logout,
+                    tooltip: 'Cerrar sesión',
+                    onPressed: _confirmLogout,
+                    color: AppColors.danger700,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               'Hola $displayName',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
@@ -431,12 +425,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
           icon: Icons.account_balance_outlined,
           label: 'Mi crédito',
           onTap: _openCreditHistory,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildShortcut(
-          icon: Icons.health_and_safety_outlined,
-          label: 'Mis alergias',
-          onTap: _openAllergies,
         ),
       ],
     );
