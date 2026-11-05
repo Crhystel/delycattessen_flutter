@@ -27,8 +27,12 @@ mixin ErrorHandlerMixin {
       );
 
       String errorMessage = 'Error desconocido en el servidor';
+      String? errorCode;
       try {
         final decodedError = jsonDecode(response.body);
+        if (decodedError is Map && decodedError['code'] is String) {
+          errorCode = decodedError['code'] as String;
+        }
         if (decodedError is List && decodedError.isNotEmpty) {
           // DRF envuelve un ValidationError('texto') lanzado directo en una
           // vista (no desde un serializer) como un array JSON plano.
@@ -54,7 +58,7 @@ mixin ErrorHandlerMixin {
         errorMessage = 'Error $statusCode: ${response.reasonPhrase}';
       }
 
-      throw ApiException(errorMessage);
+      throw ApiException(errorMessage, statusCode: statusCode, code: errorCode);
     }
   }
 

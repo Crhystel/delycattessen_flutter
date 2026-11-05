@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_exception.dart';
+import '../../../core/session/session_manager.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_routing.dart';
@@ -27,13 +29,20 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
   }
 
   Future<void> _checkSession() async {
-    final refreshed = await _authService.tryRefreshToken();
-    if (!mounted) return;
-
-    if (!refreshed) {
-      _goTo(const LoginScreen());
+    try {
+      await _authService.refreshAccessToken();
+    } on ApiException catch (e) {
+      if (e.isUserInactive) {
+        await SessionManager.expire(e.message, title: 'Cuenta desactivada');
+        return;
+      }
+      if (mounted) _goTo(const LoginScreen());
+      return;
+    } catch (_) {
+      if (mounted) _goTo(const LoginScreen());
       return;
     }
+    if (!mounted) return;
 
     try {
       final me = await _authService.getMe();

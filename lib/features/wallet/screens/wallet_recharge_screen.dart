@@ -170,11 +170,11 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       return;
     }
 
-    final confirmed = await _confirmWithPin();
-    if (!confirmed || !mounted) return;
-
     setState(() => _isSubmitting = true);
     try {
+      final confirmed = await _confirmWithPin();
+      if (!confirmed || !mounted) return;
+
       // El servidor decide la pasarela y valida el monto mínimo.
       final gateway = await _walletService.getRechargeGateway(amount);
       if (!mounted) return;
