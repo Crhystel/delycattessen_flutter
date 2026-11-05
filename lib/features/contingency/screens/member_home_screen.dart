@@ -426,12 +426,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
           label: 'Mi crédito',
           onTap: _openCreditHistory,
         ),
-        const SizedBox(height: AppSpacing.md),
-        _buildShortcut(
-          icon: Icons.health_and_safety_outlined,
-          label: 'Mis alergias',
-          onTap: _openAllergies,
-        ),
       ],
     );
   }
