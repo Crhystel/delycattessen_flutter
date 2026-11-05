@@ -59,11 +59,17 @@ class CatalogBadge extends StatelessWidget {
             Icon(icon, size: 14, color: foreground),
             const SizedBox(width: 3),
           ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w800,
+          // Flexible so a long label (or a large system font) is cut with an
+          // ellipsis instead of overflowing the badge.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           if (onRemove != null) ...[

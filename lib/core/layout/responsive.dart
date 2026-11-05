@@ -79,6 +79,10 @@ class ResponsiveItemList extends StatelessWidget {
   final int maxColumns;
   final ScrollPhysics? physics;
 
+  /// Optional widget that scrolls with the items, above the first one (e.g.
+  /// the offers of a catalog). It never takes fixed space from the list.
+  final Widget? header;
+
   const ResponsiveItemList({
     super.key,
     required this.itemCount,
@@ -88,6 +92,7 @@ class ResponsiveItemList extends StatelessWidget {
     this.minItemWidth = AppLayout.minCardWidth,
     this.maxColumns = 3,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.header,
   });
 
   @override
@@ -101,20 +106,24 @@ class ResponsiveItemList extends StatelessWidget {
           minItemWidth: minItemWidth,
           maxColumns: maxColumns,
         );
+        final offset = header == null ? 0 : 1;
         if (columns == 1) {
           return ListView.builder(
             physics: physics,
             padding: padding,
-            itemCount: itemCount,
-            itemBuilder: itemBuilder,
+            itemCount: itemCount + offset,
+            itemBuilder: (context, index) =>
+                index < offset ? header! : itemBuilder(context, index - offset),
           );
         }
         final rowCount = (itemCount / columns).ceil();
         return ListView.builder(
           physics: physics,
           padding: padding,
-          itemCount: rowCount,
-          itemBuilder: (context, row) {
+          itemCount: rowCount + offset,
+          itemBuilder: (context, index) {
+            if (index < offset) return header!;
+            final row = index - offset;
             final start = row * columns;
             return IntrinsicHeight(
               child: Row(

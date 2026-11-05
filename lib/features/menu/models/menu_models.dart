@@ -362,25 +362,32 @@ class Promotion {
   final String? imageUrl;
   final List<String> productNames;
 
+  /// Ids of the products on offer, to look up their prices in the catalog.
+  final List<int> productIds;
+
   Promotion({
     required this.id,
     required this.discountPercentage,
     required this.endDate,
     this.imageUrl,
     this.productNames = const [],
+    this.productIds = const [],
   });
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
-    final products = json['products'] as List? ?? [];
+    final products = (json['products'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
     return Promotion(
       id: json['id'] as int,
       discountPercentage: json['discount_percentage'] as int,
       endDate: DateTime.parse(json['end_date'] as String),
       imageUrl: json['image'] as String?,
-      productNames: products
-          .whereType<Map<String, dynamic>>()
-          .map((p) => p['name'].toString())
-          .toList(),
+      productNames: products.map((p) => p['name'].toString()).toList(),
+      productIds: [
+        for (final p in products)
+          if (p['id'] is int) p['id'] as int,
+      ],
     );
   }
 }
@@ -426,6 +433,12 @@ class Combo {
     this.imageUrl,
     this.items = const [],
   });
+
+  /// True when the combo costs less than its products bought separately.
+  bool get hasSavings => regularPrice > price;
+
+  /// What the customer saves with the combo; zero when there is no saving.
+  double get savings => hasSavings ? regularPrice - price : 0.0;
 
   factory Combo.fromJson(Map<String, dynamic> json) => Combo(
     id: json['id'] as int,

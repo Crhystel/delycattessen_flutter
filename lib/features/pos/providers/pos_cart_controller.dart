@@ -49,6 +49,9 @@ class PosCartController extends ChangeNotifier {
 
   int quantityOfProduct(int productId) => _productQuantities[productId] ?? 0;
 
+  /// Units of a combo in the cart (each one counts as a single line unit).
+  int quantityOfCombo(int comboId) => _comboQuantities[comboId] ?? 0;
+
   List<PosCartLine> get lines => [
     for (final entry in _productQuantities.entries)
       PosCartLine(

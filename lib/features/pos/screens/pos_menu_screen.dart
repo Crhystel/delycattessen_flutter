@@ -6,19 +6,23 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/collapsible_header_layout.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
 import '../../menu/services/menu_service.dart';
 import '../../menu/utils/cart_rules.dart';
 import '../../menu/utils/catalog_filters.dart';
-import '../../menu/widgets/catalog_header.dart';
+import '../../menu/screens/combo_detail_screen.dart';
+import '../../menu/widgets/catalog_search_row.dart';
+import '../../menu/widgets/catalog_title_block.dart';
 import '../../menu/widgets/catalog_item_card.dart';
 import '../../menu/widgets/catalog_section.dart';
 import '../../menu/widgets/category_filter_bar.dart';
-import '../../menu/widgets/promotion_banner.dart';
+import '../../menu/widgets/offers_section.dart';
 import '../models/pos_identification_model.dart';
 import '../providers/pos_cart_controller.dart';
+import '../widgets/pos_user_banner.dart';
 import 'pos_checkout_screen.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -127,24 +131,31 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     if (short != null) _warnStock(short);
   }
 
-  /// Tapping a combo banner adds all its products to the cart at once.
-  void _addCombo(Combo combo) {
-    final conflicts = {
-      for (final comboItem in combo.items)
-        if (_itemsById[comboItem.productId] case final item?)
-          ..._conflictingAllergens(item),
-    };
-    if (conflicts.isNotEmpty) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
-        title: 'Combo no disponible',
-        message:
-            '"${combo.name}" contiene ${conflicts.join(', ')}, registrados como alergias de ${widget.user?.fullName ?? 'el cliente'}.',
-      );
-      return;
-    }
-    final short = _cart.addCombo(combo);
+  /// Allergens of the customer found in the dishes of [combo].
+  Set<String> _comboConflicts(Combo combo) => {
+    for (final comboItem in combo.items)
+      if (_itemsById[comboItem.productId] case final item?)
+        ..._conflictingAllergens(item),
+  };
+
+  /// Warns that [combo] has an allergen of the customer; true if it did.
+  bool _warnComboBlocked(Combo combo) {
+    final conflicts = _comboConflicts(combo);
+    if (conflicts.isEmpty) return false;
+    AppNotificationDialog.show(
+      context,
+      type: NotificationType.danger,
+      title: 'Combo no disponible',
+      message:
+          '"${combo.name}" contiene ${conflicts.join(', ')}, registrados como alergias de ${widget.user?.fullName ?? 'el cliente'}.',
+    );
+    return true;
+  }
+
+  /// The "Agregar combo" button adds all the combo's products at once.
+  void _addCombo(Combo combo, [int quantity = 1]) {
+    if (_warnComboBlocked(combo)) return;
+    final short = _cart.addCombo(combo, quantity);
     if (short != null) {
       _warnStock(short);
       return;
@@ -152,6 +163,21 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     showSuccessSnackBar(
       '"${combo.name}" se agregó al carrito.',
       title: 'Combo agregado',
+    );
+  }
+
+  /// Tapping a combo opens its detail, like a normal product.
+  void _openCombo(Combo combo) {
+    if (_warnComboBlocked(combo)) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ComboDetailScreen(
+          combo: combo,
+          itemsById: _itemsById,
+          onAdd: (qty) => _addCombo(combo, qty),
+        ),
+      ),
     );
   }
 
@@ -207,6 +233,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
 
   @override
   Widget build(BuildContext context) {
+    final user = widget.user;
     return Scaffold(
       backgroundColor: Colors.white,
       body: ResponsiveCenter(
@@ -215,108 +242,38 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              if (widget.user != null) _buildUserBanner(widget.user!),
-              if (!_isLoading && _offers.combos.isNotEmpty)
-                PromotionBanner(
-                  offers: CatalogOffers(combos: _offers.combos),
-                  onComboTap: _addCombo,
+              // The search field and the customer box (allergies are safety
+              // information) stay; the title and categories fold away while
+              // the list scrolls down.
+              Expanded(
+                child: CollapsibleHeaderLayout(
+                  pinned: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CatalogSearchRow(
+                        showBackButton: true,
+                        searchController: _searchController,
+                        onSearchChanged: (value) => setState(
+                          () => _searchQuery = value.trim().toLowerCase(),
+                        ),
+                      ),
+                      if (user != null) PosUserBanner(user: user),
+                    ],
+                  ),
+                  collapsible: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CatalogTitleBlock(title: 'Productos'),
+                      _buildCategoryChips(),
+                      const SizedBox(height: AppSpacing.xs),
+                    ],
+                  ),
+                  body: _buildBody(),
                 ),
-              _buildCategoryChips(),
-              const SizedBox(height: AppSpacing.xs),
-              Expanded(child: _buildBody()),
+              ),
               if (!_cart.isEmpty) _buildCartBar(),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return CatalogHeader(
-      title: 'Productos',
-      showBackButton: true,
-      searchController: _searchController,
-      onSearchChanged: (value) =>
-          setState(() => _searchQuery = value.trim().toLowerCase()),
-    );
-  }
-
-  Widget _buildUserBanner(IdentifiedUser user) {
-    final hasAllergies = user.allergies.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        0,
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: hasAllergies ? AppColors.dangerBg : AppColors.secondary50,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Vendiendo a ${user.fullName}',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink900,
-              ),
-            ),
-            if (user.displayAmount != null) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    user.isTeacher
-                        ? Icons.receipt_long_outlined
-                        : Icons.account_balance_wallet_outlined,
-                    size: 16,
-                    color: AppColors.ink900,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      '${user.displayAmountLabel}: '
-                      '\$${user.displayAmount!.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (hasAllergies) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 16,
-                    color: AppColors.danger700,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Alergias: ${user.allergies.join(', ')}',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.danger700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
         ),
       ),
     );
@@ -355,6 +312,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     }
 
     final items = _visibleItems;
+    final offersHeader = _buildOffers();
     final list = RefreshIndicator(
       color: AppColors.secondary500,
       onRefresh: _loadMenu,
@@ -362,6 +320,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
+                ?offersHeader,
                 EmptyState(
                   icon: _searchQuery.isNotEmpty
                       ? Icons.search_off
@@ -383,6 +342,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
                 AppSpacing.md,
                 AppSpacing.md,
               ),
+              header: offersHeader,
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),
@@ -390,6 +350,25 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     return CatalogSection(
       title: CategoryFilterBar.labelFor(_selectedCategory),
       child: list,
+    );
+  }
+
+  /// Combos with their dishes, inside the scroll of the list. The POS sells
+  /// combos; discounts already show on each product card.
+  Widget? _buildOffers() {
+    if (_offers.combos.isEmpty ||
+        _selectedCategory != null ||
+        _searchQuery.isNotEmpty) {
+      return null;
+    }
+    return OffersSection(
+      offers: CatalogOffers(combos: _offers.combos),
+      itemsById: _itemsById,
+      onAddCombo: _addCombo,
+      onComboTap: _openCombo,
+      onProductTap: _onTapItem,
+      comboQuantity: (combo) => _cart.quantityOfCombo(combo.id),
+      isComboBlocked: (combo) => _comboConflicts(combo).isNotEmpty,
     );
   }
 

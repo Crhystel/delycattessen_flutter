@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../core/layout/responsive.dart';
-import '../models/menu_models.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
-import '../../../core/widgets/primary_button.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
-class ProductDetailScreen extends StatefulWidget {
+import '../../../core/layout/responsive.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../models/menu_models.dart';
+import '../widgets/detail_chip.dart';
+import '../widgets/detail_hero_image.dart';
+import '../widgets/quantity_add_bar.dart';
+
+class ProductDetailScreen extends StatelessWidget {
   final MenuItem item;
 
   /// Si es nulo la pantalla es de solo consulta (sin cantidad ni botón añadir).
@@ -17,16 +17,9 @@ class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key, required this.item, this.onAdd});
 
   @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
-}
-
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  int _quantity = 1;
-
-  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final item = widget.item;
+    final add = onAdd;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -34,87 +27,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 280,
-                  color: AppColors.ink50,
-                  child: item.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: item.imageUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: AppImageCacheHelper.cacheSize(
-                            context,
-                            MediaQuery.sizeOf(context).width,
-                          ),
-                          memCacheHeight: AppImageCacheHelper.cacheSize(
-                            context,
-                            280,
-                          ),
-                          placeholder: (_, _) => const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondary500,
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => const Icon(
-                            Icons.fastfood,
-                            size: 100,
-                            color: AppColors.secondary500,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.fastfood,
-                          size: 100,
-                          color: AppColors.secondary500,
-                        ),
-                ),
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          size: 20,
-                          color: AppColors.ink900,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            DetailHeroImage(imageUrl: item.imageUrl),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Text(
+                      item.name,
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    // Prices under the name (not beside it) so a long name or
+                    // a large system font never pushes them out of the screen.
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Expanded(
-                          child: Text(
-                            item.name,
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        if (item.hasDiscount) ...[
-                          Text(
-                            '\$${item.originalPrice.toStringAsFixed(2)}',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink900.withValues(alpha: 0.45),
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                        ],
                         Text(
                           '\$${item.price.toStringAsFixed(2)}',
                           style: textTheme.headlineSmall?.copyWith(
@@ -122,6 +54,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             color: AppColors.brand700,
                           ),
                         ),
+                        if (item.hasDiscount)
+                          Text(
+                            '\$${item.originalPrice.toStringAsFixed(2)}',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink900.withValues(alpha: 0.45),
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
                       ],
                     ),
                     if (item.description.isNotEmpty) ...[
@@ -135,38 +75,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ],
                     if (item.ingredients.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xl),
-                      _buildSectionTitle('Ingredientes'),
+                      const _SectionTitle('Ingredientes'),
                       Wrap(
                         spacing: AppSpacing.sm,
                         runSpacing: AppSpacing.sm,
-                        children: item.ingredients
-                            .map((i) => _buildChip(i.name))
-                            .toList(),
+                        children: [
+                          for (final i in item.ingredients) DetailChip(i.name),
+                        ],
                       ),
                     ],
                     if (item.allergens.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xl),
-                      _buildSectionTitle('Contiene alérgenos'),
+                      const _SectionTitle('Contiene alérgenos'),
                       Wrap(
                         spacing: AppSpacing.sm,
                         runSpacing: AppSpacing.sm,
-                        children: item.allergens
-                            .map((a) => _buildChip(a.name, isAllergen: true))
-                            .toList(),
+                        children: [
+                          for (final a in item.allergens)
+                            DetailChip(a.name, isAllergen: true),
+                        ],
                       ),
                     ],
                   ],
                 ),
               ),
             ),
-            if (widget.onAdd != null) _buildBottomBar(),
+            if (add != null) QuantityAddBar(unitPrice: item.price, onAdd: add),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildSectionTitle(String text) {
+class _SectionTitle extends StatelessWidget {
+  final String text;
+
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Text(
@@ -174,90 +122,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         style: Theme.of(
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, {bool isAllergen = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isAllergen ? AppColors.dangerBg : AppColors.secondary50,
-        borderRadius: AppRadius.smAll,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isAllergen ? AppColors.danger700 : AppColors.secondary700,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.lg),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.secondary500),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.remove,
-                      color: AppColors.secondary500,
-                    ),
-                    onPressed: () {
-                      if (_quantity > 1) setState(() => _quantity--);
-                    },
-                  ),
-                  Text(
-                    '$_quantity',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: AppColors.secondary500),
-                    onPressed: () => setState(() => _quantity++),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: PrimaryButton(
-                label:
-                    'Añadir \$${(widget.item.price * _quantity).toStringAsFixed(2)}',
-                onPressed: () {
-                  widget.onAdd?.call(_quantity);
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

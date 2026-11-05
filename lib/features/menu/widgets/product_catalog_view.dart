@@ -7,16 +7,19 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
+import '../../../core/widgets/collapsible_header_layout.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../models/menu_models.dart';
+import '../screens/combo_detail_screen.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/product_catalog_source.dart';
 import '../utils/catalog_filters.dart';
-import 'catalog_header.dart';
 import 'catalog_item_card.dart';
+import 'catalog_search_row.dart';
 import 'catalog_section.dart';
+import 'catalog_title_block.dart';
 import 'category_filter_bar.dart';
-import 'promotion_banner.dart';
+import 'offers_section.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Catálogo de productos de solo consulta (el backend únicamente permite
@@ -191,37 +194,37 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       body: ResponsiveCenter(
         maxWidth: AppLayout.wideMaxWidth,
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              if (widget.banner != null) widget.banner!,
-              if (showFilters && !_offers.isEmpty)
-                PromotionBanner(offers: _offers),
-              const SizedBox(height: AppSpacing.sm),
-              if (showFilters && categories.isNotEmpty)
-                CategoryFilterBar(
-                  categories: categories,
-                  selected: _selectedCategory,
-                  onSelected: (category) =>
-                      setState(() => _selectedCategory = category),
+          // The search field stays; the title, selector, banner and
+          // categories fold away while the list scrolls down.
+          child: CollapsibleHeaderLayout(
+            pinned: CatalogSearchRow(
+              showBackButton: widget.showBackButton,
+              searchController: _searchController,
+              onSearchChanged: _onSearchChanged,
+            ),
+            collapsible: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CatalogTitleBlock(
+                  title: widget.title,
+                  accessory: widget.headerAccessory,
                 ),
-              const SizedBox(height: AppSpacing.xs),
-              Expanded(child: _buildBody()),
-            ],
+                if (widget.banner != null) widget.banner!,
+                const SizedBox(height: AppSpacing.sm),
+                if (showFilters && categories.isNotEmpty)
+                  CategoryFilterBar(
+                    categories: categories,
+                    selected: _selectedCategory,
+                    onSelected: (category) =>
+                        setState(() => _selectedCategory = category),
+                  ),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+            ),
+            body: _buildBody(),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return CatalogHeader(
-      title: widget.title,
-      showBackButton: widget.showBackButton,
-      searchController: _searchController,
-      onSearchChanged: _onSearchChanged,
-      accessory: widget.headerAccessory,
     );
   }
 
@@ -256,6 +259,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       category: _selectedCategory,
       query: _searchQuery,
     );
+    final offersHeader = _buildOffers();
     return RefreshIndicator(
       color: AppColors.secondary500,
       onRefresh: _refresh,
@@ -263,6 +267,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
+                ?offersHeader,
                 EmptyState(
                   icon: _searchQuery.isNotEmpty
                       ? Icons.search_off
@@ -284,9 +289,32 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
                 AppSpacing.md,
                 AppSpacing.md,
               ),
+              header: offersHeader,
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),
+    );
+  }
+
+  /// Offers go inside the scroll of the list, so they never shrink it. They
+  /// show only without a search or a category filter.
+  Widget? _buildOffers() {
+    if (_offers.isEmpty ||
+        _selectedCategory != null ||
+        _searchQuery.isNotEmpty) {
+      return null;
+    }
+    final itemsById = {for (final item in _items) item.id: item};
+    return OffersSection(
+      offers: _offers,
+      itemsById: itemsById,
+      onComboTap: (combo) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ComboDetailScreen(combo: combo, itemsById: itemsById),
+        ),
+      ),
+      onProductTap: _onTapItem,
     );
   }
 

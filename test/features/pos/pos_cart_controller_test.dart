@@ -47,6 +47,16 @@ void main() {
     expect((comboLine.name, comboLine.unitPrice), ('Combo almuerzo', 3.50));
   });
 
+  test('quantityOfCombo counts the units of each combo', () {
+    expect(cart.quantityOfCombo(combo.id), 0);
+
+    cart.addCombo(combo);
+    cart.addCombo(combo, 2);
+
+    expect(cart.quantityOfCombo(combo.id), 3);
+    expect(cart.quantityOfCombo(999), 0);
+  });
+
   test('stock counts the units a product uses inside combos', () {
     expect(cart.addCombo(combo, 2), isNull);
     expect(cart.addProduct(sandwich, 1), isNull);
