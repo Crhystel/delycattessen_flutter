@@ -263,12 +263,37 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Vendiendo a ${user.fullName} · \$${user.balance.toStringAsFixed(2)}',
+              'Vendiendo a ${user.fullName}',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.ink900,
               ),
             ),
+            if (user.displayAmount != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    user.isTeacher
+                        ? Icons.receipt_long_outlined
+                        : Icons.account_balance_wallet_outlined,
+                    size: 16,
+                    color: AppColors.ink900,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${user.displayAmountLabel}: '
+                      '\$${user.displayAmount!.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (hasAllergies) ...[
               const SizedBox(height: 4),
               Row(
@@ -381,6 +406,8 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
+        // Stock 0 = producto sin control de inventario (no limita la venta).
+        if (item.stock > 0) CatalogBadge.info('Stock: ${item.stock}'),
         if (inCart > 0)
           CatalogBadge.info(
             '$inCart en carrito',

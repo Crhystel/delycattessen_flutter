@@ -218,15 +218,13 @@ class _IdentifiedUserSheetState extends State<IdentifiedUserSheet>
   /// docentes (no usan billetera). Sin dato no se muestra nada, para no
   /// enseñar un $0.00 engañoso.
   Widget _buildAmountCard(IdentifiedUser user) {
-    final double? amount = user.isTeacher
-        ? user.creditAccumulated
-        : user.balance;
+    final double? amount = user.displayAmount;
     if (amount == null) return const SizedBox.shrink();
     return AmountCard(
       icon: user.isTeacher
           ? Icons.account_balance_outlined
           : Icons.account_balance_wallet_outlined,
-      label: user.isTeacher ? 'Crédito del mes' : 'Saldo Actual',
+      label: user.displayAmountLabel,
       amount: amount,
     );
   }

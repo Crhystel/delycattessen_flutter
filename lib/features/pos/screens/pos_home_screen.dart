@@ -100,7 +100,11 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
   double get _scale => AppLayout.isTablet(context) ? 1.7 : 1.0;
 
   Widget _buildOptions() {
+    final isLandscapeTablet =
+        AppLayout.isTablet(context) &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final faceCard = _PosOptionCard(
+      stacked: isLandscapeTablet,
       iconBackground: const Color(0xFF5932EA),
       iconColor: Colors.white,
       icon: Icons.face_retouching_natural_rounded,
@@ -111,6 +115,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
       scale: _scale,
     );
     final qrCard = _PosOptionCard(
+      stacked: isLandscapeTablet,
       iconBackground: const Color(0xFFE5A93C),
       iconColor: Colors.white,
       icon: Icons.qr_code_2_rounded,
@@ -120,9 +125,6 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
       onTap: _navigateToQrScan,
       scale: _scale,
     );
-    final isLandscapeTablet =
-        AppLayout.isTablet(context) &&
-        MediaQuery.orientationOf(context) == Orientation.landscape;
     // Teléfono y tablet vertical: una debajo de la otra, a todo el ancho.
     // Tablet horizontal: lado a lado.
     if (!isLandscapeTablet) {
@@ -154,105 +156,128 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
     return AppScaffold(
       bubbleCorner: BubbleCorner.topRight,
       maxContentWidth: AppLayout.wideMaxWidth,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppSpacing.xl * (s > 1 ? 1.5 : 1)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hola ${widget.userName}',
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 24 * s,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        _getCurrentDayFormatted(),
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.65),
-                          fontSize: 14 * s,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: _confirmLogout,
-                  tooltip: 'Cerrar sesión',
-                  iconSize: 24 * s,
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.teal700,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: AppSpacing.xl * s),
-            Text(
-              '¿Cómo identificamos al usuario?',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.teal700,
-                fontSize: 22 * s,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final pad = AppSpacing.xl * (s > 1 ? 2 : 1);
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(pad),
+            // Con espacio de sobra, las opciones quedan centradas en vertical
+            // bajo el encabezado; si no cabe, la pantalla hace scroll.
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - pad * 2,
               ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Selecciona el método para identificar al usuario y registrar su consumo.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink900.withValues(alpha: 0.6),
-                fontSize: 14 * s,
-              ),
-            ),
-            SizedBox(height: AppSpacing.xl * s),
-            _buildOptions(),
-            SizedBox(height: AppSpacing.xl * s),
-            Center(
-              child: Container(
-                width: 190 * s,
-                height: 48 * s,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5932EA),
-                  borderRadius: BorderRadius.circular(12 * s),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12 * s),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PosMenuScreen()),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: AppSpacing.lg * s),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(Icons.bolt, color: Colors.white, size: 20 * s),
-                        SizedBox(width: 6 * s),
-                        Text(
-                          'Venta Rápida',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16 * s,
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hola ${widget.userName}',
+                                style: textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 24 * s,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                _getCurrentDayFormatted(),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.ink900.withValues(
+                                    alpha: 0.65,
+                                  ),
+                                  fontSize: 14 * s,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _confirmLogout,
+                          tooltip: 'Cerrar sesión',
+                          iconSize: 24 * s,
+                          icon: const Icon(
+                            Icons.logout_rounded,
+                            color: AppColors.teal700,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const Spacer(),
+                    Text(
+                      '¿Cómo identificamos al usuario?',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.teal700,
+                        fontSize: 22 * s,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Selecciona el método para identificar al usuario y registrar su consumo.',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.ink900.withValues(alpha: 0.6),
+                        fontSize: 14 * s,
+                      ),
+                    ),
+                    SizedBox(height: AppSpacing.md * s),
+                    _buildOptions(),
+                    SizedBox(height: AppSpacing.xl * s),
+                    Center(
+                      child: Container(
+                        width: 190 * s,
+                        height: 48 * s,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5932EA),
+                          borderRadius: BorderRadius.circular(12 * s),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12 * s),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const PosMenuScreen(),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.bolt,
+                                  color: Colors.white,
+                                  size: 20 * s,
+                                ),
+                                SizedBox(width: 6 * s),
+                                Text(
+                                  'Venta Rápida',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16 * s,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -270,6 +295,10 @@ class _PosOptionCard extends StatelessWidget {
   final VoidCallback onTap;
   final double scale;
 
+  /// Icono arriba y texto centrado debajo; llena mejor el espacio de las
+  /// tarjetas lado a lado (tablet horizontal).
+  final bool stacked;
+
   const _PosOptionCard({
     required this.iconBackground,
     required this.iconColor,
@@ -279,11 +308,37 @@ class _PosOptionCard extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.scale = 1.0,
+    this.stacked = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final s = scale;
+    final align = stacked ? TextAlign.center : TextAlign.start;
+    final iconBox = Container(
+      width: 72 * s,
+      height: 72 * s,
+      decoration: BoxDecoration(
+        color: iconBackground,
+        borderRadius: BorderRadius.circular(18 * s),
+      ),
+      child: Icon(icon, color: iconColor, size: 42 * s),
+    );
+    final title = Text(
+      this.title,
+      textAlign: align,
+      style: TextStyle(
+        fontSize: 17 * s,
+        fontWeight: FontWeight.w800,
+        color: titleColor,
+        height: 1.2,
+      ),
+    );
+    final subtitle = Text(
+      this.subtitle,
+      textAlign: align,
+      style: TextStyle(fontSize: 12 * s, color: const Color(0xFF6B7280)),
+    );
     return Container(
       width: double.infinity,
       // En teléfono se mantiene el ancho del Figma; en tablet ocupa el ancho.
@@ -308,51 +363,40 @@ class _PosOptionCard extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: 20 * s,
-              vertical: 20 * s * (s > 1 ? 1.4 : 1),
+              vertical: (stacked ? 32 : 20) * s * (s > 1 ? 1.4 : 1),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 58 * s,
-                  height: 58 * s,
-                  decoration: BoxDecoration(
-                    color: iconBackground,
-                    borderRadius: BorderRadius.circular(16 * s),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 32 * s),
-                ),
-                SizedBox(width: 16 * s),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: stacked
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 17 * s,
-                          fontWeight: FontWeight.w800,
-                          color: titleColor,
-                          height: 1.2,
+                      iconBox,
+                      SizedBox(height: 28 * s),
+                      title,
+                      SizedBox(height: 8 * s),
+                      subtitle,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      iconBox,
+                      SizedBox(width: 28 * s),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            title,
+                            SizedBox(height: 6 * s),
+                            subtitle,
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4 * s),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 12 * s,
-                          color: const Color(0xFF6B7280),
-                        ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: const Color(0xFFD4D4D8),
+                        size: 26 * s,
                       ),
                     ],
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: const Color(0xFFD4D4D8),
-                  size: 26 * s,
-                ),
-              ],
-            ),
           ),
         ),
       ),

@@ -115,6 +115,15 @@ class IdentifiedUser {
 
   bool get isTeacher => userRole == UserRole.teacher;
 
+  /// Monto a mostrar según el rol: crédito del mes para docentes (no usan
+  /// billetera) y saldo para el resto. Nulo si el backend no lo envió.
+  double? get displayAmount => isTeacher ? creditAccumulated : balance;
+
+  /// Qué representa [displayAmount]: dinero a favor del estudiante o lo que
+  /// el docente ya consumió a crédito en el mes.
+  String get displayAmountLabel =>
+      isTeacher ? 'Consumido este mes' : 'Saldo a favor';
+
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
