@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/child_avatar_chip.dart';
+import '../../../core/widgets/form_section_card.dart';
 import '../../../core/widgets/labeled_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/profile_summary_card.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 
@@ -84,11 +88,19 @@ class _EditChildScreenState extends State<EditChildScreen>
     }
   }
 
+  String get _displayName => [
+    widget.child.firstName,
+    widget.child.lastName,
+  ].where((part) => part.trim().isNotEmpty).join(' ');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppTheme.lightAppBar(title: const Text('Datos de tu hijo/a')),
+      backgroundColor: AppColors.ink50,
+      appBar: AppTheme.lightAppBar(
+        title: const Text('Datos de tu hijo/a'),
+        backgroundColor: AppColors.ink50,
+      ),
       body: ResponsiveCenter(
         maxWidth: AppLayout.formMaxWidth,
         child: SafeArea(
@@ -97,33 +109,55 @@ class _EditChildScreenState extends State<EditChildScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                LabeledTextField(
-                  label: 'Primer nombre',
-                  controller: _firstName,
-                  hint: 'Primer nombre de tu hijo/a',
+                ProfileSummaryCard(
+                  leading: ChildAvatarChip(
+                    imageUrl: widget.child.profilePictureUrl,
+                  ),
+                  title: _displayName,
+                  subtitle: widget.child.institutionName,
                 ),
-                LabeledTextField(
-                  label: 'Segundo nombre',
-                  controller: _secondName,
-                  hint: 'Segundo nombre (opcional)',
+                const SizedBox(height: AppSpacing.xl),
+                FormSectionCard(
+                  title: 'Nombres',
+                  children: [
+                    LabeledTextField(
+                      label: 'Primer nombre',
+                      controller: _firstName,
+                      hint: 'Primer nombre de tu hijo/a',
+                    ),
+                    LabeledTextField(
+                      label: 'Segundo nombre',
+                      controller: _secondName,
+                      hint: 'Segundo nombre (opcional)',
+                    ),
+                    LabeledTextField(
+                      label: 'Primer apellido',
+                      controller: _lastName,
+                      hint: 'Primer apellido de tu hijo/a',
+                    ),
+                    LabeledTextField(
+                      label: 'Segundo apellido',
+                      controller: _secondLastName,
+                      hint: 'Segundo apellido (opcional)',
+                      bottomPadding: 0,
+                    ),
+                  ],
                 ),
-                LabeledTextField(
-                  label: 'Primer apellido',
-                  controller: _lastName,
-                  hint: 'Primer apellido de tu hijo/a',
+                const SizedBox(height: AppSpacing.xl),
+                FormSectionCard(
+                  title: 'Acceso',
+                  subtitle: 'Con este usuario inicia sesión tu hijo/a.',
+                  children: [
+                    LabeledTextField(
+                      label: 'Usuario',
+                      controller: _username,
+                      hint: 'Usuario con el que inicia sesión',
+                      textCapitalization: TextCapitalization.none,
+                      bottomPadding: 0,
+                    ),
+                  ],
                 ),
-                LabeledTextField(
-                  label: 'Segundo apellido',
-                  controller: _secondLastName,
-                  hint: 'Segundo apellido (opcional)',
-                ),
-                LabeledTextField(
-                  label: 'Usuario',
-                  controller: _username,
-                  hint: 'Usuario con el que inicia sesión',
-                  textCapitalization: TextCapitalization.none,
-                ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.xl),
                 PrimaryButton(
                   label: 'Guardar cambios',
                   isLoading: _isSaving,

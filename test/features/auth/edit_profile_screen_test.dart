@@ -118,6 +118,9 @@ Future<void> _fillPassword(
 }
 
 Future<void> _save(WidgetTester tester) async {
+  // Let any previous notification hide: it can cover the button.
+  await tester.pump(const Duration(seconds: 10));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Guardar cambios'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
@@ -130,7 +133,7 @@ void main() {
     await _open(tester, _FakeAuthService());
 
     expect(find.text('Correo'), findsOneWidget);
-    expect(find.text('Cambiar contraseña'), findsOneWidget);
+    expect(find.text('Seguridad'), findsOneWidget);
     expect(find.text('Contraseña actual'), findsOneWidget);
     expect(find.text('Nueva contraseña'), findsOneWidget);
     expect(find.text('Confirmar nueva contraseña'), findsOneWidget);
@@ -138,12 +141,33 @@ void main() {
     expect(find.byType(EditProfileScreen), findsOneWidget);
   });
 
+  testWidgets('groups the form in sections and shows who is edited', (
+    tester,
+  ) async {
+    await _open(tester, _FakeAuthService());
+
+    expect(find.text('Datos personales'), findsOneWidget);
+    expect(find.text('Acceso'), findsOneWidget);
+    expect(find.text('Seguridad'), findsOneWidget);
+    expect(find.text('Ana Pérez'), findsOneWidget);
+    expect(find.text('docente@mail.com'), findsWidgets);
+  });
+
+  testWidgets('has no security section when the password is not allowed', (
+    tester,
+  ) async {
+    await _open(tester, _FakeAuthService(), canChangePassword: false);
+
+    expect(find.text('Datos personales'), findsOneWidget);
+    expect(find.text('Seguridad'), findsNothing);
+  });
+
   testWidgets('hides the password section when it is not allowed', (
     tester,
   ) async {
     await _open(tester, _FakeAuthService(), canChangePassword: false);
 
-    expect(find.text('Cambiar contraseña'), findsNothing);
+    expect(find.text('Contraseña actual'), findsNothing);
     expect(find.byType(PasswordRequirements), findsNothing);
   });
 

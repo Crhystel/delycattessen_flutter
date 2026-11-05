@@ -6,8 +6,11 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
+import '../../../core/widgets/form_section_card.dart';
+import '../../../core/widgets/initials_avatar.dart';
 import '../../../core/widgets/labeled_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/profile_summary_card.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../utils/password_check.dart';
@@ -147,8 +150,17 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     Navigator.of(context).pop(_savedProfile);
   }
 
+  String get _displayName {
+    final me = _savedProfile ?? widget.me;
+    return [
+      me.firstName,
+      me.lastName,
+    ].where((part) => part.trim().isNotEmpty).join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final me = _savedProfile ?? widget.me;
     return PopScope(
       // Leaving after a partial save still hands back the stored profile.
       canPop: _savedProfile == null,
@@ -156,8 +168,11 @@ class _EditProfileScreenState extends State<EditProfileScreen>
         if (!didPop) Navigator.of(context).pop(_savedProfile);
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppTheme.lightAppBar(title: const Text('Mi perfil')),
+        backgroundColor: AppColors.ink50,
+        appBar: AppTheme.lightAppBar(
+          title: const Text('Mi perfil'),
+          backgroundColor: AppColors.ink50,
+        ),
         body: ResponsiveCenter(
           maxWidth: AppLayout.formMaxWidth,
           child: SafeArea(
@@ -166,35 +181,59 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  LabeledTextField(
-                    label: 'Primer nombre',
-                    controller: _firstName,
-                    hint: 'Ingresa tu primer nombre',
+                  ProfileSummaryCard(
+                    leading: InitialsAvatar(name: _displayName),
+                    title: _displayName.isEmpty ? 'Mi perfil' : _displayName,
+                    subtitle: me.email,
                   ),
-                  LabeledTextField(
-                    label: 'Segundo nombre',
-                    controller: _secondName,
-                    hint: 'Ingresa tu segundo nombre (opcional)',
+                  const SizedBox(height: AppSpacing.xl),
+                  FormSectionCard(
+                    title: 'Datos personales',
+                    children: [
+                      LabeledTextField(
+                        label: 'Primer nombre',
+                        controller: _firstName,
+                        hint: 'Ingresa tu primer nombre',
+                      ),
+                      LabeledTextField(
+                        label: 'Segundo nombre',
+                        controller: _secondName,
+                        hint: 'Ingresa tu segundo nombre (opcional)',
+                      ),
+                      LabeledTextField(
+                        label: 'Primer apellido',
+                        controller: _lastName,
+                        hint: 'Ingresa tu primer apellido',
+                      ),
+                      LabeledTextField(
+                        label: 'Segundo apellido',
+                        controller: _secondLastName,
+                        hint: 'Ingresa tu segundo apellido (opcional)',
+                        bottomPadding: 0,
+                      ),
+                    ],
                   ),
-                  LabeledTextField(
-                    label: 'Primer apellido',
-                    controller: _lastName,
-                    hint: 'Ingresa tu primer apellido',
+                  const SizedBox(height: AppSpacing.xl),
+                  FormSectionCard(
+                    title: 'Acceso',
+                    subtitle:
+                        'Tu correo también es tu usuario para iniciar sesión.',
+                    children: [
+                      LabeledTextField(
+                        label: 'Correo',
+                        controller: _email,
+                        hint: 'correo@ejemplo.com',
+                        keyboardType: TextInputType.emailAddress,
+                        textCapitalization: TextCapitalization.none,
+                        bottomPadding: 0,
+                      ),
+                    ],
                   ),
-                  LabeledTextField(
-                    label: 'Segundo apellido',
-                    controller: _secondLastName,
-                    hint: 'Ingresa tu segundo apellido (opcional)',
-                  ),
-                  LabeledTextField(
-                    label: 'Correo',
-                    controller: _email,
-                    hint: 'correo@ejemplo.com',
-                    keyboardType: TextInputType.emailAddress,
-                    textCapitalization: TextCapitalization.none,
-                  ),
-                  if (widget.canChangePassword) _buildPasswordSection(),
-                  const SizedBox(height: AppSpacing.sm),
+                  if (widget.canChangePassword) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildPasswordSection(),
+                  ],
+                  const SizedBox(height: AppSpacing.xl),
                   PrimaryButton(
                     label: 'Guardar cambios',
                     isLoading: _isSaving,
@@ -211,25 +250,11 @@ class _EditProfileScreenState extends State<EditProfileScreen>
 
   Widget _buildPasswordSection() {
     final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return FormSectionCard(
+      title: 'Seguridad',
+      subtitle:
+          'Cambiar contraseña es opcional. Déjalo vacío para conservar la actual.',
       children: [
-        const Divider(height: AppSpacing.xl),
-        Text(
-          'Cambiar contraseña',
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.ink900,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Opcional. Déjalo vacío para conservar tu contraseña actual.',
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.ink900.withValues(alpha: 0.6),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         LabeledTextField(
           label: 'Contraseña actual',
           controller: _currentPassword,
@@ -241,6 +266,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           controller: _newPassword,
           hint: 'Crea una contraseña segura',
           isPassword: true,
+          bottomPadding: 0,
         ),
         ListenableBuilder(
           listenable: _newPassword,
@@ -253,6 +279,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           controller: _confirmPassword,
           hint: 'Repite la nueva contraseña',
           isPassword: true,
+          bottomPadding: 0,
         ),
         ListenableBuilder(
           listenable: Listenable.merge([_newPassword, _confirmPassword]),
@@ -262,7 +289,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                 _confirmPassword.text != _newPassword.text;
             if (!mismatch) return const SizedBox.shrink();
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 'Las contraseñas no coinciden',
                 style: textTheme.labelMedium?.copyWith(

@@ -14,6 +14,7 @@ import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/edit_profile_screen.dart';
@@ -225,6 +226,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       children: [
                         Text(
                           '¡Hola ${_userName.isNotEmpty ? _userName : "Usuario"}!',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -239,18 +242,21 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.manage_accounts_outlined,
-                      color: AppColors.teal700,
-                    ),
-                    tooltip: 'Mi perfil',
-                    onPressed: _openProfile,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: AppColors.teal700),
-                    tooltip: 'Cerrar sesión',
-                    onPressed: _confirmLogout,
+                  const SizedBox(width: AppSpacing.md),
+                  HeaderActions(
+                    actions: [
+                      HeaderAction(
+                        icon: Icons.manage_accounts_outlined,
+                        tooltip: 'Mi perfil',
+                        onPressed: _openProfile,
+                      ),
+                      HeaderAction(
+                        icon: Icons.logout,
+                        tooltip: 'Cerrar sesión',
+                        onPressed: _confirmLogout,
+                        color: AppColors.danger700,
+                      ),
+                    ],
                   ),
                 ],
               ),
