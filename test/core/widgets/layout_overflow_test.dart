@@ -1,8 +1,11 @@
 import 'package:delycattessen_flutter/core/widgets/header_actions.dart';
-import 'package:delycattessen_flutter/core/widgets/initials_avatar.dart';
 import 'package:delycattessen_flutter/core/widgets/profile_summary_card.dart';
 import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
-import 'package:delycattessen_flutter/features/auth/screens/edit_profile_screen.dart';
+import 'package:delycattessen_flutter/features/auth/screens/change_email_screen.dart';
+import 'package:delycattessen_flutter/features/auth/screens/edit_names_screen.dart';
+import 'package:delycattessen_flutter/features/auth/screens/profile_password_screen.dart';
+import 'package:delycattessen_flutter/features/auth/screens/profile_screen.dart';
+import 'package:delycattessen_flutter/features/auth/widgets/initials_avatar.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -139,17 +142,29 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('profile form with password section: $label', (tester) async {
+      testWidgets('profile menu: $label', (tester) async {
         await _pump(
           tester,
           entry.value,
           scale,
-          EditProfileScreen(me: _me, canChangePassword: true),
+          ProfileScreen(me: _me, onOpenAllergies: () {}),
         );
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Guardar cambios'), findsOneWidget);
+        expect(find.text('Alergias'), findsOneWidget);
       });
+
+      for (final screen in <String, Widget Function()>{
+        'names form': () => EditNamesScreen(me: _me),
+        'email form': () => ChangeEmailScreen(me: _me),
+        'password form': () => const ProfilePasswordScreen(),
+      }.entries) {
+        testWidgets('${screen.key}: $label', (tester) async {
+          await _pump(tester, entry.value, scale, screen.value());
+
+          expect(tester.takeException(), isNull);
+        });
+      }
 
       testWidgets('child form: $label', (tester) async {
         await _pump(tester, entry.value, scale, EditChildScreen(child: _child));

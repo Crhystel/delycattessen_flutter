@@ -13,11 +13,16 @@ class FormSectionCard extends StatelessWidget {
     required this.title,
     required this.children,
     this.subtitle,
+    this.contentPadding,
   });
 
   final String title;
   final String? subtitle;
   final List<Widget> children;
+
+  /// Padding inside the card; zero lets rows (e.g. a settings list) reach the
+  /// card edges. Defaults to the standard card padding.
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +44,7 @@ class FormSectionCard extends StatelessWidget {
           ),
         ),
         AppCard(
+          padding: contentPadding ?? const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

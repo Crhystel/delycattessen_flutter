@@ -12,7 +12,7 @@ import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
-import '../../auth/screens/edit_profile_screen.dart';
+import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../menu/screens/teacher_products_screen.dart';
@@ -125,15 +125,16 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     return 'Hoy es $dayName';
   }
 
-  /// Teachers edit their own names and email and can change their password
-  /// (students cannot).
+  /// Teachers open their profile: names, email, password and their allergies
+  /// (students have no profile).
   Future<void> _openProfile() async {
     try {
       final me = await AuthService().getMe();
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
         MaterialPageRoute(
-          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
+          builder: (_) =>
+              ProfileScreen(me: me, onOpenAllergies: _openAllergies),
         ),
       );
       // The greeting shows the name that comes with the QR data.
@@ -182,7 +183,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.xl,
-          AppSpacing.xs,
+          HeaderActions.topInset,
           AppSpacing.xl,
           AppSpacing.xl,
         ),

@@ -161,18 +161,25 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
         builder: (context, constraints) {
           final pad = AppSpacing.xl * (s > 1 ? 2 : 1);
           return SingleChildScrollView(
-            padding: EdgeInsets.all(pad),
+            padding: EdgeInsets.fromLTRB(
+              pad,
+              HeaderActions.topInset * (s > 1 ? 2 : 1),
+              pad,
+              pad,
+            ),
             // Con espacio de sobra, las opciones quedan centradas en vertical
             // bajo el encabezado; si no cabe, la pantalla hace scroll.
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - pad * 2,
+                minHeight:
+                    constraints.maxHeight -
+                    pad -
+                    HeaderActions.topInset * (s > 1 ? 2 : 1),
               ),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: AppSpacing.lg * s),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,

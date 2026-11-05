@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../layout/responsive.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
 
 /// One icon action of [HeaderActions] (profile, sign out...).
 class HeaderAction {
@@ -29,6 +30,10 @@ class HeaderActions extends StatelessWidget {
   const HeaderActions({super.key, required this.actions});
 
   final List<HeaderAction> actions;
+
+  /// Space between the top of the safe area and the header, so the pill does
+  /// not sit against the edge of the screen. Shared by the three home screens.
+  static const double topInset = AppSpacing.xl + AppSpacing.sm;
 
   static const double _phoneButton = 48;
   static const double _tabletButton = 56;

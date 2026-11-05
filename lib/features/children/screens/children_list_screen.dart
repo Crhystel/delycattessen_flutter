@@ -17,7 +17,7 @@ import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
-import '../../auth/screens/edit_profile_screen.dart';
+import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../menu/models/menu_models.dart';
@@ -120,9 +120,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       final me = _me ?? await _authService.getMe();
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
-        MaterialPageRoute(
-          builder: (_) => EditProfileScreen(me: me, canChangePassword: true),
-        ),
+        MaterialPageRoute(builder: (_) => ProfileScreen(me: me)),
       );
       if (updated != null && mounted) _showUser(updated);
     } catch (e) {
@@ -212,7 +210,12 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            HeaderActions.topInset,
+            AppSpacing.xl,
+            AppSpacing.xl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

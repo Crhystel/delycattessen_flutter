@@ -23,6 +23,21 @@ void main() {
       });
     });
 
+    test('sends the current password only when it is given', () {
+      expect(
+        const ProfileUpdate(names: names, email: 'a@b.co').toJson().keys,
+        isNot(contains('current_password')),
+      );
+      expect(
+        const ProfileUpdate(
+          names: names,
+          email: 'a@b.co',
+          currentPassword: 'Old-Passw0rd!',
+        ).toJson()['current_password'],
+        'Old-Passw0rd!',
+      );
+    });
+
     test('requires first name, first surname and a valid email', () {
       expect(
         const ProfileUpdate(names: names, email: 'ana@mail.com').validate(),
