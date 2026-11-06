@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -21,6 +23,11 @@ class CategoryFilterBar extends StatelessWidget {
     this.style = CategoryFilterStyle.circles,
   });
 
+  static const double _circleSize = 58;
+  static const double _circleLabelGap = 6;
+  static const double _circleLabelFont = 13;
+  static const double _circlesMinHeight = 92;
+
   static const Map<String, IconData> _icons = {
     'bar': Icons.local_bar,
     'almuerzo': Icons.restaurant_menu,
@@ -43,13 +50,16 @@ class CategoryFilterBar extends StatelessWidget {
     if (categories.isEmpty) return const SizedBox.shrink();
     final options = <String?>[null, ...categories];
     return style == CategoryFilterStyle.chips
-        ? _buildChips(options)
+        ? _buildChips(context, options)
         : _buildCircles(context, options);
   }
 
-  Widget _buildChips(List<String?> options) {
+  Widget _buildChips(BuildContext context, List<String?> options) {
     return SizedBox(
-      height: 48,
+      height: math.max(
+        48,
+        MediaQuery.textScalerOf(context).scale(32) + 2 * AppSpacing.sm,
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(
@@ -86,7 +96,13 @@ class CategoryFilterBar extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          height: 92,
+          // The label grows with the system font size: the row grows with it.
+          height: math.max(
+            _circlesMinHeight,
+            _circleSize +
+                _circleLabelGap +
+                MediaQuery.textScalerOf(context).scale(_circleLabelFont) * 1.5,
+          ),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -103,8 +119,8 @@ class CategoryFilterBar extends StatelessWidget {
                     // Círculo morado del Figma: relleno al estar elegido,
                     // morado claro con borde cuando no.
                     Container(
-                      width: 58,
-                      height: 58,
+                      width: _circleSize,
+                      height: _circleSize,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.secondary500
@@ -127,11 +143,11 @@ class CategoryFilterBar extends StatelessWidget {
                         size: 28,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: _circleLabelGap),
                     Text(
                       labelFor(category),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: _circleLabelFont,
                         fontWeight: isSelected
                             ? FontWeight.w800
                             : FontWeight.w600,

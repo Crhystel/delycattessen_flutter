@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/collapsible_header_layout.dart';
+import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
@@ -22,6 +22,7 @@ import '../../menu/widgets/category_filter_bar.dart';
 import '../../menu/widgets/offers_section.dart';
 import '../models/pos_identification_model.dart';
 import '../providers/pos_cart_controller.dart';
+import '../widgets/pos_cart_bar.dart';
 import '../widgets/pos_user_banner.dart';
 import 'pos_checkout_screen.dart';
 import '../../../core/utils/error_message.dart';
@@ -242,36 +243,51 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // The search field and the customer box (allergies are safety
-              // information) stay; the title and categories fold away while
-              // the list scrolls down.
               Expanded(
-                child: CollapsibleHeaderLayout(
-                  pinned: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CatalogSearchRow(
-                        showBackButton: true,
-                        searchController: _searchController,
-                        onSearchChanged: (value) => setState(
-                          () => _searchQuery = value.trim().toLowerCase(),
+                child: RefreshIndicator(
+                  color: AppColors.secondary500,
+                  onRefresh: _loadMenu,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      // The search field and the customer box (allergies are
+                      // safety information) stay; the title and categories
+                      // shrink together with the scroll.
+                      CollapsingHeader(
+                        kept: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CatalogSearchRow(
+                              showBackButton: true,
+                              searchController: _searchController,
+                              onSearchChanged: (value) => setState(
+                                () => _searchQuery = value.trim().toLowerCase(),
+                              ),
+                            ),
+                            if (user != null) PosUserBanner(user: user),
+                          ],
+                        ),
+                        collapsible: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const CatalogTitleBlock(title: 'Productos'),
+                            _buildCategoryChips(),
+                            const SizedBox(height: AppSpacing.xs),
+                          ],
                         ),
                       ),
-                      if (user != null) PosUserBanner(user: user),
+                      ..._buildContent(),
                     ],
                   ),
-                  collapsible: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const CatalogTitleBlock(title: 'Productos'),
-                      _buildCategoryChips(),
-                      const SizedBox(height: AppSpacing.xs),
-                    ],
-                  ),
-                  body: _buildBody(),
                 ),
               ),
-              if (!_cart.isEmpty) _buildCartBar(),
+              if (!_cart.isEmpty)
+                PosCartBar(
+                  total: _cart.total,
+                  itemCount: _cart.itemCount,
+                  onClear: _clearCart,
+                  onContinue: _onContinue,
+                ),
             ],
           ),
         ),
@@ -293,64 +309,82 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildBody() {
+  /// Loading, error or the section with the combos and the products, as
+  /// slivers of the same scroll view as the header.
+  List<Widget> _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.secondary500),
-      );
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.secondary500),
+          ),
+        ),
+      ];
     }
     if (_errorMessage != null) {
-      return Center(
-        child: EmptyState(
-          icon: Icons.error_outline,
-          title: 'No pudimos cargar los productos',
-          message: _errorMessage,
-          actionLabel: 'Reintentar',
-          onAction: _loadMenu,
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: EmptyState(
+              icon: Icons.error_outline,
+              title: 'No pudimos cargar los productos',
+              message: _errorMessage,
+              actionLabel: 'Reintentar',
+              onAction: _loadMenu,
+            ),
+          ),
         ),
-      );
+      ];
     }
 
     final items = _visibleItems;
-    final offersHeader = _buildOffers();
-    final list = RefreshIndicator(
-      color: AppColors.secondary500,
-      onRefresh: _loadMenu,
-      child: items.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                ?offersHeader,
-                EmptyState(
-                  icon: _searchQuery.isNotEmpty
-                      ? Icons.search_off
-                      : Icons.fastfood,
-                  title: _searchQuery.isNotEmpty
-                      ? 'No encontramos "$_searchQuery"'
-                      : 'No hay productos disponibles',
-                  message: _searchQuery.isNotEmpty
-                      ? 'Prueba con otro término.'
-                      : null,
+    final offers = _buildOffers();
+    return [
+      CatalogSectionSliver(
+        title: CategoryFilterBar.labelFor(_selectedCategory),
+        slivers: [
+          if (offers != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
                 ),
-              ],
+                child: offers,
+              ),
+            ),
+          if (items.isEmpty)
+            SliverToBoxAdapter(
+              child: EmptyState(
+                icon: _searchQuery.isNotEmpty
+                    ? Icons.search_off
+                    : Icons.fastfood,
+                title: _searchQuery.isNotEmpty
+                    ? 'No encontramos "$_searchQuery"'
+                    : 'No hay productos disponibles',
+                message: _searchQuery.isNotEmpty
+                    ? 'Prueba con otro término.'
+                    : null,
+              ),
             )
-          : ResponsiveItemList(
-              physics: const AlwaysScrollableScrollPhysics(),
+          else
+            SliverResponsiveItemList(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
                 AppSpacing.sm,
                 AppSpacing.md,
                 AppSpacing.md,
               ),
-              header: offersHeader,
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),
-    );
-    return CatalogSection(
-      title: CategoryFilterBar.labelFor(_selectedCategory),
-      child: list,
-    );
+        ],
+      ),
+    ];
   }
 
   /// Combos with their dishes, inside the scroll of the list. The POS sells
@@ -395,55 +429,6 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
                 : null,
           ),
       ],
-    );
-  }
-
-  Widget _buildCartBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: 'Vaciar carrito',
-            onPressed: _clearCart,
-            icon: const Icon(Icons.delete_outline, color: AppColors.danger700),
-          ),
-          Expanded(
-            child: Text(
-              '\$${_cart.total.toStringAsFixed(2)}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary500,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            onPressed: _onContinue,
-            child: Text(
-              'Continuar (${_cart.itemCount})',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

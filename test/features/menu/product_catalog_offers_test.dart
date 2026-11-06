@@ -16,6 +16,8 @@ final _items = [
     discount: 20,
     category: 'Bebidas',
   ),
+  // Enough products to make the page scroll past the offers.
+  for (var i = 3; i <= 25; i++) product(i, 'Producto $i', 1.0 + i / 10),
 ];
 
 final _offers = CatalogOffers(
@@ -54,34 +56,32 @@ void main() {
     expect(find.text('Agregar combo'), findsNothing);
   });
 
-  testWidgets('offers do not shrink the list of products', (tester) async {
-    await _pump(tester);
-    final without = tester.getSize(find.byType(RefreshIndicator)).height;
-
-    await _pump(tester, offers: _offers);
-    final withOffers = tester.getSize(find.byType(RefreshIndicator)).height;
-
-    // The old fixed banner took ~160 dp from the list; now it scrolls inside.
-    expect(withOffers, without);
-    expect(withOffers, greaterThan(640 * 0.4));
-  });
-
-  testWidgets('the products are still reachable below the offers', (
+  testWidgets('offers scroll with the list instead of taking fixed space', (
     tester,
   ) async {
     await _pump(tester, offers: _offers);
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
-    await tester.pump();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -2000));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Sánduche'), findsWidgets);
-    expect(find.text('Cola'), findsWidgets);
+    // Past the offers the products have the screen for themselves.
+    expect(find.byType(OffersSection).hitTestable(), findsNothing);
+    expect(find.textContaining('Producto ').hitTestable(), findsWidgets);
+  });
+
+  testWidgets('the products are reachable below the offers', (tester) async {
+    await _pump(tester, offers: _offers);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -6000));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Producto 25'), findsOneWidget);
   });
 
   testWidgets('offers hide while searching', (tester) async {
     await _pump(tester, offers: _offers);
 
-    await tester.enterText(find.byType(TextField), 'sán');
+    await tester.enterText(find.byType(TextField).hitTestable(), 'sán');
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(OffersSection), findsNothing);

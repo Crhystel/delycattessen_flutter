@@ -14,12 +14,16 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
+import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_picker_sheet.dart';
 import '../models/menu_models.dart';
 import '../providers/parent_menu_controller.dart';
+import '../widgets/catalog_search_row.dart';
+import '../widgets/catalog_title_block.dart';
+import '../widgets/menu_days_strip.dart';
 import 'cart_screen.dart';
 import 'dish_detail_screen.dart';
 
@@ -35,12 +39,17 @@ class MenuScreen extends StatefulWidget {
   /// Widget bajo el título (selector Menú/Productos del ParentShell).
   final Widget? headerAccessory;
 
+  /// Estado del menú. Por defecto la pantalla crea (y libera) el suyo; en las
+  /// pruebas se inyecta uno con un servicio simulado.
+  final ParentMenuController? menuController;
+
   const MenuScreen({
     super.key,
     this.studentId,
     this.embedded = false,
     this.initialDate,
     this.headerAccessory,
+    this.menuController,
   });
 
   @override
@@ -48,7 +57,8 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
-  final ParentMenuController _menu = ParentMenuController();
+  late final ParentMenuController _menu =
+      widget.menuController ?? ParentMenuController();
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -80,7 +90,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   @override
   void dispose() {
     _menu.removeListener(_onMenuChanged);
-    _menu.dispose();
+    if (widget.menuController == null) _menu.dispose();
     _childrenProvider.removeListener(_onSelectedChildChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
@@ -233,107 +243,60 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              if (_selectedChild != null) _buildChildBanner(children),
-              const SizedBox(height: AppSpacing.sm),
-              if (!_isLoading && _days.isNotEmpty) _buildDaysSelector(),
-              const SizedBox(height: AppSpacing.xs),
               Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.secondary500,
+                child: RefreshIndicator(
+                  color: AppColors.secondary500,
+                  onRefresh: _refreshMenu,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      // Only the search field and the days stay; the title,
+                      // selector and banner shrink together with the scroll
+                      // (1 to 1 with the finger) and return at the top.
+                      CollapsingHeader(
+                        keep: CollapsingHeaderKeep.bottom,
+                        kept: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CatalogSearchRow(
+                              showBackButton: !widget.embedded,
+                              searchController: _searchController,
+                              onSearchChanged: (value) {
+                                setState(() {});
+                                _onSearchChanged(value);
+                              },
+                            ),
+                            if (!_isLoading && _days.isNotEmpty)
+                              MenuDaysStrip(
+                                days: _days,
+                                selectedDayId: _selectedDay?.id,
+                                onSelect: _onSelectDay,
+                              ),
+                          ],
                         ),
-                      )
-                    : _errorMessage != null
-                    ? _buildErrorView()
-                    : _days.isEmpty
-                    ? _buildEmptyView()
-                    : RefreshIndicator(
-                        color: AppColors.secondary500,
-                        onRefresh: _refreshMenu,
-                        child: _buildDishList(),
+                        collapsible: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CatalogTitleBlock(
+                              title: 'Menú',
+                              accessory: widget.headerAccessory,
+                            ),
+                            if (_selectedChild != null)
+                              _buildChildBanner(children),
+                            const SizedBox(height: AppSpacing.sm),
+                          ],
+                        ),
                       ),
+                      ..._buildContent(),
+                    ],
+                  ),
+                ),
               ),
               if (total > 0 && _selectedDay != null)
                 _buildCartSummary(total, _selectedDay!),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (!widget.embedded) ...[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                'Menú',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink900,
-                ),
-              ),
-            ],
-          ),
-          if (widget.headerAccessory != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            widget.headerAccessory!,
-          ],
-          const SizedBox(height: AppSpacing.sm),
-          TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() {});
-              _onSearchChanged(value);
-            },
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Buscar...',
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.secondary500,
-              ),
-              suffixIcon: _searchController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                        _onSearchChanged('');
-                      },
-                    ),
-              filled: true,
-              fillColor: AppColors.ink50,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 12,
-                horizontal: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -363,11 +326,16 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
               children: [
                 ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 12),
                 const SizedBox(width: 8),
-                Text(
-                  'Pidiendo para ${child.firstName} · \$${(child.balance ?? 0).toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.secondary700,
+                // Flexible: a long name or a large font is cut, never overflows.
+                Flexible(
+                  child: Text(
+                    'Pidiendo para ${child.firstName} · \$${(child.balance ?? 0).toStringAsFixed(2)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.secondary700,
+                    ),
                   ),
                 ),
                 if (canSwitch) ...[
@@ -386,106 +354,35 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  Widget _buildDaysSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Text(
-            'Días disponibles',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.ink900,
-            ),
+  /// Loading, error, empty menu or the dishes of the chosen day, as slivers of
+  /// the same scroll view as the header.
+  List<Widget> _buildContent() {
+    if (_isLoading) {
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.secondary500),
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          height: 84,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            itemCount: _days.length,
-            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-            itemBuilder: (context, index) {
-              final day = _days[index];
-              final isSelected = _selectedDay?.id == day.id;
-              final isBlocked = day.isBlockedByParentalControl;
-              final parsedDate = DateFormatter.parseIsoDate(day.date);
-              final weekdayShort = DateFormatter.shortWeekdayName(parsedDate);
-              final dayNum = parsedDate.day.toString();
+      ];
+    }
+    if (_errorMessage != null) {
+      return [
+        SliverFillRemaining(hasScrollBody: false, child: _buildErrorView()),
+      ];
+    }
+    if (_days.isEmpty) {
+      return [
+        SliverFillRemaining(hasScrollBody: false, child: _buildEmptyView()),
+      ];
+    }
 
-              return GestureDetector(
-                onTap: () => _onSelectDay(day),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: isBlocked
-                            ? Colors.grey.shade200
-                            : isSelected
-                            ? AppColors.secondary500
-                            : AppColors.secondary50,
-                        shape: BoxShape.circle,
-                        border: isBlocked
-                            ? Border.all(color: Colors.grey.shade400)
-                            : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: isBlocked
-                          ? Icon(
-                              Icons.lock_outline,
-                              size: 20,
-                              color: Colors.grey.shade600,
-                            )
-                          : Text(
-                              dayNum,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.secondary700,
-                              ),
-                            ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      weekdayShort,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                        color: isBlocked
-                            ? Colors.grey.shade500
-                            : isSelected
-                            ? AppColors.secondary500
-                            : AppColors.ink900.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDishList() {
     final dishes = _menu.visibleDishes;
-
     if (dishes.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          EmptyState(
+      return [
+        SliverToBoxAdapter(
+          child: EmptyState(
             icon: _searchQuery.isNotEmpty ? Icons.search_off : Icons.restaurant,
             title: _searchQuery.isNotEmpty
                 ? 'No encontramos "$_searchQuery"'
@@ -494,16 +391,16 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                 ? 'Prueba con otro término.'
                 : null,
           ),
-        ],
-      );
+        ),
+      ];
     }
-
-    return ResponsiveItemList(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      itemCount: dishes.length,
-      itemBuilder: (context, index) => _buildDishCard(dishes[index]),
-    );
+    return [
+      SliverResponsiveItemList(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        itemCount: dishes.length,
+        itemBuilder: (context, index) => _buildDishCard(dishes[index]),
+      ),
+    ];
   }
 
   Widget _buildDishCard(MenuDish dish) {
@@ -554,7 +451,11 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),
-                  Row(
+                  // Wrap: with a large font the badge drops to the next line.
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
                     children: [
                       Text(
                         '\$${dish.price.toStringAsFixed(2)}',
@@ -564,7 +465,6 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
                         ),
                       ),
                       if (hasAllergens) ...[
-                        const SizedBox(width: AppSpacing.sm),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,

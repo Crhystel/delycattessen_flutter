@@ -22,7 +22,8 @@ lib/
 │                  app_notification_dialog/messenger, app_scaffold, empty_state,
 │                  light_app_bar, primary_button, child_avatar_chip, floating_bubbles,
 │                  header_actions (botones de cuenta del encabezado), form_page,
-│                  collapsible_header_layout (cabecera que se colapsa al desplazar la lista),
+│                  collapsing_header (sliver de cabecera que se encoge pegado al scroll,
+│                  sin animaciones por tiempo; deja fija la parte "kept" y vuelve solo al inicio),
 │                  form_section_card, profile_summary_card, labeled_text_field,
 │                  notification_header, photo_source_dialog, photo_guidelines_screen,
 │                  face_capture_camera_screen
@@ -30,7 +31,7 @@ lib/
     ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, Mi perfil (padre y docente: menú con flechita a nombres, correo —pide la contraseña actual—, contraseña y, solo docente, alergias), rol (UserRole)
     ├── children/     Hijos del padre (incluye editar sus datos), control parental, ParentShell (navegación del padre), ChildrenProvider
     ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
-    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se colapsa al desplazar)
+    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se encoge pegada al scroll; en el Menú del mes solo quedan fijos los días y el buscador)
     ├── pos/          Caja: identificación (rostro/QR), venta, checkout, crédito del docente
     ├── users/        Gestión de alergias
     └── wallet/       Billetera, recargas (Payphone/Kushki), PIN de pago, historial de movimientos

@@ -105,11 +105,16 @@ class _ParentProductsScreenState extends State<ParentProductsScreen> {
               children: [
                 ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 12),
                 const SizedBox(width: 8),
-                Text(
-                  'Productos para ${child.firstName}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.secondary700,
+                // Flexible: a long name or a large font is cut, never overflows.
+                Flexible(
+                  child: Text(
+                    'Productos para ${child.firstName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.secondary700,
+                    ),
                   ),
                 ),
                 if (canSwitch) ...[

@@ -7,7 +7,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/collapsible_header_layout.dart';
+import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../models/menu_models.dart';
 import '../screens/combo_detail_screen.dart';
@@ -194,64 +194,78 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       body: ResponsiveCenter(
         maxWidth: AppLayout.wideMaxWidth,
         child: SafeArea(
-          // The search field stays; the title, selector, banner and
-          // categories fold away while the list scrolls down.
-          child: CollapsibleHeaderLayout(
-            pinned: CatalogSearchRow(
-              showBackButton: widget.showBackButton,
-              searchController: _searchController,
-              onSearchChanged: _onSearchChanged,
-            ),
-            collapsible: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CatalogTitleBlock(
-                  title: widget.title,
-                  accessory: widget.headerAccessory,
-                ),
-                if (widget.banner != null) widget.banner!,
-                const SizedBox(height: AppSpacing.sm),
-                if (showFilters && categories.isNotEmpty)
-                  CategoryFilterBar(
-                    categories: categories,
-                    selected: _selectedCategory,
-                    onSelected: (category) =>
-                        setState(() => _selectedCategory = category),
+          child: RefreshIndicator(
+            color: AppColors.secondary500,
+            onRefresh: _refresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // The search field stays; the title, selector, banner and
+                // categories shrink together with the scroll (1 to 1 with the
+                // finger) and come back when the list returns to its start.
+                CollapsingHeader(
+                  kept: CatalogSearchRow(
+                    showBackButton: widget.showBackButton,
+                    searchController: _searchController,
+                    onSearchChanged: _onSearchChanged,
                   ),
-                const SizedBox(height: AppSpacing.xs),
+                  collapsible: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CatalogTitleBlock(
+                        title: widget.title,
+                        accessory: widget.headerAccessory,
+                      ),
+                      if (widget.banner != null) widget.banner!,
+                      const SizedBox(height: AppSpacing.sm),
+                      if (showFilters && categories.isNotEmpty)
+                        CategoryFilterBar(
+                          categories: categories,
+                          selected: _selectedCategory,
+                          onSelected: (category) =>
+                              setState(() => _selectedCategory = category),
+                        ),
+                      const SizedBox(height: AppSpacing.xs),
+                    ],
+                  ),
+                ),
+                ..._buildContent(),
               ],
             ),
-            body: _buildBody(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading || _errorMessage != null) return _buildList();
-    return CatalogSection(
-      title: CategoryFilterBar.labelFor(_selectedCategory),
-      child: _buildList(),
-    );
-  }
-
-  Widget _buildList() {
+  /// Loading, error or the section with the offers and the products. All of
+  /// them are slivers of the same scroll view as the header.
+  List<Widget> _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.secondary500),
-      );
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.secondary500),
+          ),
+        ),
+      ];
     }
     if (_errorMessage != null) {
-      return Center(
-        child: EmptyState(
-          icon: Icons.error_outline,
-          title: 'No pudimos cargar los productos',
-          message: _errorMessage,
-          actionLabel: 'Reintentar',
-          onAction: _load,
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: EmptyState(
+              icon: Icons.error_outline,
+              title: 'No pudimos cargar los productos',
+              message: _errorMessage,
+              actionLabel: 'Reintentar',
+              onAction: _load,
+            ),
+          ),
         ),
-      );
+      ];
     }
 
     final items = filterItems(
@@ -259,41 +273,51 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       category: _selectedCategory,
       query: _searchQuery,
     );
-    final offersHeader = _buildOffers();
-    return RefreshIndicator(
-      color: AppColors.secondary500,
-      onRefresh: _refresh,
-      child: items.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                ?offersHeader,
-                EmptyState(
-                  icon: _searchQuery.isNotEmpty
-                      ? Icons.search_off
-                      : Icons.fastfood,
-                  title: _searchQuery.isNotEmpty
-                      ? 'No encontramos "$_searchQuery"'
-                      : 'Tu sede aún no tiene productos disponibles',
-                  message: _searchQuery.isNotEmpty
-                      ? 'Prueba con otro término.'
-                      : null,
+    final offers = _buildOffers();
+    return [
+      CatalogSectionSliver(
+        title: CategoryFilterBar.labelFor(_selectedCategory),
+        slivers: [
+          if (offers != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
                 ),
-              ],
+                child: offers,
+              ),
+            ),
+          if (items.isEmpty)
+            SliverToBoxAdapter(
+              child: EmptyState(
+                icon: _searchQuery.isNotEmpty
+                    ? Icons.search_off
+                    : Icons.fastfood,
+                title: _searchQuery.isNotEmpty
+                    ? 'No encontramos "$_searchQuery"'
+                    : 'Tu sede aún no tiene productos disponibles',
+                message: _searchQuery.isNotEmpty
+                    ? 'Prueba con otro término.'
+                    : null,
+              ),
             )
-          : ResponsiveItemList(
-              physics: const AlwaysScrollableScrollPhysics(),
+          else
+            SliverResponsiveItemList(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
                 AppSpacing.sm,
                 AppSpacing.md,
                 AppSpacing.md,
               ),
-              header: offersHeader,
               itemCount: items.length,
               itemBuilder: (_, index) => _buildItemCard(items[index]),
             ),
-    );
+        ],
+      ),
+    ];
   }
 
   /// Offers go inside the scroll of the list, so they never shrink it. They

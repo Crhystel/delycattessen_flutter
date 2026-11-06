@@ -60,61 +60,103 @@ Future<void> _pump(WidgetTester tester, {CatalogOffers? offers}) async {
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-Finder get _list => find.byType(RefreshIndicator);
+Finder get _scroll => find.byType(CustomScrollView);
+
+double _scrolled(WidgetTester tester) => tester
+    .state<ScrollableState>(find.byType(Scrollable).first)
+    .position
+    .pixels;
+
+Future<void> _scrollDown(WidgetTester tester, [double by = 900]) async {
+  await tester.drag(_scroll, Offset(0, -by));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('starts with the full header visible', (tester) async {
     await _pump(tester);
 
-    expect(find.text('Productos'), findsWidgets);
-    expect(find.text('selector menu-productos'), findsOneWidget);
-    expect(find.text('banner del hijo'), findsOneWidget);
-    expect(find.byType(CategoryFilterBar), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
+    // The header measures itself with invisible copies, so only look at the
+    // painted (hit-testable) widgets.
+    expect(find.text('Productos').hitTestable(), findsWidgets);
+    expect(find.text('selector menu-productos').hitTestable(), findsOneWidget);
+    expect(find.text('banner del hijo').hitTestable(), findsOneWidget);
+    expect(find.byType(CategoryFilterBar).hitTestable(), findsOneWidget);
+    expect(find.byType(TextField).hitTestable(), findsOneWidget);
   });
 
   testWidgets('scrolling down folds title, selector, banner and categories', (
     tester,
   ) async {
     await _pump(tester);
-    final before = tester.getSize(_list).height;
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
-    await tester.pumpAndSettle();
+    await _scrollDown(tester);
 
-    // Folded: clipped to zero height, so nothing of it can be reached.
     expect(find.byType(CategoryFilterBar).hitTestable(), findsNothing);
     expect(find.text('selector menu-productos').hitTestable(), findsNothing);
     expect(find.text('banner del hijo').hitTestable(), findsNothing);
-    expect(tester.getSize(_list).height, greaterThan(before + 100));
+    // The search field stays, pinned at the top of the screen.
+    expect(find.byType(TextField).hitTestable(), findsOneWidget);
   });
 
-  testWidgets('the search field stays while the rest is folded', (
+  testWidgets('the products get the space the header gave up', (tester) async {
+    await _pump(tester);
+    final firstBefore = tester.getTopLeft(find.text('Producto 1').first).dy;
+
+    await _scrollDown(tester, 300);
+    // After folding the header the first visible product sits right under
+    // the search field, much higher than it was with the full header.
+    final visible = find.textContaining('Producto ').hitTestable();
+    final topVisible = tester.getTopLeft(visible.first).dy;
+
+    expect(topVisible, lessThan(firstBefore));
+    expect(topVisible, lessThan(140));
+  });
+
+  testWidgets('the list follows the scroll 1 to 1 (no timed animation)', (
     tester,
   ) async {
     await _pump(tester);
+    final startTop = tester.getTopLeft(find.text('Producto 1')).dy;
+    final gesture = await tester.startGesture(const Offset(180, 450));
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 6; i++) {
+      await gesture.moveBy(const Offset(0, -20));
+      await tester.pump(); // one frame: no time for any animation to run
+      final scroll = _scrolled(tester);
+      if (scroll == 0) continue;
+      final top = tester.getTopLeft(find.text('Producto 1')).dy;
+      // While the header shrinks, the first product rises exactly by what was
+      // scrolled: the header takes no extra time or distance.
+      expect(startTop - top, closeTo(scroll, 0.5));
+    }
+    await gesture.up();
+  });
 
-    expect(find.byType(TextField), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Producto 7');
+  testWidgets('the search keeps working with the header folded', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _scrollDown(tester);
+
+    await tester.enterText(find.byType(TextField).hitTestable(), 'Producto 7');
     await tester.pump(const Duration(milliseconds: 400));
+
     expect(find.text('Producto 7'), findsWidgets);
     expect(find.text('Producto 8'), findsNothing);
   });
 
-  testWidgets('scrolling back up shows everything again', (tester) async {
+  testWidgets('the whole header returns when the list is back at the top', (
+    tester,
+  ) async {
     await _pump(tester);
-    final before = tester.getSize(_list).height;
-    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await _scrollDown(tester);
+
+    await tester.drag(_scroll, const Offset(0, 3000));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, 120));
-    await tester.pumpAndSettle();
-
-    expect(find.text('selector menu-productos'), findsOneWidget);
-    expect(tester.getSize(_list).height, before);
+    expect(find.text('selector menu-productos').hitTestable(), findsOneWidget);
+    expect(find.byType(CategoryFilterBar).hitTestable(), findsOneWidget);
   });
 
   testWidgets('tapping a combo opens its detail, read-only', (tester) async {

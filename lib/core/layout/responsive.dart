@@ -67,23 +67,19 @@ class ResponsiveCenter extends StatelessWidget {
   }
 }
 
-/// Lista desplazable que en pantallas anchas acomoda los elementos en
-/// columnas (filas de altura variable, a diferencia de GridView). En
-/// teléfono es una lista normal de una columna.
-class ResponsiveItemList extends StatelessWidget {
+/// Lista (sliver) que en pantallas anchas acomoda los elementos en columnas
+/// (filas de altura variable, a diferencia de GridView). En teléfono es una
+/// lista normal de una columna. Va dentro de un `CustomScrollView`, junto a la
+/// cabecera que se encoge y a las ofertas.
+class SliverResponsiveItemList extends StatelessWidget {
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final EdgeInsetsGeometry padding;
   final double spacing;
   final double minItemWidth;
   final int maxColumns;
-  final ScrollPhysics? physics;
 
-  /// Optional widget that scrolls with the items, above the first one (e.g.
-  /// the offers of a catalog). It never takes fixed space from the list.
-  final Widget? header;
-
-  const ResponsiveItemList({
+  const SliverResponsiveItemList({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
@@ -91,58 +87,52 @@ class ResponsiveItemList extends StatelessWidget {
     this.spacing = 12,
     this.minItemWidth = AppLayout.minCardWidth,
     this.maxColumns = 3,
-    this.physics = const AlwaysScrollableScrollPhysics(),
-    this.header,
   });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    return SliverLayoutBuilder(
       builder: (context, constraints) {
         final resolved = padding.resolve(Directionality.of(context));
-        final available = constraints.maxWidth - resolved.horizontal;
+        final available = constraints.crossAxisExtent - resolved.horizontal;
         final columns = AppLayout.columnsFor(
           available,
           minItemWidth: minItemWidth,
           maxColumns: maxColumns,
         );
-        final offset = header == null ? 0 : 1;
-        if (columns == 1) {
-          return ListView.builder(
-            physics: physics,
-            padding: padding,
-            itemCount: itemCount + offset,
-            itemBuilder: (context, index) =>
-                index < offset ? header! : itemBuilder(context, index - offset),
-          );
-        }
-        final rowCount = (itemCount / columns).ceil();
-        return ListView.builder(
-          physics: physics,
+        return SliverPadding(
           padding: padding,
-          itemCount: rowCount + offset,
-          itemBuilder: (context, index) {
-            if (index < offset) return header!;
-            final row = index - offset;
-            final start = row * columns;
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var col = 0; col < columns; col++) ...[
-                    if (col > 0) SizedBox(width: spacing),
-                    Expanded(
-                      child: start + col < itemCount
-                          ? itemBuilder(context, start + col)
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
+          sliver: columns == 1
+              ? SliverList.builder(
+                  itemCount: itemCount,
+                  itemBuilder: itemBuilder,
+                )
+              : SliverList.builder(
+                  itemCount: (itemCount / columns).ceil(),
+                  itemBuilder: (context, row) =>
+                      _buildRow(context, row, columns),
+                ),
         );
       },
+    );
+  }
+
+  Widget _buildRow(BuildContext context, int row, int columns) {
+    final start = row * columns;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var col = 0; col < columns; col++) ...[
+            if (col > 0) SizedBox(width: spacing),
+            Expanded(
+              child: start + col < itemCount
+                  ? itemBuilder(context, start + col)
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

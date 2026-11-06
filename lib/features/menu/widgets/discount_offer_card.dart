@@ -94,25 +94,36 @@ class _ProductPriceRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         // Stacked (previous above, new below) so the row stays narrow and the
         // name keeps its room with large fonts.
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (item.hasDiscount)
-              Text(
-                '\$${item.originalPrice.toStringAsFixed(2)}',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.ink900.withValues(alpha: 0.45),
-                  decoration: TextDecoration.lineThrough,
+        // Capped to a share of the screen and scaled down if it still does not
+        // fit (small phone + very large font), so the row never overflows.
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.3,
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (item.hasDiscount)
+                  Text(
+                    '\$${item.originalPrice.toStringAsFixed(2)}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: AppColors.ink900.withValues(alpha: 0.45),
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                Text(
+                  '\$${item.price.toStringAsFixed(2)}',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.brand700,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            Text(
-              '\$${item.price.toStringAsFixed(2)}',
-              style: textTheme.titleMedium?.copyWith(
-                color: AppColors.brand700,
-                fontWeight: FontWeight.w800,
-              ),
+              ],
             ),
-          ],
+          ),
         ),
         if (onTap != null)
           Icon(
