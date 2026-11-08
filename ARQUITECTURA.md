@@ -60,7 +60,7 @@ No se crean carpetas vacías: se agregan cuando existe el primer archivo.
 
 - **`BaseApiService` + `ErrorHandlerMixin`:** todo service de nuestro backend extiende `BaseApiService` (GET/POST/PUT/PATCH/multipart con token y errores centralizados). Los errores del backend y de red llegan como `ApiException` con un mensaje ya legible. Para mostrarlos: `errorMessageOf(e)`.
 - **`ApiConfig`:** todas las URLs del backend. La base viene de `Env.apiBaseUrl`.
-- **`TokenStorage`:** única fuente del JWT.
+- **`TokenStorage`:** única fuente del JWT. La sesión de la app persiste hasta que el usuario cierra sesión o el refresh es rechazado; no existe cierre por inactividad (la web sí lo tiene).
 - **Estrategia por pasarela:** `RechargeGateway` (la decide el backend) + `RechargeLauncher` por pasarela. Agregar una pasarela = un valor del enum y un launcher; la pantalla no cambia.
 - **Políticas por tabla:** `PaymentMethodPolicy` decide qué métodos de pago se ofrecen según el rol. Agregar un método = una entrada en sus tablas.
 - **Abstracciones por rol:** `AllergyOwner` y `ProductCatalogSource` evitan `if/else` por rol en las pantallas.
