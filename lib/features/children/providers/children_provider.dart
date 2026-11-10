@@ -1,7 +1,10 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
+import '../../../core/session/session_manager.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Centraliza la lista de hijos del padre autenticado. Antes, cada pantalla
@@ -9,9 +12,14 @@ import '../../../core/utils/error_message.dart';
 /// cada vez que se navegaba entre ellas por el bottom nav; ahora se carga
 /// una sola vez y se comparte, y solo se vuelve a pedir cuando algo la
 /// invalida explícitamente (registrar un hijo, recargar saldo, pull-to-refresh).
+///
+/// Se vacía sola cuando termina la sesión ([SessionManager.sessionEnded]) para
+/// que otra cuenta en el mismo dispositivo no vea los hijos de la anterior.
 class ChildrenProvider extends ChangeNotifier {
   ChildrenProvider({AuthService? authService})
-    : _authService = authService ?? AuthService();
+    : _authService = authService ?? AuthService() {
+    SessionManager.sessionEnded.addListener(reset);
+  }
 
   final AuthService _authService;
 
@@ -21,7 +29,15 @@ class ChildrenProvider extends ChangeNotifier {
   bool _hasLoadedOnce = false;
   int? _selectedChildId;
 
-  List<Child> get children => List.unmodifiable(_children);
+  /// Carga en curso, compartida: dos pantallas que piden refrescar a la vez
+  /// (p. ej. al volver de otra) esperan la misma petición en vez de duplicarla.
+  Future<void>? _refreshInFlight;
+
+  /// Se incrementa en cada [reset] para descartar respuestas que llegan
+  /// después de cerrar la sesión.
+  int _generation = 0;
+
+  UnmodifiableListView<Child> get children => UnmodifiableListView(_children);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasLoadedOnce => _hasLoadedOnce;
@@ -55,19 +71,49 @@ class ChildrenProvider extends ChangeNotifier {
     await refresh();
   }
 
-  /// Fuerza una recarga desde el backend.
-  Future<void> refresh() async {
+  /// Fuerza una recarga desde el backend. Si ya hay una en curso, devuelve esa.
+  Future<void> refresh() {
+    return _refreshInFlight ??= _load().whenComplete(
+      () => _refreshInFlight = null,
+    );
+  }
+
+  Future<void> _load() async {
+    final generation = _generation;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _children = await _authService.getChildren();
+      final loaded = await _authService.getChildren();
+      if (generation != _generation) return;
+      _children = loaded;
       _hasLoadedOnce = true;
     } catch (e) {
+      if (generation != _generation) return;
       _errorMessage = errorMessageOf(e);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (generation == _generation) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
+  }
+
+  /// Olvida todo lo de la cuenta anterior (cierre de sesión).
+  void reset() {
+    _generation++;
+    _children = [];
+    _isLoading = false;
+    _errorMessage = null;
+    _hasLoadedOnce = false;
+    _selectedChildId = null;
+    _refreshInFlight = null;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    SessionManager.sessionEnded.removeListener(reset);
+    super.dispose();
   }
 }

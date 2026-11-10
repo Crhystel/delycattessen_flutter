@@ -11,6 +11,13 @@ class SessionManager {
 
   static final navigatorKey = GlobalKey<NavigatorState>();
 
+  /// Sube cada vez que termina una sesión (cierre voluntario o forzado). Los
+  /// estados en memoria ligados a la cuenta (p. ej. la lista de hijos) lo
+  /// escuchan para vaciarse y no mostrar datos del usuario anterior.
+  static final ValueNotifier<int> sessionEnded = ValueNotifier<int>(0);
+
+  static void notifySessionEnded() => sessionEnded.value++;
+
   static bool _expiring = false;
 
   static Future<void> expire(
@@ -21,6 +28,7 @@ class SessionManager {
     _expiring = true;
     try {
       await TokenStorage.clear();
+      notifySessionEnded();
 
       final navigator = navigatorKey.currentState;
       if (navigator == null) return;

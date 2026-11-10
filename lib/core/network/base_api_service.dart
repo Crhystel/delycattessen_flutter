@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
@@ -9,6 +10,17 @@ import '../storage/token_storage.dart';
 abstract class BaseApiService with ErrorHandlerMixin {
   static const _sessionExpiredMessage =
       'Tu sesión expiró. Inicia sesión de nuevo.';
+
+  /// Tiempo máximo de una petición: sin esto una red colgada deja la pantalla
+  /// cargando para siempre. El mensaje de error es el de conexión habitual.
+  static const requestTimeout = Duration(seconds: 20);
+
+  /// Las subidas de fotos tardan más en redes lentas.
+  static const uploadTimeout = Duration(seconds: 60);
+
+  /// Cliente compartido: reutiliza la conexión (y el TLS) entre peticiones en
+  /// vez de abrir una nueva en cada llamada. Es sustituible en pruebas.
+  static http.Client httpClient = http.Client();
 
   /// Renovación en curso, compartida entre peticiones simultáneas.
   static Future<void>? _refreshInFlight;
@@ -52,19 +64,23 @@ abstract class BaseApiService with ErrorHandlerMixin {
   /// Un error de red o 5xx nunca borra la sesión ni se reintenta.
   Future<dynamic> _send(
     bool requiresAuth,
-    Future<dynamic> Function() call,
-  ) async {
+    Future<dynamic> Function() call, {
+    Duration timeout = requestTimeout,
+  }) async {
     try {
-      return await _guarded(call);
+      return await _guarded(call, timeout);
     } on ApiException catch (e) {
       if (!requiresAuth || !e.isUnauthorized) rethrow;
-      return _recoverFromUnauthorized(e, call);
+      return _recoverFromUnauthorized(e, call, timeout);
     }
   }
 
-  Future<dynamic> _guarded(Future<dynamic> Function() call) async {
+  Future<dynamic> _guarded(
+    Future<dynamic> Function() call,
+    Duration timeout,
+  ) async {
     try {
-      return await call();
+      return await call().timeout(timeout);
     } catch (e) {
       if (!isNetworkFailure(e)) rethrow;
       throw handleNetworkError(e);
@@ -74,6 +90,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
   Future<dynamic> _recoverFromUnauthorized(
     ApiException original,
     Future<dynamic> Function() call,
+    Duration timeout,
   ) async {
     if (original.isUserInactive) {
       await SessionManager.expire(original.message, title: 'Cuenta desactivada');
@@ -91,7 +108,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
     }
 
     try {
-      return await _guarded(call);
+      return await _guarded(call, timeout);
     } on ApiException catch (retryError) {
       if (retryError.isUnauthorized) await _expireFor(retryError);
       rethrow;
@@ -112,7 +129,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
   }) {
     return _send(requiresAuth, () async {
       final headers = await _buildHeaders(requiresAuth: requiresAuth);
-      final response = await http.post(
+      final response = await httpClient.post(
         Uri.parse(url),
         headers: headers,
         body: jsonEncode(body),
@@ -128,7 +145,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
   }) {
     return _send(requiresAuth, () async {
       final headers = await _buildHeaders(requiresAuth: requiresAuth);
-      final response = await http.put(
+      final response = await httpClient.put(
         Uri.parse(url),
         headers: headers,
         body: jsonEncode(body),
@@ -144,7 +161,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
   }) {
     return _send(requiresAuth, () async {
       final headers = await _buildHeaders(requiresAuth: requiresAuth);
-      final response = await http.patch(
+      final response = await httpClient.patch(
         Uri.parse(url),
         headers: headers,
         body: jsonEncode(body),
@@ -156,7 +173,7 @@ abstract class BaseApiService with ErrorHandlerMixin {
   Future<dynamic> performGetRequest(String url, {bool requiresAuth = true}) {
     return _send(requiresAuth, () async {
       final headers = await _buildHeaders(requiresAuth: requiresAuth);
-      final response = await http.get(Uri.parse(url), headers: headers);
+      final response = await httpClient.get(Uri.parse(url), headers: headers);
       return handleResponse(response);
     });
   }
@@ -208,9 +225,9 @@ abstract class BaseApiService with ErrorHandlerMixin {
         await http.MultipartFile.fromPath(fileFieldName, filePath),
       );
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await httpClient.send(request);
       final response = await http.Response.fromStream(streamedResponse);
       return handleResponse(response);
-    });
+    }, timeout: uploadTimeout);
   }
 }

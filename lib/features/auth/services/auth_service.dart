@@ -1,5 +1,6 @@
 import '../../../core/network/api_config.dart';
 import '../../../core/network/base_api_service.dart';
+import '../../../core/session/session_manager.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/auth_models.dart';
 import '../../users/models/allergy_models.dart';
@@ -170,6 +171,7 @@ class AuthService extends BaseApiService {
 
   Future<void> logout() async {
     await TokenStorage.clear();
+    SessionManager.notifySessionEnded();
   }
 
   Future<Allergen> createAllergen(String name) async {
