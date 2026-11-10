@@ -1,41 +1,76 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-/// Patrón Mixin: Centraliza el manejo de errores HTTP y la decodificación de respuestas.
-/// Las clases de servicio (Services) utilizarán `with ErrorHandlerMixin`.
+import 'api_exception.dart';
+
+/// Mixin pattern: centralizes HTTP error handling and response decoding.
+/// Service classes will use `with ErrorHandlerMixin`.
 mixin ErrorHandlerMixin {
-  /// Procesa la respuesta HTTP. Retorna el cuerpo decodificado si es exitosa (200-299),
-  /// o lanza una excepción detallada en caso contrario.
+  /// Processes the HTTP response. Returns the decoded body if successful (200-299),
+  /// or throws a detailed exception otherwise.
   dynamic handleResponse(http.Response response) {
     final statusCode = response.statusCode;
-    
+
     if (statusCode >= 200 && statusCode < 300) {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);
     } else {
-      // Intenta decodificar el mensaje de error que viene desde Django
+      debugPrint(
+        '--- HTTP ERROR ---\n'
+        'URL: ${response.request?.url}\n'
+        'Status: $statusCode\n'
+        'Headers: ${response.headers}\n'
+        'Body: ${response.body}\n'
+        '------------------',
+      );
+
       String errorMessage = 'Error desconocido en el servidor';
+      String? errorCode;
       try {
         final decodedError = jsonDecode(response.body);
-        if (decodedError is Map && decodedError.containsKey('mensaje')) {
+        if (decodedError is Map && decodedError['code'] is String) {
+          errorCode = decodedError['code'] as String;
+        }
+        if (decodedError is List && decodedError.isNotEmpty) {
+          // DRF envuelve un ValidationError('texto') lanzado directo en una
+          // vista (no desde un serializer) como un array JSON plano.
+          errorMessage = decodedError.first.toString();
+        } else if (decodedError is Map && decodedError.containsKey('mensaje')) {
           errorMessage = decodedError['mensaje'];
-        } else if (decodedError is Map && decodedError.containsKey('non_field_errors')) {
-          errorMessage = decodedError['non_field_errors'][0];
-        } else if (decodedError is Map) {
-          // Si Django devuelve errores por campo (ej: {"email": ["Ya existe"]})
-          errorMessage = decodedError.values.first.toString();
+        } else if (decodedError is Map && decodedError.containsKey('detail')) {
+          errorMessage = decodedError['detail'].toString();
+        } else if (decodedError is Map &&
+            decodedError.containsKey('non_field_errors')) {
+          final nfe = decodedError['non_field_errors'];
+          errorMessage = (nfe is List && nfe.isNotEmpty)
+              ? nfe.first.toString()
+              : nfe.toString();
+        } else if (decodedError is Map && decodedError.isNotEmpty) {
+          // Errores por campo, ej. {"ingredients": ["mensaje"]}
+          final firstValue = decodedError.values.first;
+          errorMessage = (firstValue is List && firstValue.isNotEmpty)
+              ? firstValue.first.toString()
+              : firstValue.toString();
         }
       } catch (e) {
-        // Fallback si la respuesta no es JSON válido
         errorMessage = 'Error $statusCode: ${response.reasonPhrase}';
       }
 
-      throw Exception(errorMessage);
+      throw ApiException(errorMessage, statusCode: statusCode, code: errorCode);
     }
   }
 
-  /// Procesa errores de red (SocketException, etc.) o errores internos durante la petición.
-  Exception handleNetworkError(dynamic error) {
-    return Exception('Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error');
+  /// true si [error] es un fallo de red (sin conexión o tiempo agotado) y no
+  /// una respuesta del servidor ni un error de programación.
+  bool isNetworkFailure(Object error) =>
+      error is http.ClientException || error is TimeoutException;
+
+  /// Processes network errors (SocketException, etc.) during the request.
+  ApiException handleNetworkError(dynamic error) {
+    return ApiException(
+      'Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error',
+    );
   }
 }

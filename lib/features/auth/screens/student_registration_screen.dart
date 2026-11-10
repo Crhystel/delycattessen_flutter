@@ -1,0 +1,563 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+
+import '../utils/password_check.dart';
+import '../../../core/layout/responsive.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
+import '../widgets/password_requirements.dart';
+import '../../../core/widgets/photo_source_dialog.dart';
+import '../models/auth_models.dart';
+import '../services/auth_service.dart';
+import '../../children/screens/parent_shell.dart';
+import 'login_screen.dart';
+import '../../../core/utils/error_message.dart';
+
+class StudentRegistrationScreen extends StatefulWidget {
+  const StudentRegistrationScreen({super.key});
+
+  @override
+  State<StudentRegistrationScreen> createState() =>
+      _StudentRegistrationScreenState();
+}
+
+class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
+    with NotificationMixin {
+  final _authService = AuthService();
+
+  int _currentStep = 0; // 0 = datos del hijo, 1 = crear cuenta
+
+  // Paso 1
+  final _firstNameController = TextEditingController();
+  final _secondNameController = TextEditingController();
+  final _firstLastNameController = TextEditingController();
+  final _secondLastNameController = TextEditingController();
+  List<Child> _existingChildren = [];
+  List<Institution> _institutions = [];
+  Institution? _selectedInstitution;
+  bool _isLoadingInstitutions = true;
+
+  // Paso 2
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _acceptedTerms = false;
+  File? _photo;
+
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInstitutions();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _secondNameController.dispose();
+    _firstLastNameController.dispose();
+    _secondLastNameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInstitutions() async {
+    try {
+      final results = await Future.wait([
+        _authService.getInstitutions(),
+        _authService.getChildren(),
+      ]);
+      setState(() {
+        _institutions = results[0] as List<Institution>;
+        _existingChildren = results[1] as List<Child>;
+        _isLoadingInstitutions = false;
+      });
+    } catch (e) {
+      debugPrint('Error cargando instituciones: $e');
+      setState(() => _isLoadingInstitutions = false);
+    }
+  }
+
+  void _goToStep2() {
+    if (_firstNameController.text.isEmpty ||
+        _firstLastNameController.text.isEmpty ||
+        _selectedInstitution == null) {
+      showWarningSnackBar(
+        'Completa primer nombre, primer apellido e institución.',
+        title: 'Faltan datos',
+      );
+      return;
+    }
+    if (_existingChildren.isNotEmpty) {
+      final existingInstitution = _existingChildren.first.institutionName;
+      if (existingInstitution != _selectedInstitution!.name) {
+        showWarningSnackBar(
+          'No puedes registrar hijos en instituciones diferentes. Tus hijos ya están registrados en $existingInstitution.',
+          title: 'Institución diferente',
+        );
+        return;
+      }
+    }
+    setState(() => _currentStep = 1);
+  }
+
+  Future<void> _pickPhoto() async {
+    final picked = await PhotoSourceDialog.show(
+      context,
+      title: 'Foto del Estudiante',
+    );
+    if (picked != null && mounted) {
+      setState(() => _photo = picked);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_photo == null) {
+      showWarningSnackBar('La foto es obligatoria.', title: 'Falta la foto');
+      return;
+    }
+    if (_usernameController.text.trim().isEmpty) {
+      showWarningSnackBar(
+        'El usuario es requerido.',
+        title: 'Datos incompletos',
+      );
+      return;
+    }
+    final passwordIssue = checkNewPassword(_passwordController.text);
+    if (passwordIssue != null) {
+      showWarningSnackBar(passwordIssue.message, title: passwordIssue.title);
+      return;
+    }
+    if (!_acceptedTerms) {
+      showWarningSnackBar(
+        'Debes aceptar los Términos y Condiciones.',
+        title: 'Términos y condiciones',
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await _authService.registerStudent(
+        StudentRegistration(
+          firstName: _firstNameController.text.trim(),
+          secondName: _secondNameController.text.trim(),
+          firstLastName: _firstLastNameController.text.trim(),
+          secondLastName: _secondLastNameController.text.trim(),
+          institutionId: _selectedInstitution!.id,
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
+          profilePicturePath: _photo!.path,
+        ),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ParentShell()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo crear la cuenta');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: AppColors.teal500,
+        foregroundColor: Colors.white,
+        title: const Text('Registro'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (_currentStep == 1) {
+              setState(() => _currentStep = 0);
+            } else {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            }
+          },
+        ),
+      ),
+      body: ResponsiveCenter(
+        maxWidth: AppLayout.formMaxWidth,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentStep == 0 ? 'Paso 1 de 2' : 'Paso 2 de 2',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brand500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: _currentStep == 0 ? 0.5 : 1.0,
+                  color: AppColors.brand500,
+                  backgroundColor: AppColors.brand50,
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                const SizedBox(height: 20),
+                if (_currentStep == 0) _buildStep1() else _buildStep2(),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: _currentStep == 0 ? 'Siguiente' : 'Crear cuenta',
+                  isLoading: _isSubmitting,
+                  onPressed: () {
+                    _currentStep == 0 ? _goToStep2() : _submit();
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep1() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: Text(
+            'Datos de tu hijo/a',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Center(
+          child: Text(
+            'Ingresa la información para asignar su cuenta',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.ink900.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _label('Primer Nombre'),
+        _field(_firstNameController, 'Ingrese el primer nombre de su hijo/a'),
+        const SizedBox(height: 16),
+        _label('Segundo Nombre'),
+        _field(_secondNameController, 'Ingrese el segundo nombre de su hijo/a'),
+        const SizedBox(height: 16),
+        _label('Primer Apellido'),
+        _field(
+          _firstLastNameController,
+          'Ingrese el primer apellido de su hijo/a',
+        ),
+        const SizedBox(height: 16),
+        _label('Segundo Apellido'),
+        _field(
+          _secondLastNameController,
+          'Ingrese el segundo apellido de su hijo/a',
+        ),
+        const SizedBox(height: 16),
+        _label('Institución'),
+        _isLoadingInstitutions
+            ? const Padding(
+                padding: EdgeInsets.all(8),
+                child: CircularProgressIndicator(),
+              )
+            : DropdownButtonFormField<Institution>(
+                initialValue: _selectedInstitution,
+                items: _institutions
+                    .map((i) => DropdownMenuItem(value: i, child: Text(i.name)))
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedInstitution = value),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.secondary500,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Selecciona la institución',
+                  prefixIcon: const Icon(
+                    Icons.account_balance_outlined,
+                    color: AppColors.secondary500,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary500,
+                      width: 1.4,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary500,
+                      width: 1.4,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.secondary700,
+                      width: 1.8,
+                    ),
+                  ),
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildStep2() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Crea la cuenta',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Esta cuenta permitirá a tu hijo/a acceder a la aplicación',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.ink900.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: GestureDetector(
+            onTap: _pickPhoto,
+            child: Stack(
+              children: [
+                Container(
+                  width: 147,
+                  height: 147,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.ink50,
+                    border: Border.all(
+                      color: _photo != null
+                          ? AppColors.secondary500
+                          : AppColors.teal50,
+                      width: 2,
+                    ),
+                    image: _photo != null
+                        ? DecorationImage(
+                            image: FileImage(_photo!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _photo == null
+                      ? const Center(
+                          child: Icon(
+                            Icons.person,
+                            size: 70,
+                            color: AppColors.secondary500,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.brand500,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: AppColors.ink900,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: _pickPhoto,
+            icon: const Icon(
+              Icons.photo_camera_rounded,
+              color: AppColors.teal500,
+              size: 20,
+            ),
+            label: Text(
+              _photo == null ? 'Tomar o Elegir Foto' : 'Cambiar Foto',
+              style: TextStyle(
+                color: AppColors.teal500,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+        Center(
+          child: Text(
+            'Puedes usar la cámara a pantalla completa o elegir de tu galería',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.ink900.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _label('Usuario'),
+        TextField(
+          controller: _usernameController,
+          style: TextStyle(color: AppColors.ink900),
+          decoration: _decoration('Ej. usuario123', icon: Icons.person_outline),
+        ),
+        const SizedBox(height: 16),
+        _label('Contraseña'),
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          onChanged: (_) => setState(() {}),
+          style: TextStyle(color: AppColors.ink900),
+          decoration: _decoration(
+            'Crea una contraseña segura',
+            icon: Icons.lock_outline,
+            suffix: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+            ),
+          ),
+        ),
+        PasswordRequirements(password: _passwordController.text),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Checkbox(
+              value: _acceptedTerms,
+              onChanged: (value) =>
+                  setState(() => _acceptedTerms = value ?? false),
+              activeColor: AppColors.secondary500,
+            ),
+            Expanded(
+              child: Text(
+                'Acepto Términos y Condiciones',
+                style: TextStyle(fontSize: 12, color: AppColors.ink900),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: AppColors.secondary500,
+      ),
+    ),
+  );
+
+  Widget _field(TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: AppColors.ink900),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary500,
+            width: 1.4,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(
+            color: AppColors.secondary700,
+            width: 1.8,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _decoration(String hint, {IconData? icon, Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: icon != null
+          ? Icon(icon, color: AppColors.secondary500)
+          : null,
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.secondary500, width: 1.4),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.secondary500, width: 1.4),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.secondary700, width: 1.8),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+}

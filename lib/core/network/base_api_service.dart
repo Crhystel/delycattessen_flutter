@@ -1,36 +1,216 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'api_config.dart';
+import 'api_exception.dart';
 import 'error_handler_mixin.dart';
+import '../session/session_manager.dart';
+import '../storage/token_storage.dart';
 
-/// Patrón Template Method: Esta clase abstracta define el esqueleto de las peticiones HTTP.
-/// Implementa [ErrorHandlerMixin] para obtener el manejo robusto de errores de forma automática.
 abstract class BaseApiService with ErrorHandlerMixin {
-  /// Retorna los headers por defecto (Permission Class equivalente conceptual para inyección).
-  /// En el futuro, aquí se puede inyectar el token JWT recuperado de SecureStorage.
-  Map<String, String> get defaultHeaders => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        // 'Authorization': 'Bearer $_token', // Future implementation
-      };
+  static const _sessionExpiredMessage =
+      'Tu sesión expiró. Inicia sesión de nuevo.';
 
-  /// Template Method: Define el esqueleto de una petición POST.
-  /// Toma la URL y el body (convertido a JSON), realiza la petición,
-  /// y delega el manejo de éxito/error al Mixin.
-  Future<dynamic> performPostRequest(String url, Map<String, dynamic> body) async {
+  /// Renovación en curso, compartida entre peticiones simultáneas.
+  static Future<void>? _refreshInFlight;
+
+  Future<Map<String, String>> _buildHeaders({bool requiresAuth = true}) async {
+    final token = requiresAuth ? await TokenStorage.getAccessToken() : null;
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  /// Renueva el access token con el refresh guardado. Lanza [ApiException]
+  /// si el servidor lo rechaza, o un fallo de red si no hay conexión.
+  Future<void> refreshAccessToken() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(
+      () => _refreshInFlight = null,
+    );
+  }
+
+  Future<void> _doRefresh() async {
+    final refresh = await TokenStorage.getRefreshToken();
+    if (refresh == null) {
+      throw const ApiException(_sessionExpiredMessage, statusCode: 401);
+    }
+    final response = await performPostRequest(ApiConfig.tokenRefresh, {
+      'refresh': refresh,
+    }, requiresAuth: false).timeout(const Duration(seconds: 8));
+    final map = response as Map<String, dynamic>;
+    await TokenStorage.saveTokens(
+      access: map['access'] as String,
+      refresh: (map['refresh'] as String?) ?? refresh,
+    );
+  }
+
+  /// Template Method: ejecuta [call] traduciendo los fallos de red; ante un
+  /// 401 con sesión intenta renovar el token y reenvía UNA sola vez (el 401
+  /// ocurre antes de ejecutar la vista, así que no duplica efectos). Si la
+  /// cuenta está desactivada o el refresh es rechazado, cierra la sesión.
+  /// Un error de red o 5xx nunca borra la sesión ni se reintenta.
+  Future<dynamic> _send(
+    bool requiresAuth,
+    Future<dynamic> Function() call,
+  ) async {
     try {
+      return await _guarded(call);
+    } on ApiException catch (e) {
+      if (!requiresAuth || !e.isUnauthorized) rethrow;
+      return _recoverFromUnauthorized(e, call);
+    }
+  }
+
+  Future<dynamic> _guarded(Future<dynamic> Function() call) async {
+    try {
+      return await call();
+    } catch (e) {
+      if (!isNetworkFailure(e)) rethrow;
+      throw handleNetworkError(e);
+    }
+  }
+
+  Future<dynamic> _recoverFromUnauthorized(
+    ApiException original,
+    Future<dynamic> Function() call,
+  ) async {
+    if (original.isUserInactive) {
+      await SessionManager.expire(original.message, title: 'Cuenta desactivada');
+      throw original;
+    }
+
+    try {
+      await refreshAccessToken();
+    } on ApiException catch (refreshError) {
+      await _expireFor(refreshError);
+      throw original;
+    } catch (e) {
+      if (isNetworkFailure(e)) throw handleNetworkError(e);
+      rethrow;
+    }
+
+    try {
+      return await _guarded(call);
+    } on ApiException catch (retryError) {
+      if (retryError.isUnauthorized) await _expireFor(retryError);
+      rethrow;
+    }
+  }
+
+  Future<void> _expireFor(ApiException error) {
+    if (error.isUserInactive) {
+      return SessionManager.expire(error.message, title: 'Cuenta desactivada');
+    }
+    return SessionManager.expire(_sessionExpiredMessage);
+  }
+
+  Future<dynamic> performPostRequest(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) {
+    return _send(requiresAuth, () async {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
       final response = await http.post(
         Uri.parse(url),
-        headers: defaultHeaders,
+        headers: headers,
         body: jsonEncode(body),
       );
-      
-      // El Mixin se encarga de lanzar excepción o devolver los datos decodificados
       return handleResponse(response);
-    } catch (e) {
-      if (e is Exception && !e.toString().contains('Error de conexión')) {
-        rethrow; // Re-lanzar si es una excepción de la API (ya parseada por el mixin)
-      }
-      throw handleNetworkError(e); // Manejar fallos de conexión pura (sin internet, servidor caído)
-    }
+    });
+  }
+
+  Future<dynamic> performPutRequest(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) {
+    return _send(requiresAuth, () async {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final response = await http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      return handleResponse(response);
+    });
+  }
+
+  Future<dynamic> performPatchRequest(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = true,
+  }) {
+    return _send(requiresAuth, () async {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      return handleResponse(response);
+    });
+  }
+
+  Future<dynamic> performGetRequest(String url, {bool requiresAuth = true}) {
+    return _send(requiresAuth, () async {
+      final headers = await _buildHeaders(requiresAuth: requiresAuth);
+      final response = await http.get(Uri.parse(url), headers: headers);
+      return handleResponse(response);
+    });
+  }
+
+  Future<dynamic> performMultipartPostRequest(
+    String url,
+    Map<String, String> fields,
+    String fileFieldName,
+    String filePath, {
+    bool requiresAuth = true,
+  }) => _sendMultipart(
+    'POST',
+    url,
+    fields,
+    fileFieldName,
+    filePath,
+    requiresAuth,
+  );
+
+  Future<dynamic> performMultipartPatchRequest(
+    String url,
+    Map<String, String> fields,
+    String fileFieldName,
+    String filePath, {
+    bool requiresAuth = true,
+  }) => _sendMultipart(
+    'PATCH',
+    url,
+    fields,
+    fileFieldName,
+    filePath,
+    requiresAuth,
+  );
+
+  Future<dynamic> _sendMultipart(
+    String method,
+    String url,
+    Map<String, String> fields,
+    String fileFieldName,
+    String filePath,
+    bool requiresAuth,
+  ) {
+    return _send(requiresAuth, () async {
+      final token = requiresAuth ? await TokenStorage.getAccessToken() : null;
+      final request = http.MultipartRequest(method, Uri.parse(url));
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.fields.addAll(fields);
+      request.files.add(
+        await http.MultipartFile.fromPath(fileFieldName, filePath),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return handleResponse(response);
+    });
   }
 }
