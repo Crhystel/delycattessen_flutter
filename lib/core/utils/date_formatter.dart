@@ -74,6 +74,12 @@ class DateFormatter {
     return '${weekdayName(date)} ${date.day} de ${monthName(date)}';
   }
 
+  /// Devuelve el formato largo con mayúscula inicial: "Miércoles 14 de octubre"
+  static String formatLongCapitalized(DateTime date) {
+    final text = formatLong(date);
+    return '${text[0].toUpperCase()}${text.substring(1)}';
+  }
+
   /// Devuelve formato corto para chips: "Mié 14 oct"
   static String formatChip(DateTime date) {
     return '${shortWeekdayName(date)} ${date.day} ${shortMonthName(date)}';

@@ -2,91 +2,93 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_card.dart';
+import 'parental_switch.dart';
 
-/// Card with an icon tile, title/subtitle and an "Activado" switch. The
-/// optional [child] (amount field, day chips...) is revealed only while the
-/// control is enabled.
+/// Tarjeta de un control parental: icono cuadrado, título y subtítulo, la fila
+/// "Activado/Desactivado" con su interruptor y, según el estado, el contenido
+/// de [child] (monto, días...) cuando está activado o [offChild] (texto de
+/// ayuda) cuando no.
+///
+/// El icono es un [icon] o, si se da [glyph], un texto (el "$" del límite).
 class ParentalControlCard extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? glyph;
   final String title;
   final String subtitle;
   final bool enabled;
   final ValueChanged<bool> onChanged;
   final Widget? child;
+  final Widget? offChild;
 
   const ParentalControlCard({
     super.key,
-    required this.icon,
+    this.icon,
+    this.glyph,
     required this.title,
     required this.subtitle,
     required this.enabled,
     required this.onChanged,
     this.child,
-  });
+    this.offChild,
+  }) : assert(icon != null || glyph != null, 'Pasa un icono o un glifo');
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final content = enabled ? child : offChild;
     return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      design: true,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.ink900.withValues(alpha: 0.06),
-                  borderRadius: AppRadius.smAll,
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.secondary50,
+                  borderRadius: AppRadius.fieldAll,
                 ),
-                child: Icon(icon, color: AppColors.secondary500, size: 28),
+                child: glyph != null
+                    ? Text(
+                        glyph!,
+                        style: AppText.amount.copyWith(
+                          fontSize: 22,
+                          color: AppColors.secondary500,
+                        ),
+                      )
+                    : Icon(icon, color: AppColors.secondary500, size: 24),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
-                    ),
+                    Text(title, style: AppText.cardTitle),
+                    Text(subtitle, style: AppText.secondaryLg),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 14),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   enabled ? 'Activado' : 'Desactivado',
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink900.withValues(alpha: 0.55),
-                  ),
+                  style: AppText.secondaryLg.copyWith(fontSize: 15),
                 ),
               ),
-              Semantics(
+              const SizedBox(width: 12),
+              ParentalSwitch(
+                value: enabled,
+                onChanged: onChanged,
                 label: title,
-                child: Switch(
-                  value: enabled,
-                  onChanged: onChanged,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: AppColors.secondary500,
-                ),
               ),
             ],
           ),
@@ -94,12 +96,12 @@ class ParentalControlCard extends StatelessWidget {
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             alignment: Alignment.topCenter,
-            child: enabled && child != null
-                ? Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm),
-                    child: SizedBox(width: double.infinity, child: child),
-                  )
-                : const SizedBox(width: double.infinity),
+            child: content == null
+                ? const SizedBox(width: double.infinity)
+                : Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: SizedBox(width: double.infinity, child: content),
+                  ),
           ),
         ],
       ),

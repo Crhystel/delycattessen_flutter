@@ -13,6 +13,7 @@ import '../../children/providers/children_provider.dart';
 import '../models/menu_models.dart';
 import '../services/menu_service.dart';
 import '../utils/cart_rules.dart';
+import '../utils/orders_reload_policy.dart';
 import '../widgets/cart_line_tile.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -134,6 +135,8 @@ class _CartScreenState extends State<CartScreen> with NotificationMixin {
       );
 
       await _menuService.createPreOrder(preOrder);
+      // Hay un pedido nuevo: la pestaña Pedidos debe recargar al mostrarse.
+      OrdersReloadSignal.request();
 
       if (!mounted) return;
       await context.read<ChildrenProvider>().refresh();

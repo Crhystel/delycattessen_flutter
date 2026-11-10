@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
 
 /// Insignia de la tarjeta (alérgeno, unidades en carrito, stock, etc.).
@@ -16,6 +17,10 @@ class CatalogBadge extends StatelessWidget {
   /// Si se define, la insignia muestra una × para quitar el producto.
   final VoidCallback? onRemove;
 
+  /// Píldora del rediseño del padre (radio total, texto 12/700). Por defecto la
+  /// insignia es el rectángulo redondeado que usan docente y caja.
+  final bool pill;
+
   const CatalogBadge({
     super.key,
     required this.label,
@@ -23,6 +28,7 @@ class CatalogBadge extends StatelessWidget {
     required this.foreground,
     this.icon,
     this.onRemove,
+    this.pill = false,
   });
 
   const CatalogBadge.allergen({super.key})
@@ -30,27 +36,41 @@ class CatalogBadge extends StatelessWidget {
       background = AppColors.dangerBg,
       foreground = AppColors.danger700,
       icon = Icons.warning_amber_rounded,
-      onRemove = null;
+      onRemove = null,
+      pill = false;
 
   const CatalogBadge.discount(int percentage, {super.key})
     : label = '-$percentage%',
       background = AppColors.successBg,
       foreground = AppColors.success700,
       icon = Icons.local_offer_rounded,
-      onRemove = null;
+      onRemove = null,
+      pill = false;
 
   const CatalogBadge.info(this.label, {super.key, this.onRemove})
     : background = AppColors.secondary50,
       foreground = AppColors.secondary700,
-      icon = null;
+      icon = null,
+      pill = false;
+
+  /// Esta misma insignia como píldora (filas de producto del padre).
+  CatalogBadge asPill() => CatalogBadge(
+    key: key,
+    label: label,
+    background: background,
+    foreground: foreground,
+    icon: icon,
+    onRemove: onRemove,
+    pill: true,
+  );
 
   @override
   Widget build(BuildContext context) {
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: pill ? 2 : 3),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(pill ? 999 : 8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -66,10 +86,12 @@ class CatalogBadge extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: foreground,
-                fontWeight: FontWeight.w800,
-              ),
+              style: pill
+                  ? AppText.badge.copyWith(color: foreground)
+                  : Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w800,
+                    ),
             ),
           ),
           if (onRemove != null) ...[
@@ -112,6 +134,10 @@ class CatalogItemCard extends StatelessWidget {
   final bool dimmed;
   final VoidCallback onTap;
 
+  /// Vista del padre: la foto va a la izquierda, las insignias bajo el nombre y
+  /// el precio a la derecha. Por defecto (POS, docente) la foto va a la derecha.
+  final bool leadingImage;
+
   const CatalogItemCard({
     super.key,
     required this.name,
@@ -122,11 +148,13 @@ class CatalogItemCard extends StatelessWidget {
     this.imageUrl,
     this.badges = const [],
     this.dimmed = false,
+    this.leadingImage = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    if (leadingImage) return _buildLeadingImageCard(textTheme, context);
     // Tarjeta blanca con sombra suave, como las del menú en el Figma.
     return Opacity(
       opacity: dimmed ? 0.6 : 1.0,
@@ -213,6 +241,105 @@ class CatalogItemCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Fila del padre: foto, nombre, descripción, insignias y el precio a la
+  /// derecha (con el anterior tachado si hay descuento).
+  Widget _buildLeadingImageCard(TextTheme textTheme, BuildContext context) {
+    return Opacity(
+      opacity: dimmed ? 0.6 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: _buildImageBox(context),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: AppText.itemTitle),
+                        if (description.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.secondary,
+                          ),
+                        ],
+                        if (badges.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [for (final b in badges) b.asPill()],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (originalPrice != null)
+                        Text(
+                          '\$${originalPrice!.toStringAsFixed(2)}',
+                          style: AppText.secondary.copyWith(
+                            color: AppColors.placeholder,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      Text(
+                        '\$${price.toStringAsFixed(2)}',
+                        style: AppText.price.copyWith(
+                          color: AppColors.brand700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageBox(BuildContext context) {
+    return Container(
+      width: 76,
+      height: 76,
+      color: AppColors.ink50,
+      child: imageUrl != null
+          ? CachedNetworkImage(
+              imageUrl: imageUrl!,
+              fit: BoxFit.cover,
+              memCacheWidth: AppImageCacheHelper.cacheSize(context, 76),
+              memCacheHeight: AppImageCacheHelper.cacheSize(context, 76),
+              errorWidget: (_, _, _) =>
+                  const Icon(Icons.fastfood, color: AppColors.secondary500),
+            )
+          : const Icon(Icons.fastfood, color: AppColors.secondary500),
     );
   }
 

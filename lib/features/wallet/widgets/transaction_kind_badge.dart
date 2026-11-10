@@ -27,6 +27,29 @@ extension TransactionKindStyle on TransactionKind {
 
   /// Signo del monto sobre el saldo: las recargas suman, los consumos restan.
   String get sign => this == TransactionKind.recharge ? '+' : '-';
+
+  /// Círculo de la fila del historial del padre: "+" azul claro para recargas
+  /// y "−" gris para consumos.
+  IconData get rowIcon => switch (this) {
+    TransactionKind.recharge => Icons.add,
+    TransactionKind.consumption => Icons.remove,
+  };
+
+  Color get rowBackground => switch (this) {
+    TransactionKind.recharge => AppColors.teal50,
+    TransactionKind.consumption => AppColors.ink50,
+  };
+
+  Color get rowForeground => switch (this) {
+    TransactionKind.recharge => AppColors.teal500,
+    TransactionKind.consumption => AppColors.muted,
+  };
+
+  /// Color del monto en la fila: verde si entra saldo, tinta si sale.
+  Color get rowAmountColor => switch (this) {
+    TransactionKind.recharge => AppColors.success700,
+    TransactionKind.consumption => AppColors.ink900,
+  };
 }
 
 /// Insignia "Recarga" / "Consumo" con el color e icono de su tipo.

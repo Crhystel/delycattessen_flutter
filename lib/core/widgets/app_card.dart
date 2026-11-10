@@ -12,6 +12,11 @@ class AppCard extends StatelessWidget {
   final EdgeInsetsGeometry margin;
   final Color color;
 
+  /// Estilo del rediseño del padre: radio 22 y borde fino `AppColors.line`.
+  /// Sin él la tarjeta queda como antes (radio 20, borde `teal50`) para las
+  /// pantallas de estudiante, docente y caja.
+  final bool design;
+
   const AppCard({
     super.key,
     required this.child,
@@ -19,23 +24,27 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(AppSpacing.lg),
     this.margin = EdgeInsets.zero,
     this.color = Colors.white,
+    this.design = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final radius = design ? AppRadius.cardAll : AppRadius.mdAll;
     return Padding(
       padding: margin,
       child: Material(
         color: color,
-        borderRadius: AppRadius.mdAll,
+        borderRadius: radius,
         child: InkWell(
-          borderRadius: AppRadius.mdAll,
+          borderRadius: radius,
           onTap: onTap,
           child: Ink(
             padding: padding,
             decoration: BoxDecoration(
-              borderRadius: AppRadius.mdAll,
-              border: Border.all(color: AppColors.teal50),
+              borderRadius: radius,
+              border: Border.all(
+                color: design ? AppColors.line : AppColors.teal50,
+              ),
             ),
             child: child,
           ),

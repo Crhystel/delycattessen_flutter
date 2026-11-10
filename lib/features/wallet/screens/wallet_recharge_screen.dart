@@ -3,16 +3,23 @@ import 'package:provider/provider.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/floating_bubbles.dart';
-import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/segmented_switch.dart';
 import 'pin_entry_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../children/providers/children_provider.dart';
+import '../../children/widgets/child_switch_bar.dart';
 import '../services/wallet_service.dart';
 import '../utils/recharge_launcher.dart';
+import '../widgets/recharge_amount_input.dart';
+import '../widgets/recharge_balance_card.dart';
+import '../widgets/recharge_submit_button.dart';
 import '../../../core/utils/error_message.dart';
+import 'transaction_history_screen.dart';
 
 class ChildOption {
   final int walletId;
@@ -30,6 +37,9 @@ class ChildOption {
   });
 }
 
+/// Secciones de la pestaña Billetera del padre.
+enum _WalletTab { recharge, movements }
+
 class WalletRechargeScreen extends StatefulWidget {
   /// Opcional: si se pasa, la pantalla usa esta lista fija en vez de leer
   /// del ChildrenProvider (útil si algún día hace falta un flujo con una
@@ -40,11 +50,15 @@ class WalletRechargeScreen extends StatefulWidget {
   /// true cuando vive dentro del ParentShell: sin flecha atrás ni barra propia.
   final bool embedded;
 
+  /// Burbuja de perfil a la derecha del título (la pone el ParentShell).
+  final Widget? profileAction;
+
   const WalletRechargeScreen({
     super.key,
     this.children,
     this.initialWalletId,
     this.embedded = false,
+    this.profileAction,
   });
 
   @override
@@ -60,8 +74,12 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
   int? _selectedWalletId;
   ChildrenProvider? _childrenProvider;
   bool _isSubmitting = false;
+  _WalletTab _tab = _WalletTab.recharge;
 
-  static const List<double> _quickAmounts = [5.00, 10.00, 15.00];
+  /// Movimientos se crea al abrirlo por primera vez y luego se conserva.
+  bool _movementsOpened = false;
+
+  static const List<double> _quickAmounts = [5.00, 10.00, 15.00, 20.00];
 
   @override
   void initState() {
@@ -128,9 +146,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     );
   }
 
-  void _setQuickAmount(double amount) {
-    setState(() => _amountController.text = amount.toStringAsFixed(2));
-  }
+  double? get _enteredAmount => double.tryParse(_amountController.text);
 
   Future<bool> _confirmWithPin() async {
     final me = await _authService.getMe();
@@ -153,7 +169,7 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     final selectedChild = _resolveSelectedChild(
       _childrenOptions(context, listen: false),
     );
-    final amount = double.tryParse(_amountController.text);
+    final amount = _enteredAmount;
     if (amount == null || amount <= 0) {
       showWarningSnackBar(
         'Ingresa un monto válido para recargar.',
@@ -226,61 +242,74 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
         childrenProvider != null &&
         childrenProvider.isLoading &&
         !childrenProvider.hasLoadedOnce;
+    final embedded = widget.embedded;
+    final rechargeBody = _buildRechargeBody(
+      children,
+      selectedChild,
+      isLoadingChildren,
+    );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
       body: Stack(
         children: [
-          const FloatingBubbles(corner: BubbleCorner.topRight),
+          // Las burbujas no cambian: se pintan una sola vez en su propia capa.
+          RepaintBoundary(
+            child: FloatingBubbles(
+              corner: BubbleCorner.topRight,
+              design: embedded,
+            ),
+          ),
           ResponsiveCenter(
             child: SafeArea(
+              // Embebida, el margen superior lo da la cabecera con el inset
+              // real del dispositivo (la app dibuja de borde a borde).
+              top: !embedded,
               child: Column(
                 children: [
                   _buildHeader(context),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                  if (embedded)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.page,
+                        AppSpacing.lg,
+                        AppSpacing.page,
+                        0,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Selecciona a quién recargar',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.ink900.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildChildSelector(
-                            children,
-                            selectedChild,
-                            isLoadingChildren,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildBalanceCard(selectedChild),
-                          const SizedBox(height: 24),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Monto a recargar',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildAmountField(),
-                          const SizedBox(height: 14),
-                          _buildQuickAmountChips(),
-                          const SizedBox(height: 28),
-                          _buildRechargeButton(),
+                      child: SegmentedSwitch<_WalletTab>(
+                        palette: SegmentedSwitchPalette.blue,
+                        options: const [
+                          (_WalletTab.recharge, 'Recargar'),
+                          (_WalletTab.movements, 'Movimientos'),
                         ],
+                        selected: _tab,
+                        onChanged: _onTabChanged,
                       ),
                     ),
+                  if (embedded && widget.children == null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.page,
+                        AppSpacing.lg,
+                        AppSpacing.page,
+                        14,
+                      ),
+                      child: ChildSwitchBar(
+                        label: _tab == _WalletTab.recharge
+                            ? 'Recargar a'
+                            : 'Movimientos de',
+                      ),
+                    ),
+                  Expanded(
+                    child: embedded
+                        ? IndexedStack(
+                            index: _tab == _WalletTab.movements ? 1 : 0,
+                            children: [
+                              rechargeBody,
+                              _buildMovements(selectedChild),
+                            ],
+                          )
+                        : rechargeBody,
                   ),
                 ],
               ),
@@ -291,32 +320,148 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color: Colors.transparent,
-      child: Row(
+  void _onTabChanged(_WalletTab tab) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _tab = tab;
+      if (tab == _WalletTab.movements) _movementsOpened = true;
+    });
+  }
+
+  /// Movimientos del hijo. Se crean la primera vez que se abre la sección y
+  /// después se conservan: volver a "Recargar" y regresar no repite la
+  /// petición. La clave cambia con el hijo o el saldo para volver a pedirlos.
+  Widget _buildMovements(ChildOption? selectedChild) {
+    if (!_movementsOpened || selectedChild == null) {
+      return const SizedBox.shrink();
+    }
+    return TransactionHistoryScreen.forWallet(
+      key: ValueKey(
+        '${selectedChild.walletId}-${selectedChild.currentBalance}',
+      ),
+      walletId: selectedChild.walletId,
+      childName: selectedChild.name,
+      embedded: true,
+      balance: selectedChild.currentBalance,
+    );
+  }
+
+  Widget _buildRechargeBody(
+    List<ChildOption> children,
+    ChildOption? selectedChild,
+    bool isLoadingChildren,
+  ) {
+    final design = widget.embedded;
+    final balance = selectedChild?.currentBalance ?? 0.0;
+    final firstName = selectedChild?.name.split(' ').first;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        design ? 0 : 4,
+        AppSpacing.page,
+        design ? AppSpacing.xl : 4,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!widget.embedded) ...[
-            IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                } else {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                }
-              },
+            Text(
+              'Selecciona a quién recargar',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
             ),
-            const SizedBox(width: 4),
-          ],
+            const SizedBox(height: 12),
+            _buildChildSelector(children, selectedChild, isLoadingChildren),
+            const SizedBox(height: 20),
+          ] else if (isLoadingChildren)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.secondary500),
+              ),
+            ),
+          RechargeBalanceCard(
+            balance: balance,
+            firstName: firstName ?? 'Usuario',
+            amountController: _amountController,
+            design: design,
+          ),
+          SizedBox(height: design ? 22 : 24),
           Text(
-            'Billetera Digital',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.ink900,
+            'Monto a recargar',
+            style: design
+                ? AppText.itemTitle.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  )
+                : textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          SizedBox(height: design ? 8 : 10),
+          RechargeAmountField(controller: _amountController, design: design),
+          SizedBox(height: design ? 12 : 14),
+          QuickAmountChips(
+            controller: _amountController,
+            amounts: _quickAmounts,
+            design: design,
+          ),
+          SizedBox(height: design ? 24 : 28),
+          RechargeSubmitButton(
+            amountController: _amountController,
+            firstName: firstName,
+            isLoading: _isSubmitting,
+            onPressed: _proceedToRecharge,
+            design: design,
+          ),
+          SizedBox(height: design ? 0 : 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    if (widget.embedded) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.page,
+          AppLayout.pageTopPadding(context),
+          AppSpacing.page,
+          0,
+        ),
+        child: Row(
+          children: [
+            Expanded(child: Text('Billetera', style: AppText.tabTitle)),
+            if (widget.profileAction != null) widget.profileAction!,
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 20, 12),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.ink900),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            },
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              'Billetera',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink900,
+              ),
             ),
           ),
+          if (widget.profileAction != null) widget.profileAction!,
         ],
       ),
     );
@@ -351,153 +496,46 @@ class _WalletRechargeScreenState extends State<WalletRechargeScreen>
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: children.map((child) {
-        final isSelected = child.walletId == selectedChild?.walletId;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: GestureDetector(
-            onTap: () {
-              setState(() => _selectedWalletId = child.walletId);
-              if (widget.embedded && child.studentId != null) {
-                _childrenProvider?.select(child.studentId!);
-              }
-            },
-            child: Container(
-              width: 88,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.secondary500
-                      : const Color(0xFFE0E0E0),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  ChildAvatarChip(
-                    imageUrl: child.profilePictureUrl,
-                    radius: 18,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    child.name,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: AppColors.ink900,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildBalanceCard(ChildOption? selectedChild) {
-    final balance = selectedChild?.currentBalance ?? 0.0;
-    final childName = selectedChild?.name ?? 'Usuario';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.teal500,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.credit_card, color: Colors.white70, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                'Saldo Actual de $childName',
-                style: TextStyle(fontSize: 13, color: Colors.white70),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '\$${balance.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAmountField() {
-    return TextField(
-      controller: _amountController,
-      textAlign: TextAlign.center,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: AppColors.ink900,
-      ),
-      decoration: InputDecoration(
-        prefixText: '\$ ',
-        prefixStyle: TextStyle(
-          fontSize: 20,
-          color: AppColors.ink900.withValues(alpha: 0.4),
-        ),
-        hintText: '0.00',
-      ),
-    );
-  }
-
-  Widget _buildQuickAmountChips() {
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 10,
-      children: _quickAmounts.map((amount) {
+      spacing: 12,
+      runSpacing: 12,
+      children: children.map((child) {
+        final isSelected = child.walletId == selectedChild?.walletId;
         return GestureDetector(
-          onTap: () => _setQuickAmount(amount),
+          onTap: () => setState(() => _selectedWalletId = child.walletId),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            width: 88,
+            padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.brand50,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.brand500),
-            ),
-            child: Text(
-              '\$${amount.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.brand700,
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.secondary500
+                    : AppColors.lineStrong,
+                width: isSelected ? 2 : 1,
               ),
+            ),
+            child: Column(
+              children: [
+                ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 18),
+                const SizedBox(height: 6),
+                Text(
+                  child.name,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.ink900,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildRechargeButton() {
-    return PrimaryButton(
-      label: 'Recargar saldo seguro',
-      icon: Icons.lock_outline,
-      isLoading: _isSubmitting,
-      onPressed: _proceedToRecharge,
     );
   }
 }

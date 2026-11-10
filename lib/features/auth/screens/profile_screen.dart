@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/form_page.dart';
 import '../../../core/widgets/form_section_card.dart';
 import '../../../core/widgets/profile_summary_card.dart';
@@ -25,11 +27,25 @@ class ProfileScreen extends StatefulWidget {
   /// which `auth` must not import).
   final VoidCallback? onOpenAllergies;
 
+  /// Sección extra bajo "Cuenta" (el padre pone aquí "Mis hijos", que vive en
+  /// `children` y `auth` no puede importar).
+  final Widget? extraSections;
+
+  /// Si se da, se muestra el botón "Cerrar sesión" al final (solo el padre).
+  final VoidCallback? onLogout;
+
+  /// Rediseño del padre: cabecera con burbujas, avatar morado, tarjetas de
+  /// radio 22 y botón "Cerrar sesión" de 54. Sin él (docente) queda igual.
+  final bool parentStyle;
+
   const ProfileScreen({
     super.key,
     required this.me,
     this.authService,
     this.onOpenAllergies,
+    this.extraSections,
+    this.onLogout,
+    this.parentStyle = false,
   });
 
   @override
@@ -55,6 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final allergies = widget.onOpenAllergies;
+    final design = widget.parentStyle;
     return PopScope(
       // Leaving after a change hands back the latest profile.
       canPop: !_changed,
@@ -63,18 +80,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       child: FormPage(
         title: 'Mi perfil',
+        design: design,
         children: [
           ProfileSummaryCard(
-            leading: InitialsAvatar(name: _me.displayName, fallback: _me.email),
+            design: design,
+            leading: InitialsAvatar(
+              name: _me.displayName,
+              fallback: _me.email,
+              radius: design ? 32 : 26,
+              solid: design,
+            ),
             title: _me.displayName.isEmpty ? 'Mi perfil' : _me.displayName,
             subtitle: _me.email,
           ),
           const SizedBox(height: AppSpacing.xl),
           FormSectionCard(
+            design: design,
             title: 'Cuenta',
             contentPadding: EdgeInsets.zero,
             children: withDividers([
               SettingsRow(
+                design: design,
                 icon: Icons.badge_outlined,
                 title: 'Nombres',
                 subtitle: _me.fullName,
@@ -82,6 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _open(EditNamesScreen(me: _me, authService: _authService)),
               ),
               SettingsRow(
+                design: design,
                 icon: Icons.mail_outline,
                 title: 'Correo',
                 subtitle: _me.email,
@@ -90,21 +117,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               SettingsRow(
+                design: design,
                 icon: Icons.lock_outline,
                 title: 'Contraseña',
                 subtitle: 'Cambia tu contraseña',
                 onTap: () =>
                     _open(ProfilePasswordScreen(authService: _authService)),
               ),
-            ]),
+            ], design: design),
           ),
           if (allergies != null) ...[
             const SizedBox(height: AppSpacing.xl),
             FormSectionCard(
+              design: design,
               title: 'Salud',
               contentPadding: EdgeInsets.zero,
               children: [
                 SettingsRow(
+                  design: design,
                   icon: Icons.health_and_safety_outlined,
                   title: 'Alergias',
                   subtitle: 'Gestiona tus alergias',
@@ -113,7 +143,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ],
+          if (widget.extraSections != null) ...[
+            const SizedBox(height: AppSpacing.xl),
+            widget.extraSections!,
+          ],
+          if (widget.onLogout != null) ...[
+            const SizedBox(height: AppSpacing.xl),
+            design
+                ? _DesignLogoutButton(onPressed: widget.onLogout!)
+                : OutlinedButton.icon(
+                    onPressed: widget.onLogout,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cerrar sesión'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      foregroundColor: AppColors.danger700,
+                      side: const BorderSide(color: AppColors.danger500),
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// "Cerrar sesión" del rediseño del padre: 54 de alto, fondo blanco, borde de
+/// 1.5 en rojo y texto rojo oscuro 16/800 con icono de 20.
+class _DesignLogoutButton extends StatelessWidget {
+  const _DesignLogoutButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.logout, size: 20),
+      label: Text(
+        'Cerrar sesión',
+        style: AppText.button.copyWith(color: AppColors.danger700),
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(54),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.danger700,
+        side: const BorderSide(color: AppColors.danger500, width: 1.5),
+        shape: const StadiumBorder(),
       ),
     );
   }

@@ -132,12 +132,16 @@ class PreOrderItemDetail {
   final int quantity;
   final double priceAtPurchase;
 
+  /// Foto del producto; nula si no tiene o si el backend no la envía.
+  final String? imageUrl;
+
   PreOrderItemDetail({
     required this.id,
     required this.dishId,
     required this.dishName,
     required this.quantity,
     required this.priceAtPurchase,
+    this.imageUrl,
   });
 
   // Compatibilidad hacia atrás
@@ -155,6 +159,7 @@ class PreOrderItemDetail {
       priceAtPurchase:
           double.tryParse((json['price_at_purchase'] ?? '0.00').toString()) ??
           0.0,
+      imageUrl: json['image'] as String?,
     );
   }
 }
@@ -226,6 +231,7 @@ enum OrderOrigin { preorder, pointOfSale }
 /// Unifica ambos orígenes para que la pantalla no dependa de dos modelos.
 class OrderEntry {
   final int id;
+  final int studentId;
   final String studentName;
   final DateTime createdAt;
   final PreOrderStatus status;
@@ -240,6 +246,7 @@ class OrderEntry {
 
   const OrderEntry({
     required this.id,
+    this.studentId = 0,
     required this.studentName,
     required this.createdAt,
     required this.status,
@@ -258,6 +265,7 @@ class OrderEntry {
   factory OrderEntry.fromPreOrder(PreOrderSummary order) {
     return OrderEntry(
       id: order.id,
+      studentId: order.studentId,
       studentName: order.studentName,
       createdAt: order.createdAt,
       status: order.status,
@@ -274,6 +282,7 @@ class OrderEntry {
     final rawItems = json['items'] as List? ?? [];
     return OrderEntry(
       id: json['id'] as int? ?? 0,
+      studentId: json['student_id'] as int? ?? 0,
       studentName: (json['student_name'] ?? '').toString(),
       createdAt:
           DateTime.tryParse((json['created_at'] ?? '').toString()) ??
@@ -374,16 +383,19 @@ class Promotion {
     this.productIds = const [],
   });
 
+  /// Tolerant: only a missing `id` makes it invalid (the caller skips that
+  /// promotion); a null discount, date, image or product name takes a default
+  /// instead of failing the whole list of offers.
   factory Promotion.fromJson(Map<String, dynamic> json) {
     final products = (json['products'] as List? ?? [])
         .whereType<Map<String, dynamic>>()
         .toList();
     return Promotion(
       id: json['id'] as int,
-      discountPercentage: json['discount_percentage'] as int,
-      endDate: DateTime.parse(json['end_date'] as String),
+      discountPercentage: (json['discount_percentage'] as num?)?.toInt() ?? 0,
+      endDate: _dateOrNow(json['end_date']),
       imageUrl: json['image'] as String?,
-      productNames: products.map((p) => p['name'].toString()).toList(),
+      productNames: products.map((p) => (p['name'] ?? '').toString()).toList(),
       productIds: [
         for (final p in products)
           if (p['id'] is int) p['id'] as int,
@@ -405,9 +417,9 @@ class ComboItem {
   });
 
   factory ComboItem.fromJson(Map<String, dynamic> json) => ComboItem(
-    productId: json['product_id'] as int,
-    name: json['name'].toString(),
-    quantity: json['quantity'] as int? ?? 1,
+    productId: (json['product_id'] as num?)?.toInt() ?? 0,
+    name: (json['name'] ?? '').toString(),
+    quantity: (json['quantity'] as num?)?.toInt() ?? 1,
   );
 }
 
@@ -440,13 +452,16 @@ class Combo {
   /// What the customer saves with the combo; zero when there is no saving.
   double get savings => hasSavings ? regularPrice - price : 0.0;
 
+  /// Tolerant: only a missing `id` makes it invalid (the caller skips that
+  /// combo); a null name, price, date or image takes a default instead of
+  /// failing the whole list of offers.
   factory Combo.fromJson(Map<String, dynamic> json) => Combo(
     id: json['id'] as int,
-    name: json['name'].toString(),
-    price: double.tryParse(json['price'].toString()) ?? 0.0,
+    name: (json['name'] ?? '').toString(),
+    price: double.tryParse((json['price'] ?? '').toString()) ?? 0.0,
     regularPrice:
         double.tryParse((json['regular_price'] ?? '').toString()) ?? 0.0,
-    endDate: DateTime.parse(json['end_date'] as String),
+    endDate: _dateOrNow(json['end_date']),
     imageUrl: json['image'] as String?,
     items: (json['items'] as List? ?? [])
         .whereType<Map<String, dynamic>>()
@@ -454,6 +469,10 @@ class Combo {
         .toList(),
   );
 }
+
+/// Date of an offer; today when the backend sends none or an unreadable one.
+DateTime _dateOrNow(Object? value) =>
+    DateTime.tryParse((value ?? '').toString()) ?? DateTime.now();
 
 /// Offers in force for an institution: discounts and combos.
 class CatalogOffers {

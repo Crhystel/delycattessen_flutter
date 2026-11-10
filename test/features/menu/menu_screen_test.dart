@@ -24,7 +24,9 @@ Finder _shown(Finder finder) => finder.hitTestable();
 
 Future<void> _scrollDown(WidgetTester tester) async {
   await tester.drag(_scroll, const Offset(0, -900));
-  await tester.pumpAndSettle();
+  await tester.pump(
+    const Duration(seconds: 2),
+  ); // the bubbles animate forever: no pumpAndSettle
 }
 
 void main() {
@@ -35,7 +37,7 @@ void main() {
 
     expect(_shown(find.text('Menú')), findsOneWidget);
     expect(_shown(find.text('selector menu-productos')), findsOneWidget);
-    expect(_shown(find.textContaining('Pidiendo para Ana')), findsOneWidget);
+    expect(_shown(find.text('Pidiendo para')), findsOneWidget);
     expect(_shown(find.byType(TextField)), findsOneWidget);
     expect(_shown(find.text('2')), findsOneWidget); // first day, selected
     expect(_shown(find.text('Plato 1 del día 2')), findsOneWidget);
@@ -50,7 +52,7 @@ void main() {
 
     expect(_shown(find.text('Menú')), findsNothing);
     expect(_shown(find.text('selector menu-productos')), findsNothing);
-    expect(_shown(find.textContaining('Pidiendo para Ana')), findsNothing);
+    expect(_shown(find.text('Pidiendo para')), findsNothing);
   });
 
   testWidgets('only the days and the search bar stay while scrolling', (
@@ -75,7 +77,9 @@ void main() {
     await _scrollDown(tester);
 
     await tester.tap(_shown(find.text('3')));
-    await tester.pumpAndSettle();
+    await tester.pump(
+      const Duration(seconds: 2),
+    ); // the bubbles animate forever: no pumpAndSettle
 
     expect(find.text('Plato 1 del día 3'), findsOneWidget);
     expect(find.text('Plato 1 del día 2'), findsNothing);
@@ -98,7 +102,9 @@ void main() {
 
     await tester.enterText(_shown(find.byType(TextField)), 'Plato 7');
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await tester.pump(
+      const Duration(seconds: 2),
+    ); // the bubbles animate forever: no pumpAndSettle
 
     expect(find.text('Plato 7 del día 2'), findsOneWidget);
     expect(find.text('Plato 8 del día 2'), findsNothing);
@@ -111,11 +117,13 @@ void main() {
     await _scrollDown(tester);
 
     await tester.drag(_scroll, const Offset(0, 3000));
-    await tester.pumpAndSettle();
+    await tester.pump(
+      const Duration(seconds: 2),
+    ); // the bubbles animate forever: no pumpAndSettle
 
     expect(_shown(find.text('Menú')), findsOneWidget);
     expect(_shown(find.text('selector menu-productos')), findsOneWidget);
-    expect(_shown(find.textContaining('Pidiendo para Ana')), findsOneWidget);
+    expect(_shown(find.text('Pidiendo para')), findsOneWidget);
   });
 
   testWidgets('has no back arrow when embedded in the shell', (tester) async {

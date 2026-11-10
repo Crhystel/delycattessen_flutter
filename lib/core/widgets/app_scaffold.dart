@@ -15,6 +15,15 @@ class AppScaffold extends StatelessWidget {
   final BubbleCorner? bubbleCorner;
   final List<BubbleCorner> bubbleCorners;
   final double maxContentWidth;
+  final Color backgroundColor;
+
+  /// Burbujas estáticas del rediseño del padre (ver [FloatingBubbles.design]).
+  final bool bubblesDesign;
+
+  /// Respeta el área segura superior. El rediseño del padre lo apaga y deja
+  /// que la cabecera calcule su propio margen (`AppLayout.pageTopPadding`), así
+  /// el título queda a la misma distancia de las burbujas en todo dispositivo.
+  final bool safeAreaTop;
 
   const AppScaffold({
     super.key,
@@ -24,20 +33,26 @@ class AppScaffold extends StatelessWidget {
     this.bubbleCorner,
     this.bubbleCorners = const [],
     this.maxContentWidth = AppLayout.pageMaxWidth,
+    this.backgroundColor = Colors.white,
+    this.bubblesDesign = false,
+    this.safeAreaTop = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final corners = {...bubbleCorners, ?bubbleCorner};
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: appBar,
       bottomNavigationBar: bottomNavigationBar,
       body: Stack(
         children: [
           for (final corner in corners)
-            RepaintBoundary(child: FloatingBubbles(corner: corner)),
+            RepaintBoundary(
+              child: FloatingBubbles(corner: corner, design: bubblesDesign),
+            ),
           SafeArea(
+            top: safeAreaTop,
             child: ResponsiveCenter(maxWidth: maxContentWidth, child: body),
           ),
         ],

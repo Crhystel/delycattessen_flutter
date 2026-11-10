@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_bottom_sheet.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/wallet_models.dart';
 import '../services/wallet_service.dart';
-import '../widgets/consumption_invoice.dart';
+import '../utils/transaction_grouping.dart' as grouping;
+import '../widgets/month_picker.dart';
+import '../widgets/transaction_day_group.dart';
+import '../widgets/transaction_detail_sheet.dart';
 import '../widgets/transaction_kind_badge.dart';
+import '../widgets/wallet_summary_header.dart';
 import '../../../core/utils/error_message.dart';
 
 /// Movimientos a mostrar más un [header] opcional fijo sobre la lista
@@ -32,27 +36,51 @@ class TransactionHistoryScreen extends StatefulWidget {
   /// Persona dueña del historial, mostrada en el encabezado morado (Figma).
   final String personName;
 
+  /// true cuando vive dentro de la pestaña Billetera del padre: solo la lista,
+  /// sin encabezado morado, burbujas ni barra propia.
+  final bool embedded;
+
+  /// Saldo actual para el resumen de la pestaña Billetera ([embedded]).
+  final double? balance;
+
   const TransactionHistoryScreen({
     super.key,
     required this.loader,
     required this.personName,
     this.title = 'Historial de consumo',
     this.emptyMessage = 'Las recargas y los pagos con saldo aparecerán aquí.',
+    this.embedded = false,
+    this.balance,
   });
 
-  /// Movimientos de la billetera de un hijo.
+  /// Movimientos de la billetera de un hijo. En la pestaña Billetera
+  /// ([embedded]) lleva arriba el resumen de [balance] y lo consumido en el mes
+  /// que se muestra.
   factory TransactionHistoryScreen.forWallet({
     Key? key,
     required int walletId,
     required String childName,
+    bool embedded = false,
+    double? balance,
   }) {
     return TransactionHistoryScreen(
       key: key,
       personName: childName,
+      embedded: embedded,
+      balance: balance,
       loader: () async => TransactionHistoryData(
         await WalletService().getTransactions(walletId),
       ),
     );
+  }
+
+  /// Total de consumos del mes de [now] (hoy por defecto); no cuenta las
+  /// fallidas.
+  static double consumedInMonth(
+    List<TransactionModel> transactions, {
+    DateTime? now,
+  }) {
+    return grouping.consumedInMonth(transactions, month: now);
   }
 
   @override
@@ -63,7 +91,8 @@ class TransactionHistoryScreen extends StatefulWidget {
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   List<TransactionModel> _transactions = [];
   Widget? _header;
-  TransactionKind? _filter; // null = todos
+  TransactionKind? _filter; // null = todos (solo en la vista no embebida)
+  DateTime? _month; // mes elegido en la vista embebida; null = el más reciente
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -95,8 +124,42 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
+  /// Carga, error, vacío o la lista, con pull-to-refresh.
+  Widget _buildContent() {
+    return RefreshIndicator(
+      color: AppColors.secondary500,
+      onRefresh: _loadTransactions,
+      child: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.secondary500),
+            )
+          : _errorMessage != null
+          ? _buildMessage(
+              EmptyState(
+                icon: Icons.cloud_off_outlined,
+                title: 'No pudimos cargar los movimientos',
+                message: _errorMessage,
+                actionLabel: 'Reintentar',
+                onAction: _loadTransactions,
+              ),
+            )
+          : widget.embedded
+          ? _buildEmbeddedList()
+          : _transactions.isEmpty
+          ? _buildMessage(
+              EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'Aún no hay movimientos',
+                message: widget.emptyMessage,
+              ),
+            )
+          : _buildList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) return _buildContent();
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -110,39 +173,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           Column(
             children: [
               _buildPurpleHeader(),
-              Expanded(
-                child: ResponsiveCenter(
-                  child: RefreshIndicator(
-                    color: AppColors.secondary500,
-                    onRefresh: _loadTransactions,
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondary500,
-                            ),
-                          )
-                        : _errorMessage != null
-                        ? _buildMessage(
-                            EmptyState(
-                              icon: Icons.cloud_off_outlined,
-                              title: 'No pudimos cargar los movimientos',
-                              message: _errorMessage,
-                              actionLabel: 'Reintentar',
-                              onAction: _loadTransactions,
-                            ),
-                          )
-                        : _transactions.isEmpty
-                        ? _buildMessage(
-                            EmptyState(
-                              icon: Icons.receipt_long_outlined,
-                              title: 'Aún no hay movimientos',
-                              message: widget.emptyMessage,
-                            ),
-                          )
-                        : _buildList(),
-                  ),
-                ),
-              ),
+              Expanded(child: ResponsiveCenter(child: _buildContent())),
             ],
           ),
         ],
@@ -238,6 +269,118 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
   }
 
+  void _showDetail(TransactionModel transaction) => showTransactionDetail(
+    context,
+    transaction: transaction,
+    personName: widget.personName,
+  );
+
+  /// Mes que se muestra: el elegido si aún tiene movimientos; si no, el más
+  /// reciente con movimientos o, sin ninguno, el actual.
+  DateTime _shownMonth(List<DateTime> months) {
+    final chosen = _month;
+    if (chosen != null && months.contains(chosen)) return chosen;
+    if (months.isNotEmpty) return months.first;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  Future<void> _pickMonth(List<DateTime> months, DateTime selected) async {
+    final picked = await showMonthPickerSheet(
+      context,
+      months: months,
+      selected: selected,
+    );
+    if (picked != null && mounted) setState(() => _month = picked);
+  }
+
+  /// Vista de la pestaña Billetera: resumen, selector de mes y un bloque por
+  /// día. Los días se construyen bajo demanda (sliver).
+  Widget _buildEmbeddedList() {
+    final months = grouping.monthsOfTransactions(_transactions);
+    final month = _shownMonth(months);
+    final groups = grouping.groupTransactionsByDay(
+      grouping.transactionsInMonth(_transactions, month),
+    );
+    final balance = widget.balance;
+    const sidePadding = EdgeInsets.symmetric(horizontal: AppSpacing.page);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: sidePadding,
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (balance != null)
+                  WalletSummaryHeader(
+                    balance: balance,
+                    consumed: grouping.consumedInMonth(
+                      _transactions,
+                      month: month,
+                    ),
+                    consumedLabel: grouping.consumedInLabel(month),
+                  ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Historial',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.sectionTitleXs,
+                      ),
+                    ),
+                    if (months.isNotEmpty)
+                      MonthButton(
+                        label: grouping.monthLabel(month),
+                        onTap: () => _pickMonth(months, month),
+                      ),
+                  ],
+                ),
+                if (groups.isEmpty)
+                  EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Aún no hay movimientos',
+                    message: widget.emptyMessage,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: sidePadding,
+          sliver: SliverList.builder(
+            itemCount: groups.length,
+            itemBuilder: (_, i) => TransactionDayGroupView(
+              group: groups[i],
+              isFirst: i == 0,
+              onTap: _showDetail,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page + 4,
+            14,
+            AppSpacing.page + 4,
+            AppSpacing.xl,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Text(
+              'Las compras pagadas en efectivo no aparecen aquí porque no '
+              'usan la billetera. Las ves en Pedidos.',
+              style: AppText.secondary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   List<TransactionModel> get _visibleTransactions => _filter == null
       ? _transactions
       : _transactions.where((t) => t.kind == _filter).toList();
@@ -319,7 +462,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     // Figma: consumos con ícono de cubiertos naranja y monto en rojo.
     final isConsumption = kind == TransactionKind.consumption;
     return InkWell(
-      onTap: () => _showTransactionDetail(transaction),
+      onTap: () => _showDetail(transaction),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
@@ -382,95 +525,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showTransactionDetail(TransactionModel transaction) {
-    final kind = transaction.kind;
-    final isRecharge = kind == TransactionKind.recharge;
-
-    if (!isRecharge) {
-      AppBottomSheet.show<void>(
-        context,
-        title: transaction.displayName,
-        subtitle: ConsumptionInvoice.formatDate(transaction.createdAt),
-        isScrollControlled: true,
-        builder: (_) => SingleChildScrollView(
-          child: ConsumptionInvoice(
-            studentName: widget.personName,
-            transaction: transaction,
-          ),
-        ),
-      );
-      return;
-    }
-
-    AppBottomSheet.show<void>(
-      context,
-      title: transaction.displayName,
-      subtitle: transaction.time,
-      builder: (sheetContext) {
-        final textTheme = Theme.of(sheetContext).textTheme;
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Divider(height: AppSpacing.xl),
-            _buildDetailRow(
-              'Método',
-              transaction.gateway.isNotEmpty
-                  ? transaction.gateway
-                  : 'No especificado',
-            ),
-            _buildDetailRow(
-              'Estado',
-              transaction.status == 'failed' ? 'Fallida' : 'Exitosa',
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  '${kind.sign}\$${transaction.amount.toStringAsFixed(2)}',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: kind.color,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink900.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
       ),
     );
   }

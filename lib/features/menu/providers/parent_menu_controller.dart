@@ -108,6 +108,11 @@ class ParentMenuController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Quita el platillo del carrito (botón "Agregado" de la tarjeta).
+  void removeFromCart(int dishId) {
+    if (_cart.remove(dishId) != null) notifyListeners();
+  }
+
   void replaceCart(Map<int, int> cart) {
     _cart
       ..clear()

@@ -185,6 +185,10 @@ class Child {
   final double? balance;
   final int? walletId;
 
+  /// Monto bajo el cual el padre quiere que se le avise de saldo bajo
+  /// (control parental). Nulo si no activó el aviso o el backend aún no lo envía.
+  final double? lowBalanceAlertAmount;
+
   Child({
     required this.id,
     required this.firstName,
@@ -196,7 +200,27 @@ class Child {
     this.profilePictureUrl,
     this.balance,
     this.walletId,
+    this.lowBalanceAlertAmount,
   });
+
+  /// Umbral de saldo bajo cuando el padre no configuró uno propio.
+  static const double defaultLowBalanceAmount = 5;
+
+  /// Saldo bajo según el aviso del padre o, si no lo activó, el umbral fijo.
+  bool get hasLowBalance =>
+      balance != null &&
+      balance! < (lowBalanceAlertAmount ?? defaultLowBalanceAmount);
+
+  /// Nombre y primer apellido, para tarjetas y listas.
+  String get displayName => '$firstName $lastName'.trim();
+
+  /// Primera letra del nombre y del primer apellido ("Pepito Pérez" -> "PP").
+  String get initials {
+    final letters = [firstName, lastName]
+        .where((part) => part.trim().isNotEmpty)
+        .map((part) => part.trim().substring(0, 1));
+    return letters.join().toUpperCase();
+  }
 
   factory Child.fromJson(Map<String, dynamic> json) {
     return Child(
@@ -212,6 +236,9 @@ class Child {
           ? double.tryParse(json['balance'].toString())
           : null,
       walletId: json['wallet_id'] as int?,
+      lowBalanceAlertAmount: json['low_balance_alert_amount'] != null
+          ? double.tryParse(json['low_balance_alert_amount'].toString())
+          : null,
     );
   }
 }

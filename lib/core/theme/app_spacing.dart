@@ -3,6 +3,9 @@ class AppSpacing {
   static const double sm = 8;
   static const double md = 12;
   static const double lg = 16;
+
+  /// Margen lateral de las pantallas del padre (rediseño).
+  static const double page = 20;
   static const double xl = 24;
   static const double xxl = 32;
 }

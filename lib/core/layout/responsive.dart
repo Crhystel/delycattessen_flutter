@@ -19,6 +19,15 @@ class AppLayout {
   /// Ancho mínimo de una tarjeta de producto/platillo en la cuadrícula.
   static const double minCardWidth = 340;
 
+  /// Distancia desde el borde superior de la pantalla hasta el título de una
+  /// cabecera del padre: zona de la barra de estado o de la cámara (que la app
+  /// dibuja de borde a borde) más un margen fijo. Así el título queda a la
+  /// misma distancia de las burbujas en cualquier dispositivo.
+  static double pageTopPadding(BuildContext context, {double extra = 16}) {
+    final inset = MediaQuery.viewPaddingOf(context).top;
+    return inset + extra;
+  }
+
   static bool isTablet(BuildContext context) =>
       MediaQuery.sizeOf(context).shortestSide >= tabletBreakpoint;
 

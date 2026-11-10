@@ -21,7 +21,9 @@ lib/
 │   └── widgets/   app_bottom_sheet, app_card, app_confirmation_dialog,
 │                  app_notification_dialog/messenger, app_scaffold, empty_state,
 │                  light_app_bar, primary_button, child_avatar_chip, floating_bubbles,
-│                  header_actions (botones de cuenta del encabezado), form_page,
+│                  header_actions (botones de cuenta del encabezado de caja y estudiante/docente),
+│                  profile_bubble (burbuja de perfil de las pestañas del padre),
+│                  segmented_switch (selector de 2–3 opciones: Menú del mes | Productos, Recargar | Movimientos), form_page,
 │                  collapsing_header (sliver de cabecera que se encoge pegado al scroll,
 │                  sin animaciones por tiempo; deja fija la parte "kept" y vuelve solo al inicio),
 │                  form_section_card, profile_summary_card, labeled_text_field,
@@ -29,9 +31,9 @@ lib/
 │                  face_capture_camera_screen
 └── features/
     ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, Mi perfil (padre y docente: menú con flechita a nombres, correo —pide la contraseña actual—, contraseña y, solo docente, alergias), rol (UserRole)
-    ├── children/     Hijos del padre (incluye editar sus datos), control parental, ParentShell (navegación del padre), ChildrenProvider
+    ├── children/     Hijos del padre (incluye editar sus datos y su foto), control parental (límite diario, días y aviso de saldo bajo), ParentShell (navegación del padre, burbuja de perfil y cierre de sesión), Inicio con alerta de saldo bajo y recarga rápida, barra y hoja "¿Para quién?" para cambiar de hijo, ChildrenProvider
     ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
-    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se encoge pegada al scroll; en el Menú del mes solo quedan fijos los días y el buscador)
+    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se encoge pegada al scroll; en el Menú del mes solo quedan fijos los días y el buscador). Vista del padre: los combos van en un carrusel (`ComboCarousel`), Pedidos muestra la foto de cada pedido con filtro por mes y el detalle es tipo factura
     ├── pos/          Caja: identificación (rostro/QR), venta, checkout, crédito del docente
     ├── users/        Gestión de alergias
     └── wallet/       Billetera, recargas (Payphone/Kushki), PIN de pago, historial de movimientos

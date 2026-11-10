@@ -1,59 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/utils/date_formatter.dart';
-import '../../../core/utils/error_message.dart';
-import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_confirmation_dialog.dart';
-import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
-import '../../../core/widgets/header_actions.dart';
 import '../../auth/models/auth_models.dart';
-import '../../auth/services/auth_service.dart';
-import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/student_registration_screen.dart';
-import '../../auth/screens/login_screen.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/services/menu_service.dart';
+import '../../menu/utils/upcoming_menu_labels.dart';
+import '../../menu/widgets/combo_banner.dart';
+import '../../menu/widgets/upcoming_menu_card.dart';
 import '../providers/children_provider.dart';
+import '../widgets/child_summary_card.dart';
+import '../widgets/low_balance_alert_card.dart';
 import 'child_detail_screen.dart';
 
-const double _lowBalanceThreshold = 5;
-
+/// Pestaña Inicio del padre: quién necesita recarga, todos sus hijos y lo que
+/// viene en el menú. Las acciones que cambian de pestaña las resuelve el
+/// ParentShell (callbacks).
 class ChildrenListScreen extends StatefulWidget {
-  /// Lo llama el ParentShell: elige al hijo y lleva a la pestaña Menú.
+  /// Burbuja de perfil que pone el ParentShell en la cabecera.
+  final Widget? profileAction;
+
+  /// Nombre para el saludo.
+  final String userName;
+
+  /// Elige al hijo y lleva a la pestaña Menú.
   final void Function(int childId)? onOrderForChild;
 
   /// Abre la pestaña Menú con un día preseleccionado.
   final void Function(int childId, DateTime date)? onOpenMenuDay;
 
+  /// Lleva a Billetera con el hijo elegido para recargarle.
+  final void Function(int childId)? onRechargeChild;
+
+  /// Abre el catálogo de productos (sección Productos).
+  final VoidCallback? onOpenProducts;
+
+  final MenuService? menuService;
+
   const ChildrenListScreen({
     super.key,
+    this.profileAction,
+    this.userName = '',
     this.onOrderForChild,
     this.onOpenMenuDay,
+    this.onRechargeChild,
+    this.onOpenProducts,
+    this.menuService,
   });
 
   @override
   State<ChildrenListScreen> createState() => _ChildrenListScreenState();
 }
 
-class _ChildrenListScreenState extends State<ChildrenListScreen>
-    with NotificationMixin {
-  final _authService = AuthService();
-  final _menuService = MenuService();
-  String _userName = '';
-  MeResponse? _me;
+class _ChildrenListScreenState extends State<ChildrenListScreen> {
+  late final MenuService _menuService = widget.menuService ?? MenuService();
 
   MenuDay? _firstAvailableMenuDay;
-  bool _isLoadingMenuDay = false;
+  Combo? _combo;
+  bool _isLoadingMenu = false;
   int? _loadedStudentId;
+
+  /// Identifica la carga vigente del menú: una respuesta de una carga anterior
+  /// (otro hijo, o un pull-to-refresh encima) se descarta.
+  int _loadToken = 0;
 
   @override
   void initState() {
@@ -63,274 +82,150 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
       await provider.ensureLoaded();
       _syncMenuPreview();
     });
-    _loadUserName();
   }
 
   void _syncMenuPreview() {
-    final provider = context.read<ChildrenProvider>();
-    final child =
-        provider.selectedChild ??
-        (provider.children.isNotEmpty ? provider.children.first : null);
+    if (!mounted) return;
+    final child = context.read<ChildrenProvider>().selectedChild;
     if (child != null && child.id != _loadedStudentId) {
-      _loadMonthlyMenuPreview(child.id);
+      _loadMenuPreview(child.id);
     }
   }
 
-  Future<void> _loadMonthlyMenuPreview(int studentId) async {
+  /// Primer día con platillos y primer combo vigente del hijo elegido. Es una
+  /// vista informativa: si falla, simplemente no se muestra. Las dos peticiones
+  /// salen a la vez y cada una atiende su propio error.
+  Future<void> _loadMenuPreview(int studentId) async {
     _loadedStudentId = studentId;
-    setState(() => _isLoadingMenuDay = true);
-    try {
-      final days = await _menuService.getStudentMonthlyMenu(studentId);
-      if (!mounted) return;
-      final availableDay = days.where((d) => d.dishes.isNotEmpty).firstOrNull;
-      setState(() {
-        _firstAvailableMenuDay = availableDay;
-        _isLoadingMenuDay = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _firstAvailableMenuDay = null;
-        _isLoadingMenuDay = false;
-      });
-    }
-  }
-
-  Future<void> _loadUserName() async {
-    try {
-      final me = await _authService.getMe();
-      if (!mounted) return;
-      _showUser(me);
-    } catch (_) {}
-  }
-
-  void _showUser(MeResponse me) {
+    final token = ++_loadToken;
+    setState(() => _isLoadingMenu = true);
+    final dayFuture = _fetchFirstMenuDay(studentId);
+    final comboFuture = _fetchFirstCombo(studentId);
+    final day = await dayFuture;
+    final combo = await comboFuture;
+    if (!mounted || token != _loadToken) return;
     setState(() {
-      _me = me;
-      _userName = me.firstName.isNotEmpty
-          ? me.firstName
-          : (me.email != null && me.email!.isNotEmpty
-                ? me.email!.split('@').first
-                : 'Usuario');
+      _firstAvailableMenuDay = day;
+      _combo = combo;
+      _isLoadingMenu = false;
     });
   }
 
-  Future<void> _openProfile() async {
+  Future<MenuDay?> _fetchFirstMenuDay(int studentId) async {
     try {
-      final me = _me ?? await _authService.getMe();
-      if (!mounted) return;
-      final updated = await Navigator.of(context).push<MeResponse>(
-        MaterialPageRoute(builder: (_) => ProfileScreen(me: me)),
-      );
-      if (updated != null && mounted) _showUser(updated);
-    } catch (e) {
-      if (!mounted) return;
-      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo abrir tu perfil');
+      final days = await _menuService.getStudentMonthlyMenu(studentId);
+      return days.where((d) => d.dishes.isNotEmpty).firstOrNull;
+    } catch (_) {
+      // Sin menú publicado o sin conexión: la tarjeta no se muestra.
+      return null;
     }
   }
 
-  String _getTodaySpanish() {
+  Future<Combo?> _fetchFirstCombo(int studentId) async {
+    try {
+      final offers = await _menuService.getActiveOffers(studentId: studentId);
+      return offers.combos.firstOrNull;
+    } catch (_) {
+      // Las ofertas son secundarias: sin ellas no hay banner.
+      return null;
+    }
+  }
+
+  /// "Lunes, 9 de noviembre".
+  String get _todayLabel {
     final now = DateTime.now();
-    const days = [
-      'lunes',
-      'martes',
-      'miércoles',
-      'jueves',
-      'viernes',
-      'sábado',
-      'domingo',
-    ];
-    return days[now.weekday - 1];
+    final weekday = DateFormatter.weekdayName(now);
+    return '${weekday[0].toUpperCase()}${weekday.substring(1)}, '
+        '${now.day} de ${DateFormatter.monthName(now)}';
   }
 
-  Future<void> _confirmLogout() async {
-    final confirmed = await AppConfirmationDialog.show(
-      context,
-      icon: Icons.logout,
-      title: 'Cerrar sesión',
-      message: '¿Estás seguro de que quieres cerrar tu sesión?',
-      confirmLabel: 'Cerrar sesión',
-      cancelLabel: 'Cancelar',
-    );
-    if (confirmed) {
-      _logout();
-    }
-  }
-
-  Future<void> _logout() async {
-    await _authService.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
-  void _openChildDetail(Child child) {
+  Future<void> _openChildDetail(Child child) async {
     final provider = context.read<ChildrenProvider>();
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(builder: (_) => ChildDetailScreen(child: child)),
-        )
-        .then((_) => provider.refresh());
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ChildDetailScreen(child: child)));
+    provider.refresh();
   }
 
-  void _navigateToMenu({required int studentId, DateTime? date}) {
-    if (date != null && widget.onOpenMenuDay != null) {
-      widget.onOpenMenuDay!(studentId, date);
-    } else if (widget.onOrderForChild != null) {
-      widget.onOrderForChild!(studentId);
+  Future<void> _addChild() async {
+    final provider = context.read<ChildrenProvider>();
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()),
+    );
+    provider.refresh();
+  }
+
+  void _openMenuDay(int childId, DateTime date) {
+    final openDay = widget.onOpenMenuDay;
+    if (openDay != null) {
+      openDay(childId, date);
+    } else {
+      widget.onOrderForChild?.call(childId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final childrenProvider = context.watch<ChildrenProvider>();
-    final children = childrenProvider.children;
-    final textTheme = Theme.of(context).textTheme;
+    final provider = context.watch<ChildrenProvider>();
+    final children = provider.children;
+    final target = provider.selectedChild;
 
-    // Si cambiaron los hijos o el seleccionado, sincronizar preview
-    final currentTarget =
-        childrenProvider.selectedChild ??
-        (children.isNotEmpty ? children.first : null);
-    if (currentTarget != null &&
-        currentTarget.id != _loadedStudentId &&
-        !_isLoadingMenuDay) {
-      Future.microtask(() => _loadMonthlyMenuPreview(currentTarget.id));
+    // Si cambió el hijo seleccionado, se actualiza la vista del menú.
+    if (target != null && target.id != _loadedStudentId && !_isLoadingMenu) {
+      Future.microtask(_syncMenuPreview);
     }
 
     return AppScaffold(
+      backgroundColor: AppColors.ink50,
       bubbleCorner: BubbleCorner.topRight,
+      bubblesDesign: true,
+      safeAreaTop: false,
       body: RefreshIndicator(
+        color: AppColors.secondary500,
+        edgeOffset: MediaQuery.viewPaddingOf(context).top,
         onRefresh: () async {
-          await childrenProvider.refresh();
-          if (currentTarget != null) {
-            await _loadMonthlyMenuPreview(currentTarget.id);
-          }
+          await provider.refresh();
+          if (target != null) await _loadMenuPreview(target.id);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            HeaderActions.topInset,
-            AppSpacing.xl,
-            AppSpacing.xl,
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppLayout.pageTopPadding(context),
+            AppSpacing.page,
+            AppSpacing.xxl,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '¡Hola ${_userName.isNotEmpty ? _userName : "Usuario"}!',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                          _todayLabel,
+                          style: AppText.secondary.copyWith(fontSize: 14),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _getTodaySpanish(),
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: AppColors.ink900.withValues(alpha: 0.7),
-                          ),
+                          '¡Hola, ${widget.userName.isNotEmpty ? widget.userName : "Usuario"}!',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.greeting,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  HeaderActions(
-                    actions: [
-                      HeaderAction(
-                        icon: Icons.manage_accounts_outlined,
-                        tooltip: 'Mi perfil',
-                        onPressed: _openProfile,
-                      ),
-                      HeaderAction(
-                        icon: Icons.logout,
-                        tooltip: 'Cerrar sesión',
-                        onPressed: _confirmLogout,
-                        color: AppColors.danger700,
-                      ),
-                    ],
-                  ),
+                  if (widget.profileAction != null) ...[
+                    const SizedBox(width: AppSpacing.md),
+                    widget.profileAction!,
+                  ],
                 ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Tus hijos',
-                style: textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 26,
-                  color: AppColors.ink900,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              if (childrenProvider.isLoading && !childrenProvider.hasLoadedOnce)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.secondary500,
-                    ),
-                  ),
-                )
-              else if (childrenProvider.errorMessage != null)
-                EmptyState(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'No pudimos cargar tus hijos',
-                  message: childrenProvider.errorMessage,
-                  actionLabel: 'Reintentar',
-                  onAction: () => childrenProvider.refresh(),
-                )
-              else if (children.isEmpty)
-                const EmptyState(
-                  icon: Icons.backpack_outlined,
-                  title: 'Aún no has registrado ningún hijo',
-                  message: 'Añade a tu primer hijo/a para empezar a pedir.',
-                )
-              else
-                ...children.map((c) => _buildChildCard(c)),
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final provider = context.read<ChildrenProvider>();
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const StudentRegistrationScreen(),
-                      ),
-                    );
-                    provider.refresh();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary500,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    'Añadir hijo/a',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                  ),
-                ),
-              ),
-              if (children.isNotEmpty && currentTarget != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                _buildMonthlyMenuSection(currentTarget, textTheme),
-              ],
+              ..._buildBody(provider, children),
             ],
           ),
         ),
@@ -338,281 +233,309 @@ class _ChildrenListScreenState extends State<ChildrenListScreen>
     );
   }
 
-  /// Fila de platillos con columnas fijas (3 en teléfono, 5 en tablet): si
-  /// hay menos platillos, los espacios sobrantes quedan vacíos para que las
-  /// tarjetas no se estiren.
-  Widget _buildDishPreviewRow(MenuDay day, int childId) {
-    final slots = AppLayout.isTablet(context) ? 5 : 3;
-    final dishes = day.dishes.take(slots).toList();
-    final parsedDate = DateFormatter.parseIsoDate(day.date);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < slots; i++)
-          Expanded(
-            child: i < dishes.length
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: _buildDishPreviewCard(
-                      dishes[i],
-                      childId,
-                      parsedDate,
-                    ),
-                  )
-                : const SizedBox.shrink(),
+  List<Widget> _buildBody(ChildrenProvider provider, List<Child> children) {
+    if (provider.isLoading && !provider.hasLoadedOnce) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.secondary500),
           ),
-      ],
-    );
-  }
+        ),
+      ];
+    }
+    if (provider.errorMessage != null) {
+      return [
+        const SizedBox(height: AppSpacing.xl),
+        EmptyState(
+          icon: Icons.cloud_off_outlined,
+          title: 'No pudimos cargar tus hijos',
+          message: provider.errorMessage,
+          actionLabel: 'Reintentar',
+          onAction: provider.refresh,
+        ),
+      ];
+    }
 
-  Widget _buildMonthlyMenuSection(Child child, TextTheme textTheme) {
+    final lowBalance = children.where((c) => c.hasLowBalance).toList();
+    final target = provider.selectedChild;
     final day = _firstAvailableMenuDay;
+    final dish = day?.dishes.firstOrNull;
+    final dayDate = day == null ? null : DateFormatter.parseIsoDate(day.date);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Menú Mensual',
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.ink900,
-          ),
+    return [
+      for (var i = 0; i < lowBalance.length; i++) ...[
+        SizedBox(height: i == 0 ? 26 : AppSpacing.md),
+        LowBalanceAlertCard(
+          child: lowBalance[i],
+          onRecharge: () => widget.onRechargeChild?.call(lowBalance[i].id),
         ),
-        if (day != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            'Para el ${DateFormatter.formatLong(DateFormatter.parseIsoDate(day.date))}',
-            style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.ink900.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        if (_isLoadingMenuDay)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.secondary500,
-                ),
-              ),
-            ),
-          )
-        else if (day == null || day.dishes.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.ink50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              'Aún no hay menú publicado.',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink900.withValues(alpha: 0.5),
-              ),
-            ),
-          )
-        else
-          _buildDishPreviewRow(day, child.id),
       ],
-    );
-  }
-
-  Widget _buildDishPreviewCard(MenuDish dish, int studentId, DateTime date) {
-    return GestureDetector(
-      onTap: () => _navigateToMenu(studentId: studentId, date: date),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFEFEFEF)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: dish.imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: dish.imageUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(
-                          context,
-                          120,
-                        ),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(
-                          context,
-                          120,
-                        ),
-                        placeholder: (_, _) => Container(
-                          color: AppColors.ink50,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: AppColors.secondary500,
-                              ),
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          color: AppColors.ink50,
-                          child: const Icon(
-                            Icons.fastfood,
-                            color: AppColors.secondary500,
-                            size: 24,
-                          ),
-                        ),
-                      )
-                    : Container(
-                        color: AppColors.ink50,
-                        child: const Icon(
-                          Icons.fastfood,
-                          color: AppColors.secondary500,
-                          size: 24,
-                        ),
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    dish.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '\$${dish.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.brand700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      const SizedBox(height: 28),
+      _SectionHeader(
+        title: 'Tus hijos',
+        trailing: Text(
+          children.length == 1
+              ? '1 registrado'
+              : '${children.length} registrados',
+          style: AppText.secondary.copyWith(fontSize: 14),
         ),
       ),
+      const SizedBox(height: 10),
+      _ChildrenGrid(
+        children: [
+          for (final child in children)
+            ChildSummaryCard(
+              child: child,
+              onTap: () => _openChildDetail(child),
+            ),
+          _AddChildCard(onTap: _addChild),
+        ],
+      ),
+      const SizedBox(height: 28),
+      _SectionHeader(
+        // Sin platillos publicados el título queda neutro ("Menú").
+        title: dayDate == null
+            ? 'Menú'
+            : UpcomingMenuLabels.sectionTitle(dayDate, DateTime.now()),
+        trailing: _SectionLink(
+          label: 'Ver menú',
+          onTap: target == null
+              ? null
+              : () => widget.onOrderForChild?.call(target.id),
+        ),
+      ),
+      const SizedBox(height: 10),
+      if (target != null && dish != null && dayDate != null)
+        UpcomingMenuCard(
+          dish: dish,
+          date: dayDate,
+          onOrder: () => _openMenuDay(target.id, dayDate),
+        )
+      else
+        _PreviewPlaceholder(
+          icon: Icons.restaurant_menu,
+          message: _isLoadingMenu
+              ? 'Cargando el menú…'
+              : 'Aún no hay platillos publicados para los próximos días.',
+          onTap: target == null
+              ? null
+              : () => widget.onOrderForChild?.call(target.id),
+        ),
+      const SizedBox(height: 28),
+      _SectionHeader(
+        title: 'Productos',
+        trailing: _SectionLink(
+          label: 'Ver productos',
+          onTap: widget.onOpenProducts,
+        ),
+      ),
+      const SizedBox(height: 10),
+      if (_combo != null)
+        ComboBanner(combo: _combo!, onTap: () => widget.onOpenProducts?.call())
+      else
+        _PreviewPlaceholder(
+          icon: Icons.local_offer_outlined,
+          message: _isLoadingMenu
+              ? 'Cargando los productos…'
+              : 'Mira los productos y combos disponibles.',
+          onTap: widget.onOpenProducts,
+        ),
+    ];
+  }
+}
+
+/// Grilla de tarjetas con columnas automáticas (≈136 px mínimo cada una): 2 en
+/// teléfono, más en tablet. Las filas toman la altura de su tarjeta más alta.
+class _ChildrenGrid extends StatelessWidget {
+  const _ChildrenGrid({required this.children});
+
+  final List<Widget> children;
+
+  static const double _minCardWidth = 136;
+  static const double _gap = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = ((constraints.maxWidth + _gap) / (_minCardWidth + _gap))
+            .floor()
+            .clamp(1, 4);
+        final rows = (children.length / columns).ceil();
+        return Column(
+          children: [
+            for (var r = 0; r < rows; r++) ...[
+              if (r > 0) const SizedBox(height: _gap),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var c = 0; c < columns; c++) ...[
+                      if (c > 0) const SizedBox(width: _gap),
+                      Expanded(
+                        child: r * columns + c < children.length
+                            ? children[r * columns + c]
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
+}
 
-  Widget _buildChildCard(Child child) {
-    final textTheme = Theme.of(context).textTheme;
-    final isLowBalance =
-        child.balance != null && child.balance! < _lowBalanceThreshold;
-    final avatarSize = AppImageCacheHelper.cacheSize(context, 52);
-    return AppCard(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      onTap: () => _openChildDetail(child),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: AppColors.ink50,
-            backgroundImage: child.profilePictureUrl != null
-                ? ResizeImage(
-                    CachedNetworkImageProvider(child.profilePictureUrl!),
-                    width: avatarSize,
-                    height: avatarSize,
-                  )
-                : null,
-            child: child.profilePictureUrl == null
-                ? const Icon(Icons.person, color: AppColors.secondary500)
-                : null,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
+/// Tarjeta "Añadir hijo/a": borde discontinuo morado, como en el diseño.
+class _AddChildCard extends StatelessWidget {
+  const _AddChildCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Añadir hijo o hija',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.cardAll,
+        child: DashedBorder(
+          radius: AppRadius.card,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 150),
+            padding: const EdgeInsets.all(14),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '${child.firstName} ${child.lastName}',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                const CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.secondary50,
+                  child: Icon(
+                    Icons.add,
+                    size: 22,
+                    color: AppColors.secondary500,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 8),
                 Text(
-                  child.institutionName,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.55),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: isLowBalance
-                          ? AppColors.danger500
-                          : AppColors.success500,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isLowBalance ? 'Saldo bajo' : 'Activo',
-                      style: textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: isLowBalance
-                            ? AppColors.danger700
-                            : AppColors.success700,
-                      ),
-                    ),
-                  ],
+                  'Añadir hijo/a',
+                  textAlign: TextAlign.center,
+                  style: AppText.link.copyWith(fontSize: 15),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isLowBalance ? AppColors.dangerBg : AppColors.brand50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              child.balance != null
-                  ? '\$${child.balance!.toStringAsFixed(2)}'
-                  : '—',
-              style: textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: isLowBalance ? AppColors.danger700 : AppColors.brand700,
-              ),
-            ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta de respaldo de Inicio cuando una sección (Menú o Productos) aún no
+/// tiene nada que mostrar: sigue siendo un acceso a esa pestaña.
+class _PreviewPlaceholder extends StatelessWidget {
+  const _PreviewPlaceholder({
+    required this.icon,
+    required this.message,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String message;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: AppRadius.cardAll,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.cardAll,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.cardAll,
+            border: Border.all(color: AppColors.line),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          const Icon(Icons.chevron_right, color: Color(0xFFBBBBBB)),
-        ],
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.secondary50,
+                child: Icon(icon, color: AppColors.secondary500),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(message, style: AppText.secondaryLg)),
+              const Icon(Icons.chevron_right, color: AppColors.chevron),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Título de una sección de Inicio con un texto o enlace a la derecha, alineados
+/// por la línea base. El título cede espacio (puntos suspensivos) antes de
+/// desbordar la fila.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.trailing});
+
+  final String title;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.sectionTitle,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        trailing,
+      ],
+    );
+  }
+}
+
+/// Enlace de texto morado de una sección ("Ver menú", "Ver productos"). Sin
+/// [onTap] queda deshabilitado en gris.
+class _SectionLink extends StatelessWidget {
+  const _SectionLink({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.fieldAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            label,
+            style: onTap == null
+                ? AppText.link.copyWith(color: AppColors.chevron)
+                : AppText.link,
+          ),
+        ),
       ),
     );
   }
