@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
@@ -11,7 +10,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../utils/password_check.dart';
-import '../widgets/password_requirements.dart';
+import '../widgets/profile_new_password_fields.dart';
 
 /// Password change from the profile: current, new (with the live requirements
 /// guide) and confirmation, in the form style of the app. The forced change
@@ -79,7 +78,6 @@ class _ProfilePasswordScreenState extends State<ProfilePasswordScreen>
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return FormPage(
       title: 'Contraseña',
       children: [
@@ -94,44 +92,9 @@ class _ProfilePasswordScreenState extends State<ProfilePasswordScreen>
               hint: 'Escribe tu contraseña actual',
               isPassword: true,
             ),
-            LabeledTextField(
-              label: 'Nueva contraseña',
-              controller: _newPassword,
-              hint: 'Crea una contraseña segura',
-              isPassword: true,
-              bottomPadding: 0,
-            ),
-            ListenableBuilder(
-              listenable: _newPassword,
-              builder: (context, _) =>
-                  PasswordRequirements(password: _newPassword.text),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            LabeledTextField(
-              label: 'Confirmar nueva contraseña',
-              controller: _confirmPassword,
-              hint: 'Repite la nueva contraseña',
-              isPassword: true,
-              bottomPadding: 0,
-            ),
-            ListenableBuilder(
-              listenable: Listenable.merge([_newPassword, _confirmPassword]),
-              builder: (context, _) {
-                final mismatch =
-                    _confirmPassword.text.isNotEmpty &&
-                    _confirmPassword.text != _newPassword.text;
-                if (!mismatch) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: Text(
-                    'Las contraseñas no coinciden',
-                    style: textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.danger700,
-                    ),
-                  ),
-                );
-              },
+            ProfileNewPasswordFields(
+              passwordController: _newPassword,
+              confirmController: _confirmPassword,
             ),
           ],
         ),

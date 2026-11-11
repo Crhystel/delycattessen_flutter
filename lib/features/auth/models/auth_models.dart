@@ -323,25 +323,51 @@ class ProfileUpdate {
   };
 }
 
-/// Body of `PATCH /api/users/children/<id>/` (the parent edits a child).
+/// Body of `PATCH /api/users/children/<id>/` (the parent edits a child). The
+/// names and the username have their own screens, so each one sends only what
+/// it changes (the backend applies a partial update).
 class ChildProfileUpdate {
-  final PersonNames names;
-  final String username;
+  final PersonNames? names;
+  final String? username;
 
-  const ChildProfileUpdate({required this.names, required this.username});
+  const ChildProfileUpdate.names(PersonNames this.names) : username = null;
+
+  const ChildProfileUpdate.username(String this.username) : names = null;
 
   String? validate() {
-    final namesError = names.validate();
-    if (namesError != null) return namesError;
-    if (username.trim().isEmpty) return 'Ingresa el nombre de usuario.';
-    if (username.trim().contains(' ')) {
+    final names = this.names;
+    if (names != null) return names.validate();
+    final name = username?.trim() ?? '';
+    if (name.isEmpty) return 'Ingresa el nombre de usuario.';
+    if (name.contains(' ')) {
       return 'El nombre de usuario no puede tener espacios.';
     }
     return null;
   }
 
   Map<String, dynamic> toJson() => {
-    ...names.toJson(),
-    'username': username.trim(),
+    if (names != null) ...names!.toJson(),
+    if (username != null) 'username': username!.trim(),
+  };
+}
+
+/// Body of `POST /api/users/children/<id>/password/`: the parent sets the
+/// password of their child and confirms with their own (the child's current
+/// one is not known to the parent).
+class ChildPasswordChange {
+  final String parentPassword;
+  final String newPassword;
+  final String confirmPassword;
+
+  const ChildPasswordChange({
+    required this.parentPassword,
+    required this.newPassword,
+    required this.confirmPassword,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'parent_password': parentPassword,
+    'new_password': newPassword,
+    'confirm_password': confirmPassword,
   };
 }

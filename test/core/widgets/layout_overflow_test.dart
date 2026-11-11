@@ -9,8 +9,10 @@ import 'package:delycattessen_flutter/features/auth/widgets/initials_avatar.dart
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
 import 'package:delycattessen_flutter/features/children/models/parental_control_model.dart';
 import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
-import 'package:delycattessen_flutter/features/children/screens/edit_child_account_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_names_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_password_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_username_screen.dart';
 import 'package:delycattessen_flutter/features/children/services/parental_control_service.dart';
 import 'package:delycattessen_flutter/features/users/models/allergy_models.dart';
 import 'package:flutter/material.dart';
@@ -210,17 +212,17 @@ void main() {
         expect(find.text('Nombres'), findsOneWidget);
       });
 
-      testWidgets('child form: $label', (tester) async {
-        await _pump(
-          tester,
-          entry.value,
-          scale,
-          EditChildAccountScreen(child: _child),
-        );
+      for (final form in {
+        'names': EditChildNamesScreen(child: _child),
+        'username': EditChildUsernameScreen(child: _child),
+        'password': EditChildPasswordScreen(child: _child),
+      }.entries) {
+        testWidgets('child ${form.key} form: $label', (tester) async {
+          await _pump(tester, entry.value, scale, form.value);
 
-        expect(tester.takeException(), isNull);
-        expect(find.text('Guardar cambios'), findsOneWidget);
-      });
+          expect(tester.takeException(), isNull);
+        });
+      }
     }
   }
 }

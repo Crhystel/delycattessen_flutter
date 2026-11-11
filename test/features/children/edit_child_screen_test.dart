@@ -2,7 +2,9 @@ import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
 import 'package:delycattessen_flutter/features/children/models/parental_control_model.dart';
 import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
-import 'package:delycattessen_flutter/features/children/screens/edit_child_account_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_names_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_password_screen.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_username_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_screen.dart';
 import 'package:delycattessen_flutter/features/children/services/parental_control_service.dart';
 import 'package:delycattessen_flutter/features/users/models/allergy_models.dart';
@@ -103,13 +105,20 @@ void main() {
     expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
   });
 
-  testWidgets('Nombres opens the account form', (tester) async {
+  testWidgets('each account row opens its own screen', (tester) async {
     await _open(tester);
+    expect(find.text('Contraseña'), findsOneWidget);
 
-    await tester.tap(find.text('Nombres'));
-    await tester.pumpAndSettle();
+    Future<void> openAndBack(String row, Type screen) async {
+      await tester.tap(find.text(row).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(screen), findsOneWidget);
+      tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await tester.pumpAndSettle();
+    }
 
-    expect(find.byType(EditChildAccountScreen), findsOneWidget);
-    expect(find.text('Guardar cambios'), findsOneWidget);
+    await openAndBack('Nombres', EditChildNamesScreen);
+    await openAndBack('Usuario', EditChildUsernameScreen);
+    await openAndBack('Contraseña', EditChildPasswordScreen);
   });
 }

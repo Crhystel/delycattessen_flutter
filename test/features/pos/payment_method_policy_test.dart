@@ -66,4 +66,18 @@ void main() {
       expect(PaymentMethodPolicy.optionFor(method), isNotNull);
     }
   });
+
+  test('every payment method has a one-word label for receipts', () {
+    expect(
+      {
+        for (final method in PaymentMethod.values)
+          method: PaymentMethodPolicy.optionFor(method)!.shortLabel,
+      },
+      {
+        PaymentMethod.wallet: 'Billetera',
+        PaymentMethod.credit: 'Crédito',
+        PaymentMethod.cash: 'Efectivo',
+      },
+    );
+  });
 }
