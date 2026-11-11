@@ -32,7 +32,9 @@ class HeaderActions extends StatelessWidget {
   final List<HeaderAction> actions;
 
   /// Space between the top of the safe area and the header, so the pill does
-  /// not sit against the edge of the screen. Shared by the three home screens.
+  /// not sit against the edge of the screen. Only the cashier home uses it now:
+  /// the parent, student and teacher headers use `TabHeader`, which adds its own
+  /// top margin.
   static const double topInset = AppSpacing.xl + AppSpacing.sm;
 
   static const double _phoneButton = 48;

@@ -1,4 +1,7 @@
+import 'package:delycattessen_flutter/core/layout/responsive.dart';
 import 'package:delycattessen_flutter/core/theme/app_theme.dart';
+import 'package:delycattessen_flutter/core/utils/date_formatter.dart';
+import 'package:delycattessen_flutter/core/widgets/greeting_text.dart';
 import 'package:delycattessen_flutter/core/widgets/profile_bubble.dart';
 import 'package:delycattessen_flutter/features/contingency/screens/member_home_screen.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +36,11 @@ void main() {
     await _pump(tester, isTeacher: true);
 
     expect(find.byType(ProfileBubble), findsOneWidget);
-    expect(find.text('Hola Ana Docente'), findsOneWidget);
+    expect(find.text('¡Hola, Ana Docente!'), findsOneWidget);
+    expect(
+      find.text(DateFormatter.formatGreetingDate(DateTime.now())),
+      findsOneWidget,
+    );
     // The bubble shows the first letter of the name.
     expect(find.text('A'), findsOneWidget);
     // Sign out lives inside "Mi perfil" now, not in the header.
@@ -49,7 +56,32 @@ void main() {
 
     expect(find.byType(ProfileBubble), findsNothing);
     expect(find.byIcon(Icons.logout), findsOneWidget);
-    expect(find.text('Hola Ana Docente'), findsOneWidget);
+    expect(find.text('¡Hola, Ana Docente!'), findsOneWidget);
+    expect(
+      find.text(DateFormatter.formatGreetingDate(DateTime.now())),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the student sign-out button is on the greeting row, to its '
+      'right, and the greeting starts at the top like the tabs', (
+    tester,
+  ) async {
+    await _pump(tester, isTeacher: false);
+
+    final greeting = tester.getRect(find.byType(GreetingText));
+    final logout = tester.getCenter(find.byIcon(Icons.logout));
+
+    // Same row: the icon's vertical center falls inside the greeting block.
+    expect(logout.dy, greaterThan(greeting.top));
+    expect(logout.dy, lessThan(greeting.bottom));
+    // To the right of the greeting, not above it.
+    expect(logout.dx, greaterThan(greeting.center.dx));
+    // No big gap: the greeting starts at the same top as the tab titles (no
+    // status bar in tests), not ~90 px lower.
+    final context = tester.element(find.byType(GreetingText));
+    expect(greeting.top, AppLayout.pageTopPadding(context));
     expect(tester.takeException(), isNull);
   });
 

@@ -6,6 +6,7 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/greeting_text.dart';
 import '../../../core/widgets/header_actions.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
@@ -25,21 +26,6 @@ class PosHomeScreen extends StatefulWidget {
 
 class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
   final _authService = AuthService();
-
-  String _getCurrentDayFormatted() {
-    const days = [
-      'lunes',
-      'martes',
-      'miércoles',
-      'jueves',
-      'viernes',
-      'sábado',
-      'domingo',
-    ];
-    final now = DateTime.now();
-    final dayName = days[now.weekday - 1];
-    return 'Hoy es $dayName';
-  }
 
   Future<void> _onUserIdentified(IdentifiedUser user) async {
     final action = await showModalBottomSheet<IdentifiedUserAction>(
@@ -185,30 +171,7 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hola ${widget.userName}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 24 * s,
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                _getCurrentDayFormatted(),
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.ink900.withValues(
-                                    alpha: 0.65,
-                                  ),
-                                  fontSize: 14 * s,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: GreetingText(name: widget.userName, scale: s),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         HeaderActions(
