@@ -26,12 +26,17 @@ class CardFormData {
     required this.acceptedTerms,
   });
 
+  /// El CVC tiene 3 dígitos, o 4 en American Express.
+  static const int cvvMinLength = 3;
+  static const int cvvMaxLength = 4;
+
   /// Mensaje del primer problema encontrado, o null si el formulario es válido.
   String? validate() {
     if (cardNumber.replaceAll(' ', '').length < 16 ||
         holderName.isEmpty ||
         expiration.length < 5 ||
-        cvv.length != 3) {
+        cvv.length < cvvMinLength ||
+        cvv.length > cvvMaxLength) {
       return 'Completa todos los campos de la tarjeta correctamente.';
     }
     if (phone.isEmpty || documentNumber.isEmpty) {

@@ -101,13 +101,18 @@ void main() {
         _data(holderName: ''),
         _data(expiration: '12/3'),
         _data(cvv: '12'),
-        _data(cvv: '1234'), // el CVV son exactamente 3 dígitos
+        _data(cvv: '12345'), // el CVV son 3 dígitos, o 4 en American Express
       ]) {
         expect(
           data.validate(),
           'Completa todos los campos de la tarjeta correctamente.',
         );
       }
+    });
+
+    test('accepts a CVV of 3 or 4 digits', () {
+      expect(_data(cvv: '123').validate(), isNull);
+      expect(_data(cvv: '1234').validate(), isNull);
     });
 
     test('requires phone and document number', () {
