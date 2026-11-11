@@ -28,6 +28,10 @@ class MenuDish {
   final double price;
   final String? imageUrl;
   final List<String> allergens;
+
+  /// Allergens of the dish that the viewer (the child, the student) has
+  /// registered; empty when the backend sends none.
+  final List<String> conflictingAllergens;
   final bool hasStudentAllergens;
 
   MenuDish({
@@ -37,6 +41,7 @@ class MenuDish {
     required this.price,
     this.imageUrl,
     this.allergens = const [],
+    this.conflictingAllergens = const [],
     this.hasStudentAllergens = false,
   });
 
@@ -52,6 +57,7 @@ class MenuDish {
       price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
       imageUrl: json['image'] as String?,
       allergens: allergensList,
+      conflictingAllergens: _allergenNames(json['conflicting_allergens']),
       hasStudentAllergens: json['has_student_allergens'] as bool? ?? false,
     );
   }
@@ -355,11 +361,20 @@ class ComboItem {
   /// (then the catalog is the only source). Zero means sold out.
   final int? stock;
 
+  /// Allergen names of the product, read from the combo itself so a sold out
+  /// product (absent from the catalog) still counts.
+  final List<String> allergens;
+
+  /// Allergens of the product that the viewer has registered.
+  final List<String> conflictingAllergens;
+
   const ComboItem({
     required this.productId,
     required this.name,
     required this.quantity,
     this.stock,
+    this.allergens = const [],
+    this.conflictingAllergens = const [],
   });
 
   factory ComboItem.fromJson(Map<String, dynamic> json) => ComboItem(
@@ -367,6 +382,8 @@ class ComboItem {
     name: (json['name'] ?? '').toString(),
     quantity: (json['quantity'] as num?)?.toInt() ?? 1,
     stock: _intOrNull(json['stock']),
+    allergens: _allergenNames(json['allergens']),
+    conflictingAllergens: _allergenNames(json['conflicting_allergens']),
   );
 }
 
@@ -409,6 +426,14 @@ class Combo {
   /// What the customer saves with the combo; zero when there is no saving.
   double get savings => hasSavings ? regularPrice - price : 0.0;
 
+  /// Allergens of all its products, without repeats, in order of appearance.
+  List<String> get allergenNames =>
+      _union([for (final i in items) i.allergens]);
+
+  /// Allergens of its products that the viewer has registered.
+  List<String> get conflictingAllergens =>
+      _union([for (final i in items) i.conflictingAllergens]);
+
   /// Tolerant: only a missing `id` makes it invalid (the caller skips that
   /// combo); a null name, price, date or image takes a default instead of
   /// failing the whole list of offers.
@@ -426,6 +451,29 @@ class Combo {
         .toList(),
     availableQuantity: _intOrNull(json['available_quantity']),
   );
+}
+
+/// Allergen names from a list of strings or of `{id, name}` objects. What is
+/// not readable is skipped, so it can never make a dish or a combo invalid.
+List<String> _allergenNames(Object? value) {
+  if (value is! List) return const [];
+  final names = <String>[];
+  for (final entry in value) {
+    final raw = entry is Map ? entry['name'] : entry;
+    final name = raw is String ? raw.trim() : '';
+    if (name.isNotEmpty) names.add(name);
+  }
+  return names;
+}
+
+/// Joins name lists without repeats (case-insensitive), keeping the order.
+List<String> _union(Iterable<List<String>> lists) {
+  final seen = <String>{};
+  return [
+    for (final names in lists)
+      for (final name in names)
+        if (seen.add(name.toLowerCase())) name,
+  ];
 }
 
 /// Whole number of an optional count; null when it is missing or unreadable

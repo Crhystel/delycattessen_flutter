@@ -1,11 +1,18 @@
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/screens/combo_detail_screen.dart';
+import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/allergen_section_card.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/blocked_purchase_bar.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/catalog_stock_badges.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/detail_chip.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/other_combos_grid.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/quantity_add_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/offers_test_support.dart';
+
+const _pepito = AllergenAudience.named('Pepito');
 
 MenuItem _withAllergens(int id, String name, List<String> allergens) =>
     MenuItem(
@@ -34,8 +41,11 @@ Future<List<int>> _open(
   Map<int, MenuItem>? catalog,
   Combo? combo,
   StockBadgeBuilder? stockBadge,
+  AllergenAdvisory advisory = const AllergenAdvisory(),
+  List<Combo> otherCombos = const [],
+  ValueChanged<Combo>? onComboTap,
 }) async {
-  tester.view.physicalSize = const Size(411, 900);
+  tester.view.physicalSize = const Size(411, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final added = <int>[];
@@ -52,6 +62,9 @@ Future<List<int>> _open(
                     itemsById: catalog ?? _catalog,
                     onAdd: canAdd ? added.add : null,
                     stockBadge: stockBadge ?? CatalogStockBadges.low,
+                    advisory: advisory,
+                    otherCombos: otherCombos,
+                    onComboTap: onComboTap,
                   ),
                 ),
               ),
@@ -68,49 +81,203 @@ Future<List<int>> _open(
 }
 
 void main() {
-  testWidgets('looks like a product: name, price, regular price and saving', (
+  testWidgets('header: tag, name, price, regular price and saving', (
     tester,
   ) async {
     await _open(tester);
 
+    expect(find.text('COMBO'), findsOneWidget);
     expect(find.text('Combo almuerzo'), findsOneWidget);
     expect(find.text('\$3.50'), findsOneWidget);
     final regular = tester.widget<Text>(find.text('\$4.00'));
     expect(regular.style?.decoration, TextDecoration.lineThrough);
     expect(find.text('Ahorras \$0.50'), findsOneWidget);
-    expect(find.text('Válido hasta el 31/12/2026'), findsOneWidget);
   });
 
-  testWidgets('lists the dishes it includes with their quantity', (
-    tester,
-  ) async {
+  testWidgets('info tiles: valid until and bought at the POS', (tester) async {
     await _open(tester);
 
-    expect(find.text('Incluye'), findsOneWidget);
-    expect(find.text('Sánduche'), findsOneWidget);
-    expect(find.text('Cola ×2'), findsOneWidget);
-    expect(find.text('\$2.00 c/u'), findsNWidgets(2));
+    expect(find.text('Válido hasta'), findsOneWidget);
+    expect(find.text('Jueves 31 de diciembre'), findsOneWidget);
+    expect(find.text('Se compra'), findsOneWidget);
+    expect(find.text('En caja'), findsOneWidget);
   });
 
-  testWidgets('shows the allergens of all the dishes without repeats', (
-    tester,
-  ) async {
-    await _open(tester);
-
-    expect(find.text('Contiene alérgenos'), findsOneWidget);
-    expect(find.text('Gluten'), findsOneWidget);
-    expect(find.text('Lácteos'), findsOneWidget); // in two dishes, shown once
-  });
-
-  testWidgets('has no allergens section when the dishes have none', (
-    tester,
-  ) async {
-    await _open(
+  group('Incluye', () {
+    testWidgets('lists the dishes with quantity and separate price', (
       tester,
-      catalog: {1: product(1, 'Sánduche', 2.5), 2: product(2, 'Cola', 1.5)},
+    ) async {
+      await _open(tester);
+
+      expect(find.text('Incluye'), findsOneWidget);
+      expect(find.text('1× Sánduche'), findsOneWidget);
+      expect(find.text('2× Cola'), findsOneWidget);
+      expect(find.text('\$2.00 por separado'), findsNWidgets(2));
+    });
+
+    testWidgets('the strip compares the separate price with the combo', (
+      tester,
+    ) async {
+      await _open(tester);
+
+      expect(find.text('Por separado \$4.00'), findsOneWidget);
+      expect(find.text('En combo \$3.50'), findsOneWidget);
+    });
+
+    testWidgets('without saving there is no strip nor "Ahorras"', (
+      tester,
+    ) async {
+      await _open(
+        tester,
+        combo: Combo(
+          id: 11,
+          name: 'Combo igual',
+          price: 4.00,
+          regularPrice: 4.00,
+          endDate: DateTime(2026, 12, 31),
+          items: const [ComboItem(productId: 1, name: 'Sánduche', quantity: 1)],
+        ),
+      );
+
+      expect(find.textContaining('Ahorras'), findsNothing);
+      expect(find.textContaining('En combo'), findsNothing);
+      expect(find.text('1× Sánduche'), findsOneWidget);
+    });
+
+    testWidgets('a dish missing from the catalog omits its price', (
+      tester,
+    ) async {
+      await _open(tester, catalog: const {});
+
+      expect(find.text('1× Sánduche'), findsOneWidget);
+      expect(find.textContaining('por separado'), findsNothing);
+    });
+  });
+
+  group('allergens', () {
+    final conflict = AllergenAdvisory.of(
+      allergens: ['Gluten', 'Lácteos'],
+      conflicts: ['Gluten'],
+      audience: _pepito,
     );
 
-    expect(find.text('Contiene alérgenos'), findsNothing);
+    testWidgets('conflict: chips, red box and blocked bar (POS)', (
+      tester,
+    ) async {
+      final added = await _open(tester, canAdd: true, advisory: conflict);
+
+      expect(find.byType(AllergenSectionCard), findsOneWidget);
+      expect(find.byType(DetailChip), findsNWidgets(2));
+      expect(find.text('Contiene gluten'), findsOneWidget);
+      expect(
+        find.text(
+          'Pepito tiene registrada esta alergia, por eso este combo no se le puede vender.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(BlockedPurchaseBar), findsOneWidget);
+      expect(find.text('No disponible para Pepito'), findsOneWidget);
+      expect(find.byType(QuantityAddBar), findsNothing);
+      expect(find.byIcon(Icons.add), findsNothing);
+      expect(added, isEmpty);
+    });
+
+    testWidgets('conflict without onAdd: the notice but no bar', (
+      tester,
+    ) async {
+      await _open(tester, advisory: conflict);
+
+      expect(find.text('Contiene gluten'), findsOneWidget);
+      expect(find.byType(BlockedPurchaseBar), findsNothing);
+      expect(find.byType(QuantityAddBar), findsNothing);
+    });
+
+    testWidgets('no conflict: green box and the quantity bar', (tester) async {
+      await _open(
+        tester,
+        canAdd: true,
+        advisory: AllergenAdvisory.of(
+          allergens: ['Gluten', 'Lácteos'],
+          audience: _pepito,
+        ),
+      );
+
+      expect(
+        find.text('Pepito no tiene registradas estas alergias.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Contiene'), findsNothing);
+      expect(find.byType(QuantityAddBar), findsOneWidget);
+      expect(find.byType(BlockedPurchaseBar), findsNothing);
+    });
+
+    testWidgets('unknown customer: only the chips', (tester) async {
+      await _open(
+        tester,
+        canAdd: true,
+        advisory: AllergenAdvisory.of(allergens: ['Gluten', 'Lácteos']),
+      );
+
+      expect(find.byType(DetailChip), findsNWidgets(2));
+      expect(find.textContaining('registrada'), findsNothing);
+      expect(find.byType(QuantityAddBar), findsOneWidget);
+    });
+
+    testWidgets('the card is always there, even without allergens', (
+      tester,
+    ) async {
+      await _open(tester);
+
+      expect(find.text('Alérgenos'), findsOneWidget);
+      expect(find.text('Sin alérgenos registrados'), findsOneWidget);
+    });
+
+    testWidgets('the allergens do not depend on the catalog', (tester) async {
+      await _open(
+        tester,
+        catalog: const {},
+        advisory: AllergenAdvisory.of(allergens: ['Soya']),
+      );
+
+      expect(find.text('Soya'), findsOneWidget);
+    });
+  });
+
+  group('Otros combos', () {
+    final others = [
+      lunchCombo(name: 'Combo desayuno'),
+      lunchCombo(name: 'Combo merienda'),
+    ];
+
+    testWidgets('are listed and tapping one reports it', (tester) async {
+      final tapped = <Combo>[];
+      await _open(tester, otherCombos: others, onComboTap: tapped.add);
+
+      expect(find.byType(OtherCombosGrid), findsOneWidget);
+      expect(find.text('Otros combos'), findsOneWidget);
+      expect(find.text('Combo desayuno'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Combo merienda'));
+      await tester.tap(find.text('Combo merienda'));
+      await tester.pump();
+      expect(tapped.map((c) => c.name), ['Combo merienda']);
+    });
+
+    testWidgets('are hidden when there are none', (tester) async {
+      await _open(tester);
+
+      expect(find.text('Otros combos'), findsNothing);
+      expect(find.byType(OtherCombosGrid), findsNothing);
+    });
+
+    testWidgets('without a callback tapping does nothing', (tester) async {
+      await _open(tester, otherCombos: others);
+
+      await tester.ensureVisible(find.text('Combo desayuno'));
+      await tester.tap(find.text('Combo desayuno'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ComboDetailScreen), findsOneWidget);
+    });
   });
 
   testWidgets('is read-only without onAdd (parents and teachers)', (
@@ -119,6 +286,7 @@ void main() {
     await _open(tester);
 
     expect(find.byType(QuantityAddBar), findsNothing);
+    expect(find.byType(BlockedPurchaseBar), findsNothing);
     expect(find.textContaining('Añadir'), findsNothing);
   });
 

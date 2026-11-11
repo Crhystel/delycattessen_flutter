@@ -5,6 +5,7 @@ import 'package:delycattessen_flutter/features/menu/providers/parent_menu_contro
 import 'package:delycattessen_flutter/features/menu/screens/dish_detail_screen.dart';
 import 'package:delycattessen_flutter/features/menu/screens/member_menu_screen.dart';
 import 'package:delycattessen_flutter/features/menu/services/menu_service.dart';
+import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/menu_dish_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -121,11 +122,33 @@ void main() {
       await tester.pumpWidget(_app(DishDetailScreen(dish: _dish())));
 
       expect(find.text('Seco de pollo'), findsOneWidget);
-      expect(find.text('Alérgenos identificados'), findsOneWidget);
+      expect(find.text('Alérgenos'), findsOneWidget);
       expect(find.text('Maní'), findsOneWidget);
       expect(find.byIcon(Icons.add), findsNothing);
       expect(find.byIcon(Icons.remove), findsNothing);
       expect(find.textContaining('Añadir'), findsNothing);
+    });
+
+    testWidgets('read only with a conflict: the notice but no bar', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          DishDetailScreen(
+            dish: _dish(allergic: true),
+            advisory: AllergenAdvisory.of(
+              allergens: const ['Maní'],
+              conflicts: const ['Maní'],
+              audience: AllergenAudience.self,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Contiene maní'), findsOneWidget);
+      expect(find.textContaining('Tienes registrada'), findsOneWidget);
+      expect(find.textContaining('Añadir'), findsNothing);
+      expect(find.textContaining('No disponible'), findsNothing);
     });
 
     testWidgets('with onAdd the parent flow keeps the quantity bar', (
@@ -212,6 +235,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DishDetailScreen), findsOneWidget);
+      expect(find.textContaining('Añadir'), findsNothing);
+    });
+
+    testWidgets('a dish with allergens opens a detail that says "tienes"', (
+      tester,
+    ) async {
+      await pump(tester, _FakeMenuService(days: [day(1, '2026-11-10')]));
+
+      await tester.tap(shown(find.text('Seco de pollo')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DishDetailScreen), findsOneWidget);
+      expect(find.textContaining('Tienes registrada'), findsOneWidget);
       expect(find.textContaining('Añadir'), findsNothing);
     });
 

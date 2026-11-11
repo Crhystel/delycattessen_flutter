@@ -88,6 +88,13 @@ class DateFormatter {
         '${date.day} de ${monthName(date)}';
   }
 
+  /// Devuelve el día completo con mes corto: "Martes 10 nov"
+  static String formatWeekdayShortMonth(DateTime date) {
+    final weekday = weekdayName(date);
+    return '${weekday[0].toUpperCase()}${weekday.substring(1)} '
+        '${date.day} ${shortMonthName(date)}';
+  }
+
   /// Devuelve formato corto para chips: "Mié 14 oct"
   static String formatChip(DateTime date) {
     return '${shortWeekdayName(date)} ${date.day} ${shortMonthName(date)}';

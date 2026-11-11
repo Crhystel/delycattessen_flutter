@@ -24,4 +24,36 @@ void main() {
       );
     });
   });
+
+  group('detail page dates', () {
+    test('formatWeekdayShortMonth: "Martes 10 nov"', () {
+      expect(
+        DateFormatter.formatWeekdayShortMonth(DateTime(2026, 11, 10)),
+        'Martes 10 nov',
+      );
+    });
+
+    test('formatWeekdayShortMonth: accents and month change', () {
+      expect(
+        DateFormatter.formatWeekdayShortMonth(DateTime(2026, 12, 2)),
+        'Miércoles 2 dic',
+      );
+      expect(
+        DateFormatter.formatWeekdayShortMonth(DateTime(2026, 8, 1)),
+        'Sábado 1 ago',
+      );
+    });
+
+    test('formatChip is the short form: "Lun 9 nov"', () {
+      expect(DateFormatter.formatChip(DateTime(2026, 11, 9)), 'Lun 9 nov');
+    });
+
+    test('the day before a service day crosses the month', () {
+      final served = DateTime(2026, 12, 1);
+      expect(
+        DateFormatter.formatChip(served.subtract(const Duration(days: 1))),
+        'Lun 30 nov',
+      );
+    });
+  });
 }

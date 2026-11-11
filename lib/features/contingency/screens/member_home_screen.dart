@@ -110,7 +110,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = errorMessageOf(e);
           _isLoading = false;
         });
       }

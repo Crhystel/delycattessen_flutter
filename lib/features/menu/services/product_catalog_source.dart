@@ -1,5 +1,6 @@
 import '../../users/services/allergy_owner.dart';
 import '../models/menu_models.dart';
+import '../utils/allergen_advisory.dart';
 import 'menu_service.dart';
 
 /// Productos de la sede visibles para un usuario y los alérgenos de esa
@@ -11,6 +12,9 @@ abstract class ProductCatalogSource {
 
   /// Texto para los avisos de alérgenos ("tus alergias", "las alergias de Ana").
   String get allergyOwnerLabel;
+
+  /// Whose allergies the detail screens check an item against.
+  AllergenAudience get allergenAudience;
 
   Future<List<MenuItem>> loadItems();
 
@@ -41,6 +45,9 @@ class StudentCatalogSource implements ProductCatalogSource {
 
   @override
   String get allergyOwnerLabel => 'las alergias de $studentName';
+
+  @override
+  AllergenAudience get allergenAudience => AllergenAudience.named(studentName);
 
   @override
   Future<List<MenuItem>> loadItems() =>
@@ -95,6 +102,9 @@ class OwnCatalogSource implements ProductCatalogSource {
 
   @override
   String get allergyOwnerLabel => 'tus alergias';
+
+  @override
+  AllergenAudience get allergenAudience => AllergenAudience.self;
 
   @override
   Future<List<MenuItem>> loadItems() => _menuService.getMenu();

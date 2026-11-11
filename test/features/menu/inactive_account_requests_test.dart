@@ -4,6 +4,7 @@ import 'package:delycattessen_flutter/core/network/api_exception.dart';
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/services/menu_service.dart';
 import 'package:delycattessen_flutter/features/menu/services/product_catalog_source.dart';
+import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/product_catalog_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +29,9 @@ class _InactiveCatalogSource implements ProductCatalogSource {
 
   @override
   String get allergyOwnerLabel => 'tus alergias';
+
+  @override
+  AllergenAudience get allergenAudience => AllergenAudience.self;
 
   @override
   Future<List<MenuItem>> loadItems() => Future.error(_inactive);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../providers/parent_menu_controller.dart';
+import '../utils/allergen_advisory.dart';
 import '../widgets/monthly_menu_view.dart';
 
 /// Menú del mes del estudiante, de solo lectura: ve los días y los platillos
@@ -41,6 +42,7 @@ class _MemberMenuScreenState extends State<MemberMenuScreen> {
       menu: _menu,
       title: 'Menú del mes',
       showBackButton: true,
+      allergenAudience: AllergenAudience.self,
       onRefresh: _menu.loadOwn,
       onRetry: _menu.loadOwn,
     );

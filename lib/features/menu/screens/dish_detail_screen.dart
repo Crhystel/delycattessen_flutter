@@ -1,231 +1,148 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/layout/responsive.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_network_image.dart';
-import '../../../core/widgets/primary_button.dart';
+import '../../../core/theme/app_text.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../models/menu_models.dart';
+import '../utils/allergen_advisory.dart';
+import '../widgets/allergen_section_card.dart';
+import '../widgets/blocked_purchase_bar.dart';
+import '../widgets/child_ordering_row.dart';
+import '../widgets/detail_info_grid.dart';
+import '../widgets/detail_scaffold.dart';
+import '../widgets/detail_tag.dart';
+import '../widgets/quantity_add_bar.dart';
 
-class DishDetailScreen extends StatefulWidget {
+/// Detail of a dish of the monthly menu. It always opens and always shows its
+/// allergens; what the [advisory] says decides whether it can be ordered.
+class DishDetailScreen extends StatelessWidget {
   final MenuDish dish;
 
-  /// Agrega [dish] con la cantidad elegida. Nulo: solo consulta (estudiante),
-  /// sin barra de cantidad ni botón de añadir.
+  /// Adds [dish] with the chosen quantity. Null: read only (no bottom bar).
   final Function(int)? onAdd;
 
-  const DishDetailScreen({super.key, required this.dish, this.onAdd});
+  /// Day the dish is served; without it the date cards are left out.
+  final DateTime? servedDate;
 
-  @override
-  State<DishDetailScreen> createState() => _DishDetailScreenState();
-}
+  final AllergenAdvisory advisory;
 
-class _DishDetailScreenState extends State<DishDetailScreen> {
-  int _quantity = 1;
+  /// Name of the child the order is for ("Pidiendo para").
+  final String? orderingFor;
+
+  /// Opens the child picker; true when the child changed (the detail then
+  /// closes, as it belonged to the previous child).
+  final Future<bool> Function()? onChangeChild;
+
+  const DishDetailScreen({
+    super.key,
+    required this.dish,
+    this.onAdd,
+    this.servedDate,
+    this.advisory = const AllergenAdvisory(),
+    this.orderingFor,
+    this.onChangeChild,
+  });
+
+  /// A default advisory knows nothing of the dish: never tell the user it has
+  /// no allergens when it does.
+  AllergenAdvisory get _effectiveAdvisory => advisory.allergens.isEmpty
+      ? AllergenAdvisory.of(
+          allergens: dish.allergens,
+          conflicts: advisory.conflicts,
+          audience: advisory.audience,
+        )
+      : advisory;
+
+  Future<void> _changeChild(BuildContext context) async {
+    final changed = await onChangeChild!();
+    if (changed && context.mounted) Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final dish = widget.dish;
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: ResponsiveCenter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 280,
-                  color: AppColors.ink50,
-                  child: AppNetworkImage(
-                    url: dish.imageUrl,
-                    width: double.infinity,
-                    height: 280,
-                    placeholder: const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.secondary500,
-                      ),
-                    ),
-                    error: const Icon(
-                      Icons.fastfood,
-                      size: 100,
-                      color: AppColors.secondary500,
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          size: 20,
-                          color: AppColors.ink900,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            dish.name,
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Text(
-                          '\$${dish.price.toStringAsFixed(2)}',
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.brand700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (dish.description.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        dish.description,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ],
-                    if (dish.allergens.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildSectionTitle('Alérgenos identificados'),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: dish.allergens
-                            .map((a) => _buildChip(a, isAllergen: true))
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
+    final date = servedDate;
+    final childName = orderingFor;
+    final change = onChangeChild;
+    return DetailScaffold(
+      tag: const DetailTag.neutral('Menú del mes'),
+      imageUrl: dish.imageUrl,
+      bottomBar: _buildBottomBar(context),
+      children: [
+        _Header(dish: dish),
+        if (date != null)
+          DetailInfoGrid(
+            tiles: [
+              DetailInfoTile(
+                icon: Icons.calendar_today_outlined,
+                label: 'Se sirve el',
+                value: DateFormatter.formatWeekdayShortMonth(date),
               ),
-            ),
-            if (widget.onAdd != null) _buildBottomBar(widget.onAdd!),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Text(
-        text,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, {bool isAllergen = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isAllergen ? AppColors.dangerBg : AppColors.secondary50,
-        borderRadius: AppRadius.smAll,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isAllergen ? AppColors.danger700 : AppColors.secondary700,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(Function(int) onAdd) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.lg),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+              DetailInfoTile(
+                icon: Icons.schedule,
+                label: 'Pide hasta',
+                // The backend only takes orders for future dates.
+                value: DateFormatter.formatChip(
+                  date.subtract(const Duration(days: 1)),
+                ),
+                tone: DetailInfoTone.amber,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.secondary500),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.remove,
-                      color: AppColors.secondary500,
-                    ),
-                    onPressed: () {
-                      if (_quantity > 1) setState(() => _quantity--);
-                    },
-                  ),
-                  Text(
-                    '$_quantity',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: AppColors.secondary500),
-                    onPressed: () => setState(() => _quantity++),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: PrimaryButton(
-                label:
-                    'Añadir \$${(widget.dish.price * _quantity).toStringAsFixed(2)}',
-                onPressed: () {
-                  onAdd(_quantity);
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-          ],
+        if (childName != null && change != null)
+          ChildOrderingRow(
+            name: childName,
+            onChange: () => _changeChild(context),
+          ),
+        AllergenSectionCard(
+          advisory: _effectiveAdvisory,
+          subject: AllergenSubject.dish,
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget? _buildBottomBar(BuildContext context) {
+    final add = onAdd;
+    if (add == null) return null;
+    if (advisory.hasConflict) {
+      return BlockedPurchaseBar(
+        label: advisory.blockedLabel,
+        secondaryLabel: onChangeChild == null ? null : 'Pedir para otro hijo',
+        onSecondary: onChangeChild == null ? null : () => _changeChild(context),
+      );
+    }
+    return QuantityAddBar(unitPrice: dish.price, onAdd: add);
+  }
+}
+
+class _Header extends StatelessWidget {
+  final MenuDish dish;
+
+  const _Header({required this.dish});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(dish.name, style: AppText.detailTitle),
+              if (dish.description.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(dish.description, style: AppText.detailSubtitle),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '\$${dish.price.toStringAsFixed(2)}',
+          maxLines: 1,
+          style: AppText.detailPrice,
+        ),
+      ],
     );
   }
 }

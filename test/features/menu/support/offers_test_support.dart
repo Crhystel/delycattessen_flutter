@@ -1,5 +1,6 @@
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/services/product_catalog_source.dart';
+import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
 
 MenuItem product(
   int id,
@@ -38,10 +39,21 @@ Combo lunchCombo({
 
 /// Catalog source with fixed data, for the catalog screen.
 class FakeCatalogSource implements ProductCatalogSource {
-  FakeCatalogSource({required this.items, this.offers = CatalogOffers.empty});
+  FakeCatalogSource({
+    required this.items,
+    this.offers = CatalogOffers.empty,
+    this.allergenIds = const {},
+    this.allergenAudience = AllergenAudience.self,
+  });
 
   final List<MenuItem> items;
   final CatalogOffers offers;
+
+  /// Allergens registered for the person the catalog is shown to.
+  final Set<int> allergenIds;
+
+  @override
+  final AllergenAudience allergenAudience;
 
   @override
   String get id => 'fake';
@@ -56,5 +68,5 @@ class FakeCatalogSource implements ProductCatalogSource {
   Future<CatalogOffers> loadOffers() async => offers;
 
   @override
-  Future<Set<int>> loadAllergenIds() async => const {};
+  Future<Set<int>> loadAllergenIds() async => allergenIds;
 }

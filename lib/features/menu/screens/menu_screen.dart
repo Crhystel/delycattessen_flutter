@@ -7,9 +7,11 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
+import '../../children/widgets/child_picker_sheet.dart';
 import '../../children/widgets/child_switch_bar.dart';
 import '../models/menu_models.dart';
 import '../providers/parent_menu_controller.dart';
+import '../utils/allergen_advisory.dart';
 import '../widgets/menu_cart_bar.dart';
 import '../widgets/monthly_menu_ordering.dart';
 import '../widgets/monthly_menu_view.dart';
@@ -69,12 +71,26 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   DateTime? _pendingDate;
   late final ChildrenProvider _childrenProvider;
 
+  /// Child switch started by the selection listener; the dish detail waits for
+  /// it to know whether the child really changed.
+  Future<bool>? _switching;
+
   late final MonthlyMenuOrdering _ordering = MonthlyMenuOrdering(
-    onToggleDish: (dish) => _menu.cart.containsKey(dish.id)
-        ? _menu.removeFromCart(dish.id)
-        : _menu.addToCart(dish.id, 1),
-    onAddDish: (dish, quantity) => _menu.addToCart(dish.id, quantity),
+    onToggleDish: (dish) {
+      if (_hasConflict(dish)) return;
+      _menu.cart.containsKey(dish.id)
+          ? _menu.removeFromCart(dish.id)
+          : _menu.addToCart(dish.id, 1);
+    },
+    onAddDish: (dish, quantity) {
+      if (!_hasConflict(dish)) _menu.addToCart(dish.id, quantity);
+    },
   );
+
+  /// A dish with allergens of the child never reaches the cart, whatever the UI
+  /// offers.
+  static bool _hasConflict(MenuDish dish) =>
+      dish.hasStudentAllergens || dish.conflictingAllergens.isNotEmpty;
 
   @override
   void initState() {
@@ -118,7 +134,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     final selected = _childrenProvider.selectedChild;
     if (selected == null) return;
     if (selected.id != _selectedChild?.id) {
-      _confirmAndSwitchChild(selected);
+      _switching = _confirmAndSwitchChild(selected);
     } else if (!identical(selected, _selectedChild)) {
       setState(() => _selectedChild = selected);
     }
@@ -172,7 +188,9 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     if (child != null) _fetchMonthlyMenu(child.id);
   }
 
-  Future<void> _confirmAndSwitchChild(Child newChild) async {
+  /// True when the menu now belongs to [newChild]; false if the parent kept the
+  /// current child (declined to empty the cart).
+  Future<bool> _confirmAndSwitchChild(Child newChild) async {
     if (_menu.cart.isNotEmpty) {
       final confirmed = await AppConfirmationDialog.show(
         context,
@@ -183,19 +201,33 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         cancelLabel: 'Conservar',
         isDestructive: true,
       );
-      if (!mounted) return;
+      if (!mounted) return false;
       if (!confirmed) {
         // Se conserva al hijo del menú: la selección global vuelve a él para
         // que Pedidos y Billetera no apunten a otro.
         final current = _selectedChild;
         if (current != null) _childrenProvider.select(current.id);
-        return;
+        return false;
       }
     }
 
     _menu.clearCart();
     setState(() => _selectedChild = newChild);
     _fetchMonthlyMenu(newChild.id);
+    return true;
+  }
+
+  /// Opens the child picker from the dish detail. True when the menu changed
+  /// to another child (the detail then closes).
+  Future<bool> _pickAnotherChild() async {
+    final previousId = _selectedChild?.id;
+    await ChildPickerSheet.show(
+      context,
+      _childrenProvider,
+      title: '¿Para quién estás pidiendo?',
+    );
+    await _switching;
+    return mounted && _selectedChild?.id != previousId;
   }
 
   Future<void> _onSelectDay(MenuDay day) async {
@@ -230,23 +262,6 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     _menu.selectDay(day);
   }
 
-  void _showAllergenBlockedDialog(MenuDish dish) {
-    final childName = _selectedChild != null
-        ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
-        : 'este estudiante';
-    final allergenList = dish.allergens.isNotEmpty
-        ? dish.allergens.join(', ')
-        : 'alérgenos registrados';
-
-    AppNotificationDialog.show(
-      context,
-      type: NotificationType.danger,
-      title: 'Platillo no disponible',
-      message:
-          '"${dish.name}" contiene $allergenList, registrados como alergias de $childName. No se puede ordenar este producto.',
-    );
-  }
-
   void _openCart(MenuDay currentDay) {
     final cart = _menu.cart;
     Navigator.push(
@@ -277,6 +292,9 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   Widget build(BuildContext context) {
     final total = _menu.total;
     final day = _menu.selectedDay;
+    final child = _selectedChild;
+    final canSwitchChild =
+        context.watch<ChildrenProvider>().children.length > 1;
 
     return MonthlyMenuView(
       menu: _menu,
@@ -288,7 +306,11 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       onRetry: _retry,
       onSelectDay: _onSelectDay,
       ordering: _ordering,
-      onBlockedDish: _showAllergenBlockedDialog,
+      allergenAudience: child == null
+          ? AllergenAudience.unknown
+          : AllergenAudience.named(child.firstName),
+      orderingFor: child?.displayName,
+      onChangeChild: canSwitchChild ? _pickAnotherChild : null,
       childBar: _selectedChild == null
           ? null
           : const Padding(
