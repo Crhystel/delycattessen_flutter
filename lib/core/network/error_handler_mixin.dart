@@ -68,9 +68,12 @@ mixin ErrorHandlerMixin {
       error is http.ClientException || error is TimeoutException;
 
   /// Processes network errors (SocketException, etc.) during the request.
+  /// The technical detail (host, exception type) goes to the log only: the
+  /// user gets a short message.
   ApiException handleNetworkError(dynamic error) {
-    return ApiException(
-      'Error de conexión: Por favor revisa tu internet o la configuración del servidor. Detalles: $error',
+    debugPrint('Network error: $error');
+    return const ApiException(
+      'Error de conexión: Revisa tu internet e inténtalo de nuevo.',
     );
   }
 }

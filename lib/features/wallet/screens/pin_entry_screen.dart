@@ -4,6 +4,7 @@ import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/utils/error_message.dart';
 
@@ -26,7 +27,8 @@ class PinEntryScreen extends StatefulWidget {
   State<PinEntryScreen> createState() => _PinEntryScreenState();
 }
 
-class _PinEntryScreenState extends State<PinEntryScreen> {
+class _PinEntryScreenState extends State<PinEntryScreen>
+    with NotificationMixin {
   final _pinController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _isSubmitting = false;
@@ -60,9 +62,8 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         if (!mounted) return;
         Navigator.of(context).pop(true);
       } catch (e) {
-        setState(
-          () => _errorMessage = errorMessageOf(e),
-        );
+        if (!mounted) return;
+        showErrorSnackBar(errorMessageOf(e), title: 'No se pudo crear el PIN');
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
       }
@@ -80,8 +81,10 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
           setState(() => _errorMessage = 'PIN incorrecto.');
         }
       } catch (e) {
-        setState(
-          () => _errorMessage = errorMessageOf(e),
+        if (!mounted) return;
+        showErrorSnackBar(
+          errorMessageOf(e),
+          title: 'No se pudo verificar el PIN',
         );
       } finally {
         if (mounted) setState(() => _isSubmitting = false);

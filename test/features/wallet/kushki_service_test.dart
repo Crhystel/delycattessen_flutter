@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:delycattessen_flutter/core/network/api_exception.dart';
 import 'package:delycattessen_flutter/features/wallet/services/card_tokenizer.dart';
 import 'package:delycattessen_flutter/features/wallet/services/kushki_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +76,56 @@ void main() {
         _tokenize(service),
         throwsA(predicate((e) => e.toString().contains('Error de conexión'))),
       );
+    });
+
+    test('hides host and exception details on a network failure', () async {
+      final service = KushkiService(
+        client: MockClient(
+          (_) async => throw http.ClientException(
+            "SocketException: Failed host lookup: 'api-uat.kushkipagos.com'",
+          ),
+        ),
+      );
+
+      expect(
+        _tokenize(service),
+        throwsA(
+          predicate(
+            (e) =>
+                e is ApiException &&
+                !e.message.contains('kushkipagos') &&
+                !e.message.contains('SocketException') &&
+                !e.message.contains('Detalles'),
+          ),
+        ),
+      );
+    });
+
+    test('reports a readable error when the body is not JSON', () async {
+      final service = KushkiService(
+        client: MockClient(
+          (_) async => http.Response('<html>Bad Gateway</html>', 502),
+        ),
+      );
+
+      expect(
+        _tokenize(service),
+        throwsA(
+          predicate(
+            (e) =>
+                e is ApiException &&
+                e.message == 'No se pudo procesar la tarjeta.',
+          ),
+        ),
+      );
+    });
+
+    test('does not map unexpected errors to a connection error', () async {
+      final service = KushkiService(
+        client: MockClient((_) async => throw StateError('bug')),
+      );
+
+      expect(_tokenize(service), throwsA(isA<StateError>()));
     });
   });
 }
