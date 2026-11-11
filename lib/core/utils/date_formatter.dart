@@ -80,6 +80,14 @@ class DateFormatter {
     return '${text[0].toUpperCase()}${text.substring(1)}';
   }
 
+  /// Fecha del saludo de Inicio: "Martes, 10 de noviembre" (con coma y
+  /// mayúscula inicial). La usa [GreetingText] en todas las vistas con saludo.
+  static String formatGreetingDate(DateTime date) {
+    final weekday = weekdayName(date);
+    return '${weekday[0].toUpperCase()}${weekday.substring(1)}, '
+        '${date.day} de ${monthName(date)}';
+  }
+
   /// Devuelve formato corto para chips: "Mié 14 oct"
   static String formatChip(DateTime date) {
     return '${shortWeekdayName(date)} ${date.day} ${shortMonthName(date)}';

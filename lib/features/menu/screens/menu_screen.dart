@@ -1,31 +1,23 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/layout/responsive.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/collapsing_header.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_switch_bar.dart';
 import '../models/menu_models.dart';
 import '../providers/parent_menu_controller.dart';
-import '../widgets/catalog_search_row.dart';
-import '../widgets/catalog_title_block.dart';
-import '../widgets/menu_days_strip.dart';
-import '../widgets/menu_dish_card.dart';
+import '../widgets/menu_cart_bar.dart';
+import '../widgets/monthly_menu_ordering.dart';
+import '../widgets/monthly_menu_view.dart';
 import 'cart_screen.dart';
-import 'dish_detail_screen.dart';
 
+/// Menú del mes del padre: elige hijo, día y platillos y arma el carrito. Aquí
+/// viven la selección del hijo, las confirmaciones y el carrito; lo que se ve
+/// es [MonthlyMenuView], la misma vista de los demás roles.
 class MenuScreen extends StatefulWidget {
   final int? studentId;
 
@@ -68,8 +60,6 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   late final ParentMenuController _menu =
       widget.menuController ?? ParentMenuController();
-  final TextEditingController _searchController = TextEditingController();
-  Timer? _searchDebounce;
 
   Child? _selectedChild;
   bool _hasInitializedSelectedChild = false;
@@ -79,13 +69,12 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   DateTime? _pendingDate;
   late final ChildrenProvider _childrenProvider;
 
-  // Lecturas del estado del menú, que vive en [_menu].
-  bool get _isLoading => _menu.isLoading;
-  String? get _errorMessage => _menu.errorMessage;
-  List<MenuDay> get _days => _menu.days;
-  MenuDay? get _selectedDay => _menu.selectedDay;
-  Map<int, int> get _cart => _menu.cart;
-  String get _searchQuery => _menu.searchQuery;
+  late final MonthlyMenuOrdering _ordering = MonthlyMenuOrdering(
+    onToggleDish: (dish) => _menu.cart.containsKey(dish.id)
+        ? _menu.removeFromCart(dish.id)
+        : _menu.addToCart(dish.id, 1),
+    onAddDish: (dish, quantity) => _menu.addToCart(dish.id, quantity),
+  );
 
   @override
   void initState() {
@@ -109,7 +98,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         widget.dateRequest != oldWidget.dateRequest;
     if (requested == null || !changed || !_hasInitializedSelectedChild) return;
     _pendingDate = requested;
-    if (!_isLoading) _openPendingDate();
+    if (!_menu.isLoading) _openPendingDate();
   }
 
   @override
@@ -117,8 +106,6 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     _menu.removeListener(_onMenuChanged);
     if (widget.menuController == null) _menu.dispose();
     _childrenProvider.removeListener(_onSelectedChildChanged);
-    _searchDebounce?.cancel();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -169,7 +156,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     if (date == null) return;
     _pendingDate = null;
     final iso = DateFormatter.toIsoDate(date);
-    final day = _days.where((d) => d.date == iso).firstOrNull;
+    final day = _menu.days.where((d) => d.date == iso).firstOrNull;
     if (day != null) _onSelectDay(day);
   }
 
@@ -180,8 +167,13 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     }
   }
 
+  void _retry() {
+    final child = _selectedChild;
+    if (child != null) _fetchMonthlyMenu(child.id);
+  }
+
   Future<void> _confirmAndSwitchChild(Child newChild) async {
-    if (_cart.isNotEmpty) {
+    if (_menu.cart.isNotEmpty) {
       final confirmed = await AppConfirmationDialog.show(
         context,
         title: 'Cambiar de estudiante',
@@ -207,7 +199,8 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   }
 
   Future<void> _onSelectDay(MenuDay day) async {
-    if (day.id == _selectedDay?.id) return;
+    final current = _menu.selectedDay;
+    if (day.id == current?.id) return;
 
     if (day.isBlockedByParentalControl) {
       showWarningSnackBar(
@@ -218,11 +211,9 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       return;
     }
 
-    if (_cart.isNotEmpty) {
-      final currentFormatted = _selectedDay != null
-          ? DateFormatter.formatLong(
-              DateFormatter.parseIsoDate(_selectedDay!.date),
-            )
+    if (_menu.cart.isNotEmpty) {
+      final currentFormatted = current != null
+          ? DateFormatter.formatLong(DateFormatter.parseIsoDate(current.date))
           : 'el día actual';
       final confirmed = await AppConfirmationDialog.show(
         context,
@@ -233,15 +224,11 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         cancelLabel: 'Conservar',
         isDestructive: true,
       );
-      if (!confirmed) return;
+      if (!confirmed || !mounted) return;
     }
 
-    _searchController.clear();
     _menu.selectDay(day);
   }
-
-  void _addToCart(int dishId, int quantity) =>
-      _menu.addToCart(dishId, quantity);
 
   void _showAllergenBlockedDialog(MenuDish dish) {
     final childName = _selectedChild != null
@@ -260,300 +247,15 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     );
   }
 
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
-      if (!mounted) return;
-      _menu.setSearchQuery(value);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final total = _menu.total;
-    final topInset = MediaQuery.viewPaddingOf(context).top;
-
-    return Scaffold(
-      backgroundColor: AppColors.ink50,
-      body: Stack(
-        children: [
-          const RepaintBoundary(
-            child: FloatingBubbles(corner: BubbleCorner.topRight, design: true),
-          ),
-          ResponsiveCenter(
-            maxWidth: AppLayout.wideMaxWidth,
-            // The header adds the status bar inset itself (it stays pinned
-            // under it), so the page is drawn edge to edge.
-            child: SafeArea(
-              top: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: AppColors.secondary500,
-                      edgeOffset: topInset,
-                      onRefresh: _refreshMenu,
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          // Only the search field and the days stay; the title,
-                          // selector and banner shrink together with the scroll
-                          // (1 to 1 with the finger) and return at the top.
-                          CollapsingHeader(
-                            backgroundColor: AppColors.ink50,
-                            transparentAtTop: true,
-                            keep: CollapsingHeaderKeep.bottom,
-                            topInset: topInset,
-                            kept: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CatalogSearchRow(
-                                  hintText: 'Buscar platos',
-                                  outlined: true,
-                                  design: true,
-                                  showBackButton: !widget.embedded,
-                                  searchController: _searchController,
-                                  onSearchChanged: _onSearchChanged,
-                                ),
-                                if (!_isLoading && _days.isNotEmpty)
-                                  MenuDaysStrip(
-                                    design: true,
-                                    days: _days,
-                                    selectedDayId: _selectedDay?.id,
-                                    onSelect: _onSelectDay,
-                                  ),
-                              ],
-                            ),
-                            collapsible: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CatalogTitleBlock(
-                                  design: true,
-                                  title: 'Menú',
-                                  accessory: widget.headerAccessory,
-                                  trailing: widget.profileAction,
-                                ),
-                                if (_selectedChild != null)
-                                  const Padding(
-                                    padding: EdgeInsets.fromLTRB(
-                                      AppSpacing.page,
-                                      AppSpacing.lg,
-                                      AppSpacing.page,
-                                      0,
-                                    ),
-                                    child: ChildSwitchBar(
-                                      label: 'Pidiendo para',
-                                      showBalance: true,
-                                      sheetTitle: '¿Para quién estás pidiendo?',
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          ..._buildContent(),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (total > 0 && _selectedDay != null)
-                    _buildCartSummary(total, _selectedDay!),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Loading, error, empty menu or the dishes of the chosen day, as slivers of
-  /// the same scroll view as the header.
-  List<Widget> _buildContent() {
-    if (_isLoading) {
-      return const [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(
-            child: CircularProgressIndicator(color: AppColors.secondary500),
-          ),
-        ),
-      ];
-    }
-    if (_errorMessage != null) {
-      return [
-        SliverFillRemaining(hasScrollBody: false, child: _buildErrorView()),
-      ];
-    }
-    if (_days.isEmpty) {
-      return [
-        SliverFillRemaining(hasScrollBody: false, child: _buildEmptyView()),
-      ];
-    }
-
-    final dishes = _menu.visibleDishes;
-    if (dishes.isEmpty) {
-      return [
-        SliverToBoxAdapter(
-          child: EmptyState(
-            icon: _searchQuery.isNotEmpty ? Icons.search_off : Icons.restaurant,
-            title: _searchQuery.isNotEmpty
-                ? 'No encontramos "$_searchQuery"'
-                : 'No hay platillos asignados para este día',
-            message: _searchQuery.isNotEmpty
-                ? 'Prueba con otro término.'
-                : null,
-          ),
-        ),
-      ];
-    }
-    final day = _selectedDay;
-    return [
-      if (day != null)
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.page,
-              22,
-              AppSpacing.page,
-              0,
-            ),
-            child: _DayHeading(day: day, dishCount: dishes.length),
-          ),
-        ),
-      SliverResponsiveItemList(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.page,
-          10,
-          AppSpacing.page,
-          AppSpacing.lg,
-        ),
-        itemCount: dishes.length,
-        itemBuilder: (context, index) => _buildDishCard(dishes[index]),
-      ),
-    ];
-  }
-
-  Widget _buildDishCard(MenuDish dish) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: MenuDishCard(
-        dish: dish,
-        inCart: _cart.containsKey(dish.id),
-        onShowAllergens: () => _showDishAllergens(dish),
-        onToggle: () => _cart.containsKey(dish.id)
-            ? _menu.removeFromCart(dish.id)
-            : _addToCart(dish.id, 1),
-        onTap: () {
-          if (dish.hasStudentAllergens) {
-            _showAllergenBlockedDialog(dish);
-            return;
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DishDetailScreen(
-                dish: dish,
-                onAdd: (qty) => _addToCart(dish.id, qty),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Chip "Ver alérgenos": si choca con las alergias del hijo es el aviso de
-  /// bloqueo; si no, solo lista lo que contiene el platillo.
-  void _showDishAllergens(MenuDish dish) {
-    if (dish.hasStudentAllergens) {
-      _showAllergenBlockedDialog(dish);
-      return;
-    }
-    AppNotificationDialog.show(
-      context,
-      type: NotificationType.warning,
-      title: 'Alérgenos de ${dish.name}',
-      message: dish.allergens.isEmpty
-          ? 'Este platillo no tiene alérgenos registrados.'
-          : 'Contiene: ${dish.allergens.join(', ')}.',
-    );
-  }
-
-  Widget _buildCartSummary(double total, MenuDay currentDay) {
-    final count = _menu.cartItemCount;
-    final childName = _selectedChild?.firstName ?? 'tu hijo/a';
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
-      decoration: const BoxDecoration(
-        color: AppColors.secondary500,
-        borderRadius: AppRadius.mdAll,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryShadow,
-            blurRadius: 24,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${count == 1 ? '1 plato' : '$count platos'} para $childName',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.secondary.copyWith(
-                    color: AppColors.secondary50,
-                  ),
-                ),
-                Text(
-                  '\$${total.toStringAsFixed(2)}',
-                  style: AppText.price.copyWith(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.brand500,
-              foregroundColor: AppColors.ink900,
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              shape: const RoundedRectangleBorder(
-                borderRadius: AppRadius.controlAll,
-              ),
-              textStyle: AppText.button.copyWith(fontSize: 15),
-            ),
-            onPressed: () => _openCart(currentDay),
-            child: const Text('Confirmar pedido'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _openCart(MenuDay currentDay) {
+    final cart = _menu.cart;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CartScreen(
           studentId: _selectedChild?.id ?? widget.studentId ?? 0,
           deliveryDate: currentDay.date,
-          cart: _cart,
+          cart: cart,
           dishes: currentDay.dishes,
           childName: _selectedChild != null
               ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
@@ -571,68 +273,45 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     });
   }
 
-  Widget _buildEmptyView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: EmptyState(
-          icon: Icons.restaurant_menu,
-          title: 'Aún no hay un menú publicado para la institución.',
-          message:
-              'Cuando la institución publique el menú mensual, aparecerá aquí.',
-          actionLabel: 'Actualizar',
-          onAction: _refreshMenu,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: EmptyState(
-          icon: Icons.error_outline,
-          title: 'No pudimos cargar el menú',
-          message: _errorMessage,
-          actionLabel: 'Reintentar',
-          onAction: () {
-            if (_selectedChild != null) {
-              _fetchMonthlyMenu(_selectedChild!.id);
-            }
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// "Martes 10 de noviembre" con la cantidad de platos del día a la derecha.
-class _DayHeading extends StatelessWidget {
-  const _DayHeading({required this.day, required this.dishCount});
-
-  final MenuDay day;
-  final int dishCount;
-
   @override
   Widget build(BuildContext context) {
-    final date = DateFormatter.parseIsoDate(day.date);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Expanded(
-          child: Text(
-            DateFormatter.formatLongCapitalized(date),
-            style: AppText.sectionTitleSm,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          dishCount == 1 ? '1 plato' : '$dishCount platos',
-          style: AppText.secondaryLg,
-        ),
-      ],
+    final total = _menu.total;
+    final day = _menu.selectedDay;
+
+    return MonthlyMenuView(
+      menu: _menu,
+      title: 'Menú',
+      showBackButton: !widget.embedded,
+      headerAccessory: widget.headerAccessory,
+      profileAction: widget.profileAction,
+      onRefresh: _refreshMenu,
+      onRetry: _retry,
+      onSelectDay: _onSelectDay,
+      ordering: _ordering,
+      onBlockedDish: _showAllergenBlockedDialog,
+      childBar: _selectedChild == null
+          ? null
+          : const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.lg,
+                AppSpacing.page,
+                0,
+              ),
+              child: ChildSwitchBar(
+                label: 'Pidiendo para',
+                showBalance: true,
+                sheetTitle: '¿Para quién estás pidiendo?',
+              ),
+            ),
+      footer: total > 0 && day != null
+          ? MenuCartBar(
+              count: _menu.cartItemCount,
+              total: total,
+              childName: _selectedChild?.firstName ?? 'tu hijo/a',
+              onConfirm: () => _openCart(day),
+            )
+          : null,
     );
   }
 }

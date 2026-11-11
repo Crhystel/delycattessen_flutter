@@ -24,13 +24,15 @@ Finder get _cvvField => find.byWidgetPredicate(
 );
 
 void main() {
-  testWidgets('the CVV takes at most 3 digits', (tester) async {
+  testWidgets('the CVV takes at most 4 digits (American Express)', (
+    tester,
+  ) async {
     await _pump(tester);
 
     await tester.enterText(_cvvField, '12345');
     await tester.pump();
 
-    expect(tester.widget<TextField>(_cvvField).controller!.text, '123');
+    expect(tester.widget<TextField>(_cvvField).controller!.text, '1234');
   });
 
   testWidgets('the CVV ignores letters and symbols', (tester) async {

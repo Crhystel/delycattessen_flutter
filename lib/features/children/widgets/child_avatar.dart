@@ -1,8 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../auth/models/auth_models.dart';
 
 /// Avatar del hijo: su foto o, si no tiene (o no carga), sus iniciales sobre un
@@ -43,7 +42,6 @@ class ChildAvatar extends StatelessWidget {
         : _tints[child.id % _tints.length];
     final url = child.profilePictureUrl;
     final hasImage = url != null && url.isNotEmpty;
-    final size = AppImageCacheHelper.cacheSize(context, radius * 2);
     final dot = radius * 0.6;
 
     final initials = Text(
@@ -66,22 +64,11 @@ class ChildAvatar extends StatelessWidget {
             backgroundColor: background,
             // Initials show while the photo loads and when it fails.
             child: hasImage
-                ? ClipOval(
-                    child: Image(
-                      image: ResizeImage(
-                        CachedNetworkImageProvider(url),
-                        width: size,
-                        height: size,
-                      ),
-                      width: radius * 2,
-                      height: radius * 2,
-                      fit: BoxFit.cover,
-                      frameBuilder: (_, image, frame, wasSynchronouslyLoaded) =>
-                          frame == null && !wasSynchronouslyLoaded
-                          ? initials
-                          : image,
-                      errorBuilder: (_, _, _) => initials,
-                    ),
+                ? AppNetworkImage.circle(
+                    url: url,
+                    size: radius * 2,
+                    placeholder: Center(child: initials),
+                    error: Center(child: initials),
                   )
                 : initials,
           ),

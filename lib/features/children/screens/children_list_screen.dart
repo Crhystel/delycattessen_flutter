@@ -10,6 +10,7 @@ import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/greeting_text.dart';
 import '../../../core/widgets/tab_header.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/screens/student_registration_screen.dart';
@@ -19,6 +20,7 @@ import '../../menu/utils/upcoming_menu_labels.dart';
 import '../../menu/widgets/combo_banner.dart';
 import '../../menu/widgets/upcoming_menu_card.dart';
 import '../providers/children_provider.dart';
+import '../widgets/alerts_section_header.dart';
 import '../widgets/child_summary_card.dart';
 import '../widgets/low_balance_alert_card.dart';
 import 'child_detail_screen.dart';
@@ -131,14 +133,6 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     }
   }
 
-  /// "Lunes, 9 de noviembre".
-  String get _todayLabel {
-    final now = DateTime.now();
-    final weekday = DateFormatter.weekdayName(now);
-    return '${weekday[0].toUpperCase()}${weekday.substring(1)}, '
-        '${now.day} de ${DateFormatter.monthName(now)}';
-  }
-
   Future<void> _openChildDetail(Child child) async {
     final provider = context.read<ChildrenProvider>();
     await Navigator.of(
@@ -196,22 +190,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TabHeader(
-                leading: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _todayLabel,
-                      style: AppText.secondary.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '¡Hola, ${widget.userName.isNotEmpty ? widget.userName : "Usuario"}!',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.greeting,
-                    ),
-                  ],
-                ),
+                leading: GreetingText(name: widget.userName),
                 trailing: widget.profileAction,
               ),
               Padding(
@@ -261,12 +240,17 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
     final dayDate = day == null ? null : DateFormatter.parseIsoDate(day.date);
 
     return [
-      for (var i = 0; i < lowBalance.length; i++) ...[
-        SizedBox(height: i == 0 ? 26 : AppSpacing.md),
-        LowBalanceAlertCard(
-          child: lowBalance[i],
-          onRecharge: () => widget.onRechargeChild?.call(lowBalance[i].id),
-        ),
+      if (lowBalance.isNotEmpty) ...[
+        const SizedBox(height: 26),
+        AlertsSectionHeader(count: lowBalance.length),
+        const SizedBox(height: 10),
+        for (var i = 0; i < lowBalance.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.md),
+          LowBalanceAlertCard(
+            child: lowBalance[i],
+            onRecharge: () => widget.onRechargeChild?.call(lowBalance[i].id),
+          ),
+        ],
       ],
       const SizedBox(height: 28),
       _SectionHeader(

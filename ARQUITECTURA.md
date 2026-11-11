@@ -16,24 +16,34 @@ lib/
 │   │              base_api_service, error_handler_mixin
 │   ├── storage/   token_storage.dart            Único acceso al JWT
 │   ├── theme/     app_colors, app_spacing,      Tokens de diseño y tema
-│   │              app_radius, app_theme, app_notification_style
+│   │              app_radius, app_theme, app_notification_style,
+│   │              app_text (escala tipográfica Nunito del rediseño, opt-in)
 │   ├── utils/     date_formatter, error_message, app_image_cache_helper
 │   └── widgets/   app_bottom_sheet, app_card, app_confirmation_dialog,
 │                  app_notification_dialog/messenger, app_scaffold, empty_state,
 │                  light_app_bar, primary_button, child_avatar_chip, floating_bubbles,
 │                  header_actions (botones de cuenta del encabezado de caja y estudiante/docente),
 │                  profile_bubble (burbuja de perfil de las pestañas del padre),
+│                  tab_header (cabecera de inicio y pestañas: texto a la izquierda y burbuja/acción
+│                  a la derecha anclada siempre a la misma altura), subpage_header (cabecera de subpantallas),
+│                  greeting_text (saludo único: fecha arriba y "¡Hola, X!" debajo, en todas las vistas con saludo),
+│                  app_network_image (ÚNICA forma de cargar fotos de red: siempre BoxFit.cover y nunca
+│                  ancho y alto de caché a la vez, que estira la foto), dashed_border,
 │                  segmented_switch (selector de 2–3 opciones: Menú del mes | Productos, Recargar | Movimientos), form_page,
 │                  collapsing_header (sliver de cabecera que se encoge pegado al scroll,
 │                  sin animaciones por tiempo; deja fija la parte "kept" y vuelve solo al inicio),
+│                  collapsing_scroll_view (el CustomScrollView que lo aloja: con 2 o más elementos el
+│                  encabezado SIEMPRE se pliega por completo —añade el recorrido que falte— y al soltar
+│                  termina plegado o expandido, nunca a medias; con 0 o 1 elemento no se pliega) y
+│                  collapsing_fold_scope (aviso opcional de cuánto se pliega),
 │                  form_section_card, profile_summary_card, labeled_text_field,
 │                  notification_header, photo_source_dialog, photo_guidelines_screen,
 │                  face_capture_camera_screen
 └── features/
     ├── auth/         Login, registro de padre y estudiante, recuperar/cambiar contraseña, Mi perfil (padre y docente: menú con flechita a nombres, correo —pide la contraseña actual—, contraseña y, solo docente, alergias), rol (UserRole)
-    ├── children/     Hijos del padre (incluye editar sus datos y su foto), control parental (límite diario, días y aviso de saldo bajo), ParentShell (navegación del padre, burbuja de perfil y cierre de sesión), Inicio con alerta de saldo bajo y recarga rápida, barra y hoja "¿Para quién?" para cambiar de hijo, ChildrenProvider
-    ├── contingency/  Pantalla de estudiante/docente y token QR dinámico
-    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se encoge pegada al scroll; en el Menú del mes solo quedan fijos los días y el buscador). Vista del padre: los combos van en un carrusel (`ComboCarousel`), Pedidos muestra la foto de cada pedido con filtro por mes y el detalle es tipo factura
+    ├── children/     Hijos del padre (incluye editar sus datos y su foto), control parental (límite diario, días y aviso de saldo bajo), ParentShell (navegación del padre, burbuja de perfil y cierre de sesión), Inicio con el título "Avisos" (y su contador) sobre las alertas de saldo bajo y la recarga rápida, barra y hoja "¿Para quién?" para cambiar de hijo, ChildrenProvider
+    ├── contingency/  Inicio de estudiante y docente (saludo único, QR dinámico para identificarse en caja; el estudiante ve el menú del mes y los productos, el docente los productos y su crédito; todo de solo lectura) y token QR dinámico
+    ├── menu/         Menú mensual, carrito, pedidos, catálogo de productos y sus ofertas (combos con sus platillos y descuentos con precio anterior y nuevo, dentro del scroll de la lista; tocar un combo abre su detalle como el de un producto, y la cabecera del catálogo se encoge pegada al scroll; en el Menú del mes solo quedan fijos los días y el buscador; los días se cortan a 20 px del borde y se centra el elegido). El menú del mes es UNA sola vista, `MonthlyMenuView` (burbujas decorativas, cabecera plegable, buscador, días): `MenuScreen` (padre, con carrito y selector de hijo) y `MemberMenuScreen` (estudiante, solo lectura) solo le pasan datos y callbacks; `MenuCartBar` es su barra de pedido, `MonthlyMenuOrdering` agrupa las acciones de pedir (nulo = solo lectura) y `MonthlyMenuDayHeading` el encabezado del día. Vista del padre: los combos van en un carrusel (`ComboCarousel`), Pedidos muestra la foto de cada pedido con filtro por mes y el detalle es tipo factura
     ├── pos/          Caja: identificación (rostro/QR), venta, checkout, crédito del docente
     ├── users/        Gestión de alergias
     └── wallet/       Billetera, recargas (Payphone/Kushki), PIN de pago, historial de movimientos
@@ -96,7 +106,7 @@ Las imágenes y logos van en `assets/images/` (declarada en `pubspec.yaml`) y lo
 
 ## Pruebas
 
-`test/` replica la estructura de `lib/` (`test/features/<feature>/…` y `test/core/…`). Hay pruebas de políticas, reglas, modelos, providers y services. Los services se simulan heredando de la clase real o implementando su interfaz; HTTP con `MockClient`.
+`test/` replica la estructura de `lib/` (`test/features/<feature>/…` y `test/core/…`). Hay pruebas de políticas, reglas, modelos, providers y services. Los services se simulan heredando de la clase real o implementando su interfaz; HTTP con `MockClient`. Un test guardia (`test/core/widgets/no_distorting_image_cache_test.dart`) falla si alguien vuelve a fijar ancho y alto de caché a la vez en una foto: las fotos de red se cargan con `AppNetworkImage`.
 
 ## Antes de crear un archivo nuevo
 

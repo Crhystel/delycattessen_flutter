@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../models/menu_models.dart';
 import '../utils/upcoming_menu_labels.dart';
 
@@ -30,7 +29,6 @@ class UpcomingMenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = dish.imageUrl;
-    final cache = AppImageCacheHelper.cacheSize(context, _imageSize);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -46,15 +44,12 @@ class UpcomingMenuCard extends StatelessWidget {
             child: SizedBox(
               width: _imageSize,
               height: _imageSize,
-              child: url != null
-                  ? CachedNetworkImage(
-                      imageUrl: url,
-                      fit: BoxFit.cover,
-                      memCacheWidth: cache,
-                      memCacheHeight: cache,
-                      errorWidget: (_, _, _) => const _DishPlaceholder(),
-                    )
-                  : const _DishPlaceholder(),
+              child: AppNetworkImage(
+                url: url,
+                width: _imageSize,
+                height: _imageSize,
+                error: const _DishPlaceholder(),
+              ),
             ),
           ),
           const SizedBox(width: 14),

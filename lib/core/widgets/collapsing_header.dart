@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+
+import 'collapsing_fold_scope.dart';
 
 /// Where [CollapsingHeader] keeps its always-visible part.
 enum CollapsingHeaderKeep {
@@ -84,12 +88,25 @@ class _CollapsingHeaderState extends State<CollapsingHeader> {
     if (!mounted) return;
     if (_keptHeight != null && (height - _keptHeight!).abs() < 0.01) return;
     setState(() => _keptHeight = height);
+    _reportFoldDistance();
   }
 
   void _onFullSize(double height) {
     if (!mounted) return;
     if (_fullHeight != null && (height - _fullHeight!).abs() < 0.01) return;
     setState(() => _fullHeight = height);
+    _reportFoldDistance();
+  }
+
+  /// Tells the surrounding [CollapsingFoldScope], if any, how far this header
+  /// folds. Runs in the same post-frame callback as the measuring.
+  void _reportFoldDistance() {
+    final keptHeight = _keptHeight;
+    final fullHeight = _fullHeight;
+    if (keptHeight == null || fullHeight == null) return;
+    CollapsingFoldScope.maybeOf(
+      context,
+    )?.onFoldDistance(math.max(0.0, fullHeight - keptHeight));
   }
 
   void _onAboveSize(double height) {

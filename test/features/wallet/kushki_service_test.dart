@@ -31,6 +31,27 @@ void main() {
       expect(sentBody['totalAmount'], 5);
     });
 
+    test('sends a 4-digit CVV untrimmed', () async {
+      late Map<String, dynamic> sentBody;
+      final service = KushkiService(
+        client: MockClient((request) async {
+          sentBody = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response(jsonEncode({'token': 'tok_123'}), 201);
+        }),
+      );
+
+      await service.tokenizeCard(
+        cardNumber: '3782 822463 10005',
+        cvv: '1234',
+        expiryMonth: '12',
+        expiryYear: '30',
+        holderName: 'Test User',
+        amount: 5,
+      );
+
+      expect(sentBody['card']['cvv'], '1234');
+    });
+
     test('throws the gateway message when the card is rejected', () async {
       final service = KushkiService(
         client: MockClient(

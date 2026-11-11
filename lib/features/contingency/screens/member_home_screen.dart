@@ -9,6 +9,7 @@ import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/greeting_text.dart';
 import '../../../core/widgets/header_actions.dart';
 import '../../../core/widgets/profile_bubble.dart';
 import '../../../core/widgets/tab_header.dart';
@@ -116,21 +117,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     }
   }
 
-  String _getCurrentDayFormatted() {
-    const days = [
-      'lunes',
-      'martes',
-      'miércoles',
-      'jueves',
-      'viernes',
-      'sábado',
-      'domingo',
-    ];
-    final now = DateTime.now();
-    final dayName = days[now.weekday - 1];
-    return 'Hoy es $dayName';
-  }
-
   /// Teachers open their profile: names, email, password and their allergies
   /// (students have no profile).
   Future<void> _openProfile() async {
@@ -173,28 +159,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     }
   }
 
-  /// "Hola {nombre}" y el día de hoy.
-  Widget _buildGreeting(TextTheme textTheme, String displayName) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Hola $displayName',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          _getCurrentDayFormatted(),
-          style: textTheme.bodyMedium?.copyWith(
-            color: AppColors.ink900.withValues(alpha: 0.65),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -206,9 +170,9 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
         : '\$0.00';
 
     return AppScaffold(
-      // El docente usa TabHeader, que calcula su propio margen superior (la
-      // burbuja queda a la misma altura que en las pestañas del padre).
-      safeAreaTop: !widget.isTeacher,
+      // TabHeader calcula su propio margen superior (la burbuja o el botón de
+      // cerrar sesión quedan a la misma altura que en las pestañas del padre).
+      safeAreaTop: false,
       bubbleCorners: const [
         BubbleCorner.topRight,
         BubbleCorner.homeBottomLeft,
@@ -218,7 +182,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(textTheme, displayName),
+            _buildHeader(displayName),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: _buildContent(textTheme, balanceText),
@@ -229,35 +193,21 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     );
   }
 
-  /// Docente: saludo a la izquierda y la burbuja de perfil a la derecha, como
-  /// en las pestañas del padre (cerrar sesión está dentro de "Mi perfil").
-  /// Estudiante (sin perfil): solo cerrar sesión, en la esquina superior sobre
-  /// una píldora blanca para que se lea sobre las burbujas.
-  Widget _buildHeader(TextTheme textTheme, String displayName) {
-    if (widget.isTeacher) {
-      return TabHeader(
-        leading: _buildGreeting(textTheme, displayName),
-        trailing: ProfileBubble(
-          initial: displayName.trim().isEmpty
-              ? ''
-              : displayName.trim().substring(0, 1),
-          onTap: _openProfile,
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        HeaderActions.topInset,
-        AppSpacing.xl,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: HeaderActions(
+  /// Una sola fila para ambos roles: el saludo a la izquierda y, a la derecha,
+  /// la burbuja de perfil del docente (cerrar sesión está dentro de "Mi
+  /// perfil") o, para el estudiante (sin perfil), solo cerrar sesión sobre una
+  /// píldora blanca para que se lea sobre las burbujas.
+  Widget _buildHeader(String displayName) {
+    return TabHeader(
+      leading: GreetingText(name: displayName),
+      trailing: widget.isTeacher
+          ? ProfileBubble(
+              initial: displayName.trim().isEmpty
+                  ? ''
+                  : displayName.trim().substring(0, 1),
+              onTap: _openProfile,
+            )
+          : HeaderActions(
               actions: [
                 HeaderAction(
                   icon: Icons.logout,
@@ -267,11 +217,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          _buildGreeting(textTheme, displayName),
-        ],
-      ),
     );
   }
 

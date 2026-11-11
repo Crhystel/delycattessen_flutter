@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:delycattessen_flutter/core/theme/app_colors.dart';
 import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/children/widgets/child_avatar.dart';
@@ -23,6 +24,32 @@ void main() {
 
     expect(_background(tester), AppColors.brand50);
     expect(find.text('PP'), findsOneWidget);
+  });
+
+  testWidgets('with a photo it shows initials while loading and caches one '
+      'side', (tester) async {
+    await _pump(
+      tester,
+      ChildAvatar(
+        child: Child(
+          id: 1,
+          firstName: 'Pepito',
+          lastName: 'Pérez',
+          institutionName: 'X',
+          profilePictureUrl: 'https://example.test/pepito.jpg',
+        ),
+      ),
+    );
+
+    expect(find.text('PP'), findsOneWidget);
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(image.fit, BoxFit.cover);
+    expect(
+      [image.memCacheWidth, image.memCacheHeight].where((s) => s != null),
+      hasLength(1),
+    );
   });
 
   testWidgets('fixedTint always uses the blue tint', (tester) async {

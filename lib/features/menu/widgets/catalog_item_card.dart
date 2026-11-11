@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 /// Insignia de la tarjeta (alérgeno, unidades en carrito, stock, etc.).
 class CatalogBadge extends StatelessWidget {
@@ -325,21 +324,19 @@ class CatalogItemCard extends StatelessWidget {
     );
   }
 
+  static const double _photoSize = 76;
+
   Widget _buildImageBox(BuildContext context) {
     return Container(
-      width: 76,
-      height: 76,
+      width: _photoSize,
+      height: _photoSize,
       color: AppColors.ink50,
-      child: imageUrl != null
-          ? CachedNetworkImage(
-              imageUrl: imageUrl!,
-              fit: BoxFit.cover,
-              memCacheWidth: AppImageCacheHelper.cacheSize(context, 76),
-              memCacheHeight: AppImageCacheHelper.cacheSize(context, 76),
-              errorWidget: (_, _, _) =>
-                  const Icon(Icons.fastfood, color: AppColors.secondary500),
-            )
-          : const Icon(Icons.fastfood, color: AppColors.secondary500),
+      child: AppNetworkImage(
+        url: imageUrl,
+        width: _photoSize,
+        height: _photoSize,
+        error: const Icon(Icons.fastfood, color: AppColors.secondary500),
+      ),
     );
   }
 
@@ -358,29 +355,25 @@ class CatalogItemCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: AppRadius.smAll,
         child: Container(
-          width: 76,
-          height: 76,
+          width: _photoSize,
+          height: _photoSize,
           color: AppColors.ink50,
-          child: imageUrl != null
-              ? CachedNetworkImage(
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
-                  memCacheWidth: AppImageCacheHelper.cacheSize(context, 76),
-                  memCacheHeight: AppImageCacheHelper.cacheSize(context, 76),
-                  placeholder: (_, _) => const Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.secondary500,
-                      ),
-                    ),
-                  ),
-                  errorWidget: (_, _, _) =>
-                      const Icon(Icons.fastfood, color: AppColors.secondary500),
-                )
-              : const Icon(Icons.fastfood, color: AppColors.secondary500),
+          child: AppNetworkImage(
+            url: imageUrl,
+            width: _photoSize,
+            height: _photoSize,
+            placeholder: const Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.secondary500,
+                ),
+              ),
+            ),
+            error: const Icon(Icons.fastfood, color: AppColors.secondary500),
+          ),
         ),
       ),
     );

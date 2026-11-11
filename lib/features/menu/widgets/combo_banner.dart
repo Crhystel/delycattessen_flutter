@@ -1,10 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../models/menu_models.dart';
 
 /// Banner ámbar de Inicio con un combo vigente ("COMBO · Hasta el 12 nov").
@@ -20,7 +19,6 @@ class ComboBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = combo.imageUrl;
-    final cache = AppImageCacheHelper.cacheSize(context, _imageSize);
     final until =
         'Hasta el ${combo.endDate.day} ${DateFormatter.shortMonthName(combo.endDate)}';
 
@@ -44,15 +42,12 @@ class ComboBanner extends StatelessWidget {
                 child: SizedBox(
                   width: _imageSize,
                   height: _imageSize,
-                  child: url != null
-                      ? CachedNetworkImage(
-                          imageUrl: url,
-                          fit: BoxFit.cover,
-                          memCacheWidth: cache,
-                          memCacheHeight: cache,
-                          errorWidget: (_, _, _) => const _ComboPlaceholder(),
-                        )
-                      : const _ComboPlaceholder(),
+                  child: AppNetworkImage(
+                    url: url,
+                    width: _imageSize,
+                    height: _imageSize,
+                    error: const _ComboPlaceholder(),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
