@@ -2,6 +2,7 @@ import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
 import 'package:delycattessen_flutter/features/children/providers/children_provider.dart';
 import 'package:delycattessen_flutter/features/children/screens/children_list_screen.dart';
+import 'package:delycattessen_flutter/features/children/widgets/alerts_section_header.dart';
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/core/utils/date_formatter.dart';
 import 'package:delycattessen_flutter/features/menu/services/menu_service.dart';
@@ -18,9 +19,21 @@ final _child = Child(
 );
 
 class _FakeAuth extends AuthService {
+  _FakeAuth({List<Child>? children}) : _children = children ?? [_child];
+
+  final List<Child> _children;
+
   @override
-  Future<List<Child>> getChildren() async => [_child];
+  Future<List<Child>> getChildren() async => _children;
 }
+
+Child _childWithBalance(int id, String name, double balance) => Child(
+  id: id,
+  firstName: name,
+  lastName: 'Pérez',
+  institutionName: 'Martim Cereré',
+  balance: balance,
+);
 
 /// Simulated menu: [days] and [combos] are what the child's school offers.
 class _FakeMenu extends MenuService {
@@ -72,13 +85,15 @@ Future<void> _pumpHome(
   MenuService menu, {
   void Function(int)? onOrder,
   VoidCallback? onProducts,
+  List<Child>? children,
 }) async {
   tester.view.physicalSize = const Size(390, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ChangeNotifierProvider(
-      create: (_) => ChildrenProvider(authService: _FakeAuth()),
+      create: (_) =>
+          ChildrenProvider(authService: _FakeAuth(children: children)),
       child: MaterialApp(
         home: ChildrenListScreen(
           userName: 'Crhystel',
@@ -94,7 +109,72 @@ Future<void> _pumpHome(
   await tester.pump(const Duration(milliseconds: 100));
 }
 
+Finder get _alertsCount => find.descendant(
+  of: find.byType(AlertsSectionHeader),
+  matching: find.byType(Text),
+);
+
 void main() {
+  testWidgets('greets the user and shows today\'s date', (tester) async {
+    await _pumpHome(tester, _FakeMenu());
+
+    expect(find.text('¡Hola, Crhystel!'), findsOneWidget);
+    expect(
+      find.text(DateFormatter.formatGreetingDate(DateTime.now())),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('one child without balance shows the Avisos title with 1', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      _FakeMenu(),
+      children: [_childWithBalance(7, 'Luis', 0)],
+    );
+
+    expect(find.text('Avisos'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertsSectionHeader),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Luis se quedó sin saldo'), findsOneWidget);
+  });
+
+  testWidgets('the Avisos badge counts every child with low balance', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      _FakeMenu(),
+      children: [
+        _childWithBalance(7, 'Luis', 0),
+        _childWithBalance(8, 'Marta', 2),
+        _childWithBalance(9, 'Ana', 30),
+      ],
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertsSectionHeader),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+    expect(_alertsCount, findsNWidgets(2)); // title + number
+  });
+
+  testWidgets('with enough balance there is no Avisos title', (tester) async {
+    await _pumpHome(tester, _FakeMenu());
+
+    expect(find.text('Avisos'), findsNothing);
+    expect(find.byType(AlertsSectionHeader), findsNothing);
+  });
+
   testWidgets('shows the Menú and Productos sections even with no data', (
     tester,
   ) async {
