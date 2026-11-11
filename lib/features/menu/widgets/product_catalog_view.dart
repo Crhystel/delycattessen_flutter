@@ -248,12 +248,15 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
         searchController: _searchController,
         onSearchChanged: _onSearchChanged,
       ),
+      // Always given (empty while loading or without categories): it is what
+      // keeps the order title, selector, search; with null the header would
+      // fall back to the old one and put the search field on top.
       collapsibleBelow: showFilters && categories.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.only(top: AppSpacing.lg),
               child: _buildCategories(categories),
             )
-          : null,
+          : const SizedBox.shrink(),
     );
   }
 

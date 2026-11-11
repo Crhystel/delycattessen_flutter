@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/profile_test_support.dart';
 
 void main() {
-  testWidgets('parentStyle shows the header, a solid avatar and the logout', (
+  testWidgets('shows the header, a solid avatar and the logout', (
     tester,
   ) async {
     var logouts = 0;
@@ -15,7 +15,6 @@ void main() {
       ProfileScreen(
         me: testMe(role: 'PARENT'),
         authService: FakeAuthService(),
-        parentStyle: true,
         extraSections: const Text('Mis hijos'),
         onLogout: () => logouts++,
       ),
@@ -35,28 +34,49 @@ void main() {
     expect(logouts, 1);
   });
 
-  testWidgets('without parentStyle it keeps the app bar and the soft avatar', (
-    tester,
-  ) async {
+  testWidgets('a teacher gets the same profile: header, solid avatar, health '
+      'section and logout', (tester) async {
+    var logouts = 0;
+    await openScreen(
+      tester,
+      ProfileScreen(
+        me: testMe(role: 'TEACHER'),
+        authService: FakeAuthService(),
+        onOpenAllergies: () {},
+        onLogout: () => logouts++,
+      ),
+    );
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('Mi perfil'), findsOneWidget);
+    expect(find.text('Cuenta'), findsOneWidget);
+    expect(find.text('Salud'), findsOneWidget);
+    expect(find.text('Alergias'), findsOneWidget);
+    expect(find.text('Mis hijos'), findsNothing);
+    expect(
+      tester.widget<InitialsAvatar>(find.byType(InitialsAvatar)).solid,
+      isTrue,
+    );
+
+    await tester.tap(find.text('Cerrar sesión'));
+    expect(logouts, 1);
+  });
+
+  testWidgets('without onLogout there is no logout button', (tester) async {
     await openScreen(
       tester,
       ProfileScreen(me: testMe(), authService: FakeAuthService()),
     );
 
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(
-      tester.widget<InitialsAvatar>(find.byType(InitialsAvatar)).solid,
-      isFalse,
-    );
+    expect(find.text('Cerrar sesión'), findsNothing);
   });
 
-  testWidgets('parentStyle rows still open their screens', (tester) async {
+  testWidgets('rows still open their screens', (tester) async {
     await openScreen(
       tester,
       ProfileScreen(
         me: testMe(role: 'PARENT'),
         authService: FakeAuthService(),
-        parentStyle: true,
       ),
     );
 

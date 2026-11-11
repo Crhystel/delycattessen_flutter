@@ -9,7 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/subpage_header.dart';
-import '../../wallet/screens/transaction_history_screen.dart';
+import '../../children/utils/parent_navigation.dart';
 import '../models/menu_models.dart';
 
 /// Detalle de un pedido tipo factura: cabecera morada con el estado y el total,
@@ -37,16 +37,9 @@ class OrderDetailScreen extends StatelessWidget {
 
   double get _discount => math.max(0, _subtotal - order.totalAmount);
 
-  void _openMovements(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TransactionHistoryScreen.forWallet(
-          walletId: walletId!,
-          childName: order.studentName,
-        ),
-      ),
-    );
-  }
+  /// Los movimientos tienen una sola vista: Billetera > Movimientos.
+  void _openMovements(BuildContext context) =>
+      ParentNavigation.openWalletMovements(context, childId: order.studentId);
 
   @override
   Widget build(BuildContext context) {

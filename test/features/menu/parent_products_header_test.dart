@@ -1,4 +1,5 @@
 import 'package:delycattessen_flutter/core/widgets/floating_bubbles.dart';
+import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/category_filter_bar.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/product_catalog_view.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,11 @@ final _items = [
 
 /// The parent view, with a status bar of [topInset] dp like a phone with a
 /// camera cut-out.
-Future<void> _pump(WidgetTester tester, {double topInset = 0}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  double topInset = 0,
+  List<MenuItem>? items,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -36,7 +41,7 @@ Future<void> _pump(WidgetTester tester, {double topInset = 0}) async {
         headerAccessory: const Text('selector menu-productos'),
         categoryStyle: CategoryFilterStyle.evenCircles,
         flatLayout: true,
-        source: FakeCatalogSource(items: _items),
+        source: FakeCatalogSource(items: items ?? _items),
       ),
     ),
   );
@@ -64,6 +69,22 @@ void main() {
     expect(title, lessThan(selector));
     expect(selector, lessThan(search));
     expect(search, lessThan(categories));
+  });
+
+  testWidgets('keeps the order title, selector, search with no categories', (
+    tester,
+  ) async {
+    // An empty catalog has no categories: the header must not fall back to
+    // another order (search on top).
+    await _pump(tester, items: const []);
+
+    final title = _top(tester, find.text('Menú'));
+    final selector = _top(tester, find.text('selector menu-productos'));
+    final search = _top(tester, find.byType(TextField));
+
+    expect(title, lessThan(selector));
+    expect(selector, lessThan(search));
+    expect(find.byType(CategoryFilterBar), findsNothing);
   });
 
   testWidgets('title, selector and categories fold; only the search stays', (

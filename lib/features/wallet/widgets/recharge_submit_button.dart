@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/widgets/primary_button.dart';
 
 /// Botón "Recargar $10.00 a Julieta". Su texto sigue lo escrito en
 /// [amountController] y solo él se reconstruye al teclear.
 ///
-/// Con [design] = true toma las medidas de la pestaña Billetera del padre (52
-/// de alto, texto 15/800); sin él es el [PrimaryButton] de siempre.
+/// Medidas de la pestaña Billetera del padre: 52 de alto, texto 15/800.
 class RechargeSubmitButton extends StatelessWidget {
   const RechargeSubmitButton({
     super.key,
@@ -16,14 +14,12 @@ class RechargeSubmitButton extends StatelessWidget {
     required this.firstName,
     required this.isLoading,
     required this.onPressed,
-    this.design = false,
   });
 
   final TextEditingController amountController;
   final String? firstName;
   final bool isLoading;
   final VoidCallback onPressed;
-  final bool design;
 
   static const double _height = 52;
 
@@ -41,14 +37,6 @@ class RechargeSubmitButton extends StatelessWidget {
       valueListenable: amountController,
       builder: (context, value, _) {
         final label = _label(value.text);
-        if (!design) {
-          return PrimaryButton(
-            label: label,
-            icon: Icons.lock_outline,
-            isLoading: isLoading,
-            onPressed: onPressed,
-          );
-        }
         return ElevatedButton.icon(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(

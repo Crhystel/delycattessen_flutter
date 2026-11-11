@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
+import '../../../core/widgets/tab_header.dart';
 
 /// Title of the catalog and, below it, an optional [accessory] (e.g. the
 /// "Menú del mes | Productos" selector). It is part of the block that
@@ -32,20 +33,14 @@ class CatalogTitleBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (design) return _buildDesign();
     return Padding(
-      padding: design
-          ? const EdgeInsets.fromLTRB(
-              AppSpacing.page,
-              AppSpacing.lg,
-              AppSpacing.page,
-              0,
-            )
-          : const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.xs,
-            ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -54,12 +49,10 @@ class CatalogTitleBlock extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: design
-                      ? AppText.tabTitle
-                      : Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.ink900,
-                        ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink900,
+                  ),
                 ),
               ),
               if (trailing != null) ...[
@@ -69,11 +62,34 @@ class CatalogTitleBlock extends StatelessWidget {
             ],
           ),
           if (accessory != null) ...[
-            SizedBox(height: design ? AppSpacing.lg : AppSpacing.sm),
+            const SizedBox(height: AppSpacing.sm),
             accessory!,
           ],
         ],
       ),
+    );
+  }
+
+  /// Misma cabecera que Inicio y Pedidos ([TabHeader]): la burbuja queda anclada
+  /// arriba. El margen de la barra de estado ya lo suma `CollapsingHeader`, así
+  /// que aquí solo va el margen fijo de 16.
+  Widget _buildDesign() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TabHeader(
+          topPadding: AppSpacing.lg,
+          leading: Text(title, style: AppText.tabTitle),
+          trailing: trailing,
+        ),
+        if (accessory != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+            child: accessory!,
+          ),
+        ],
+      ],
     );
   }
 }

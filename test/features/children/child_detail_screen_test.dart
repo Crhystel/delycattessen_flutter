@@ -5,6 +5,7 @@ import 'package:delycattessen_flutter/features/children/providers/child_movement
 import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
 import 'package:delycattessen_flutter/features/children/screens/child_detail_screen.dart';
 import 'package:delycattessen_flutter/features/children/services/parental_control_service.dart';
+import 'package:delycattessen_flutter/features/children/utils/parent_navigation.dart';
 import 'package:delycattessen_flutter/features/users/models/allergy_models.dart';
 import 'package:delycattessen_flutter/features/wallet/models/wallet_models.dart';
 import 'package:delycattessen_flutter/features/wallet/services/wallet_service.dart';
@@ -167,6 +168,32 @@ void main() {
     expect(find.text('Galleta'), findsOneWidget);
     expect(find.text('Recarga'), findsNothing);
     expect(find.text('−\$3.50'), findsOneWidget);
+  });
+
+  testWidgets('Recargar redirects to Billetera > Recargar for that child', (
+    tester,
+  ) async {
+    await _open(tester, child: _child(), wallet: _FakeWallet(const []));
+    final before = ParentNavigation.walletRecharge.value;
+
+    await tester.tap(find.text('Recargar'));
+    await tester.pumpAndSettle();
+
+    final request = ParentNavigation.walletRecharge.value;
+    expect(request, isNot(same(before)));
+    expect(request!.childId, 3);
+  });
+
+  testWidgets('Recargar warns and asks for nothing without a wallet', (
+    tester,
+  ) async {
+    await _open(tester, child: _child(walletId: null));
+    final before = ParentNavigation.walletRecharge.value;
+
+    await tester.tap(find.text('Recargar'));
+    await tester.pumpAndSettle();
+
+    expect(ParentNavigation.walletRecharge.value, same(before));
   });
 
   testWidgets('hides Movimientos when the child has no wallet', (tester) async {

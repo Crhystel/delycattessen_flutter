@@ -11,11 +11,10 @@ import '../../auth/models/auth_models.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
 import '../../users/services/allergy_owner.dart';
-import '../../wallet/screens/transaction_history_screen.dart';
-import '../../wallet/screens/wallet_recharge_screen.dart';
 import '../providers/child_movements_controller.dart';
 import '../providers/child_settings_controller.dart';
 import '../utils/allergy_summary.dart';
+import '../utils/parent_navigation.dart';
 import '../utils/parental_control_summary.dart';
 import '../widgets/child_balance_card.dart';
 import '../widgets/child_detail_header.dart';
@@ -85,36 +84,22 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     super.dispose();
   }
 
+  /// Los movimientos tienen una sola vista: Billetera > Movimientos.
   void _goToHistory() {
-    final walletId = _currentChild.walletId;
-    if (walletId == null) {
-      showWarningSnackBar('Este hijo aún no tiene billetera activa.');
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TransactionHistoryScreen.forWallet(
-          walletId: walletId,
-          childName: _currentChild.displayName,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _goToWallet() async {
     if (_currentChild.walletId == null) {
       showWarningSnackBar('Este hijo aún no tiene billetera activa.');
       return;
     }
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) =>
-            WalletRechargeScreen(initialWalletId: _currentChild.walletId!),
-      ),
-    );
-    if (result == true && mounted) {
-      Navigator.of(context).pop(true);
+    ParentNavigation.openWalletMovements(context, childId: _currentChild.id);
+  }
+
+  /// Recargar tiene una sola vista: Billetera > Recargar.
+  void _goToWallet() {
+    if (_currentChild.walletId == null) {
+      showWarningSnackBar('Este hijo aún no tiene billetera activa.');
+      return;
     }
+    ParentNavigation.openWalletRecharge(context, childId: _currentChild.id);
   }
 
   Future<void> _goToParentalControl() async {

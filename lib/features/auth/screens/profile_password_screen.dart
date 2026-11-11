@@ -84,6 +84,7 @@ class _ProfilePasswordScreenState extends State<ProfilePasswordScreen>
       title: 'Contraseña',
       children: [
         FormSectionCard(
+          design: true,
           title: 'Cambiar contraseña',
           subtitle: 'Escribe tu contraseña actual y la nueva.',
           children: [
@@ -136,6 +137,8 @@ class _ProfilePasswordScreenState extends State<ProfilePasswordScreen>
         ),
         const SizedBox(height: AppSpacing.xl),
         PrimaryButton(
+          design: true,
+          shadow: true,
           label: 'Guardar contraseña',
           isLoading: _isSaving,
           onPressed: _save,

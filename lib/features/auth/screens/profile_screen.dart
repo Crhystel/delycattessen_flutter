@@ -14,7 +14,7 @@ import 'change_email_screen.dart';
 import 'edit_names_screen.dart';
 import 'profile_password_screen.dart';
 
-/// "Mi perfil" of a parent or teacher: who is signed in and a list of options,
+/// "Mi perfil" of a parent or teacher (the same look for both): who is signed in and a list of options,
 /// each with an arrow that opens its own screen (names, email, password and,
 /// for teachers, allergies). Pops with the latest [MeResponse] when something
 /// changed, so the caller can refresh its greeting.
@@ -31,12 +31,8 @@ class ProfileScreen extends StatefulWidget {
   /// `children` y `auth` no puede importar).
   final Widget? extraSections;
 
-  /// Si se da, se muestra el botón "Cerrar sesión" al final (solo el padre).
+  /// Si se da, se muestra el botón "Cerrar sesión" al final.
   final VoidCallback? onLogout;
-
-  /// Rediseño del padre: cabecera con burbujas, avatar morado, tarjetas de
-  /// radio 22 y botón "Cerrar sesión" de 54. Sin él (docente) queda igual.
-  final bool parentStyle;
 
   const ProfileScreen({
     super.key,
@@ -45,7 +41,6 @@ class ProfileScreen extends StatefulWidget {
     this.onOpenAllergies,
     this.extraSections,
     this.onLogout,
-    this.parentStyle = false,
   });
 
   @override
@@ -71,7 +66,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final allergies = widget.onOpenAllergies;
-    final design = widget.parentStyle;
     return PopScope(
       // Leaving after a change hands back the latest profile.
       canPop: !_changed,
@@ -80,27 +74,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       child: FormPage(
         title: 'Mi perfil',
-        design: design,
         children: [
           ProfileSummaryCard(
-            design: design,
+            design: true,
             leading: InitialsAvatar(
               name: _me.displayName,
               fallback: _me.email,
-              radius: design ? 32 : 26,
-              solid: design,
+              radius: 32,
+              solid: true,
             ),
             title: _me.displayName.isEmpty ? 'Mi perfil' : _me.displayName,
             subtitle: _me.email,
           ),
           const SizedBox(height: AppSpacing.xl),
           FormSectionCard(
-            design: design,
+            design: true,
             title: 'Cuenta',
             contentPadding: EdgeInsets.zero,
             children: withDividers([
               SettingsRow(
-                design: design,
+                design: true,
                 icon: Icons.badge_outlined,
                 title: 'Nombres',
                 subtitle: _me.fullName,
@@ -108,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _open(EditNamesScreen(me: _me, authService: _authService)),
               ),
               SettingsRow(
-                design: design,
+                design: true,
                 icon: Icons.mail_outline,
                 title: 'Correo',
                 subtitle: _me.email,
@@ -117,24 +110,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               SettingsRow(
-                design: design,
+                design: true,
                 icon: Icons.lock_outline,
                 title: 'Contraseña',
                 subtitle: 'Cambia tu contraseña',
                 onTap: () =>
                     _open(ProfilePasswordScreen(authService: _authService)),
               ),
-            ], design: design),
+            ], design: true),
           ),
           if (allergies != null) ...[
             const SizedBox(height: AppSpacing.xl),
             FormSectionCard(
-              design: design,
+              design: true,
               title: 'Salud',
               contentPadding: EdgeInsets.zero,
               children: [
                 SettingsRow(
-                  design: design,
+                  design: true,
                   icon: Icons.health_and_safety_outlined,
                   title: 'Alergias',
                   subtitle: 'Gestiona tus alergias',
@@ -149,19 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           if (widget.onLogout != null) ...[
             const SizedBox(height: AppSpacing.xl),
-            design
-                ? _DesignLogoutButton(onPressed: widget.onLogout!)
-                : OutlinedButton.icon(
-                    onPressed: widget.onLogout,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Cerrar sesión'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      foregroundColor: AppColors.danger700,
-                      side: const BorderSide(color: AppColors.danger500),
-                      shape: const StadiumBorder(),
-                    ),
-                  ),
+            _LogoutButton(onPressed: widget.onLogout!),
           ],
         ],
       ),
@@ -169,10 +150,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// "Cerrar sesión" del rediseño del padre: 54 de alto, fondo blanco, borde de
+/// "Cerrar sesión": 54 de alto, fondo blanco, borde de
 /// 1.5 en rojo y texto rojo oscuro 16/800 con icono de 20.
-class _DesignLogoutButton extends StatelessWidget {
-  const _DesignLogoutButton({required this.onPressed});
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({required this.onPressed});
 
   final VoidCallback onPressed;
 

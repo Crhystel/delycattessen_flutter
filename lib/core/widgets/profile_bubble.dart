@@ -15,6 +15,10 @@ class ProfileBubble extends StatelessWidget {
   static const double _size = 52;
   static const double _badgeSize = 22;
 
+  /// Alto total del widget (burbuja + margen de la insignia). Las cabeceras lo
+  /// reservan para que el título quede centrado con ella.
+  static const double extent = _size + 4;
+
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -24,8 +28,8 @@ class ProfileBubble extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
-          width: _size + 4,
-          height: _size + 4,
+          width: extent,
+          height: extent,
           child: Stack(
             clipBehavior: Clip.none,
             children: [

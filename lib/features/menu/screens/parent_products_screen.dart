@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
+import '../../children/widgets/child_switch_bar.dart';
 import '../services/product_catalog_source.dart';
 import '../widgets/category_filter_bar.dart';
 import '../widgets/product_catalog_view.dart';
@@ -79,6 +81,23 @@ class _ParentProductsScreenState extends State<ParentProductsScreen> {
       title: 'Menú',
       headerAccessory: widget.headerAccessory,
       titleTrailing: widget.profileAction,
+      // The same child selector as the monthly menu: it sits under the Menú |
+      // Productos switch and folds away with it when the list scrolls.
+      banner: _child == null
+          ? null
+          : const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.lg,
+                AppSpacing.page,
+                0,
+              ),
+              child: ChildSwitchBar(
+                label: 'Pidiendo para',
+                showBalance: true,
+                sheetTitle: '¿Para quién estás pidiendo?',
+              ),
+            ),
       categoryStyle: CategoryFilterStyle.evenCircles,
       backgroundColor: AppColors.ink50,
       flatLayout: true,

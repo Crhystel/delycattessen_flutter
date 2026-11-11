@@ -110,10 +110,7 @@ class SettingsRow extends StatelessWidget {
 List<Widget> withDividers(List<Widget> rows, {bool design = false}) => [
   for (var i = 0; i < rows.length; i++) ...[
     if (i > 0)
-      Divider(
-        height: 1,
-        color: design ? AppColors.divider : AppColors.teal50,
-      ),
+      Divider(height: 1, color: design ? AppColors.divider : AppColors.teal50),
     rows[i],
   ],
 ];

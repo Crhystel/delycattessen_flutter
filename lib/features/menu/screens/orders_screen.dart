@@ -13,6 +13,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/segmented_switch.dart';
 import '../../../core/widgets/subpage_header.dart';
+import '../../../core/widgets/tab_header.dart';
 import '../../children/providers/children_provider.dart';
 import '../../children/widgets/child_switch_bar.dart';
 import '../models/menu_models.dart';
@@ -204,14 +205,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.page,
-                      AppLayout.pageTopPadding(context),
-                      AppSpacing.page,
-                      0,
-                    ),
-                    child: Row(
+                  TabHeader(
+                    leading: Row(
                       children: [
                         if (!widget.embedded) ...[
                           const SubpageBackButton(),
@@ -230,12 +225,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ],
                           ),
                         ),
-                        if (widget.profileAction != null) ...[
-                          const SizedBox(width: AppSpacing.md),
-                          widget.profileAction!,
-                        ],
                       ],
                     ),
+                    trailing: widget.profileAction,
                   ),
                   const SizedBox(height: _headerGap),
                   if (widget.embedded)

@@ -93,7 +93,10 @@ abstract class BaseApiService with ErrorHandlerMixin {
     Duration timeout,
   ) async {
     if (original.isUserInactive) {
-      await SessionManager.expire(original.message, title: 'Cuenta desactivada');
+      await SessionManager.expire(
+        original.message,
+        title: 'Cuenta desactivada',
+      );
       throw original;
     }
 

@@ -31,7 +31,7 @@ class CardFormData {
     if (cardNumber.replaceAll(' ', '').length < 16 ||
         holderName.isEmpty ||
         expiration.length < 5 ||
-        cvv.length < 3) {
+        cvv.length != 3) {
       return 'Completa todos los campos de la tarjeta correctamente.';
     }
     if (phone.isEmpty || documentNumber.isEmpty) {

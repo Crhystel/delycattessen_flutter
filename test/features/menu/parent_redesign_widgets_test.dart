@@ -1,3 +1,4 @@
+import 'package:delycattessen_flutter/features/children/utils/parent_navigation.dart';
 import 'package:delycattessen_flutter/core/theme/app_colors.dart';
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/screens/order_detail_screen.dart';
@@ -389,6 +390,24 @@ void main() {
       await tester.pumpWidget(screen(walletId: 5));
 
       expect(find.text('Ver en movimientos de la billetera'), findsOneWidget);
+    });
+
+    testWidgets('the wallet link redirects to Billetera > Movimientos of the '
+        'child', (tester) async {
+      tester.view.physicalSize = const Size(390, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(screen(walletId: 5));
+      final before = ParentNavigation.walletMovements.value;
+
+      final link = find.text('Ver en movimientos de la billetera');
+      await tester.ensureVisible(link);
+      await tester.tap(link);
+      await tester.pumpAndSettle();
+
+      final request = ParentNavigation.walletMovements.value;
+      expect(request, isNot(same(before)));
+      expect(request!.childId, 3); // the child of the order
     });
 
     for (final entry in _sizes.entries) {

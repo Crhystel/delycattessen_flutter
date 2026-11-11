@@ -87,7 +87,6 @@ void main() {
             value: provider,
             child: ProfileScreen(
               me: testMe(role: 'PARENT'),
-              parentStyle: true,
               extraSections: const ProfileChildrenSection(),
               onLogout: () {},
             ),

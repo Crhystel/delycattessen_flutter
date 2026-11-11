@@ -39,28 +39,23 @@ final _data = [
   _tx(id: 4, amount: 3, at: DateTime(2026, 9, 10), displayName: 'Jugo'),
 ];
 
-Widget _screen({required bool embedded}) {
+Widget _screen() {
   return MaterialApp(
     home: Scaffold(
       body: TransactionHistoryScreen(
         personName: 'Julieta Venegas',
-        embedded: embedded,
         balance: 9,
-        loader: () async {
-          return TransactionHistoryData(_data);
-        },
+        loader: () async => _data,
       ),
     ),
   );
 }
 
 void main() {
-  testWidgets('embedded: summary, month, day groups and no filter chips', (
-    tester,
-  ) async {
+  testWidgets('summary, month, day groups and no filter chips', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_screen(embedded: true));
+    await tester.pumpWidget(_screen());
     await tester.pumpAndSettle();
 
     expect(find.text('Saldo actual'), findsOneWidget);
@@ -86,12 +81,10 @@ void main() {
     expect(find.textContaining('compras pagadas en efectivo'), findsOneWidget);
   });
 
-  testWidgets('embedded: choosing another month filters the list', (
-    tester,
-  ) async {
+  testWidgets('choosing another month filters the list', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_screen(embedded: true));
+    await tester.pumpWidget(_screen());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Octubre 2026'));
@@ -105,15 +98,15 @@ void main() {
     expect(find.text('Consumo · Helado'), findsNothing);
   });
 
-  testWidgets('not embedded keeps the type filter chips', (tester) async {
+  testWidgets('the old consumption history is gone: no purple header, no '
+      'type filter', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_screen(embedded: false));
-    // The legacy header has animated bubbles: pumpAndSettle would never end.
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpWidget(_screen());
+    await tester.pumpAndSettle();
 
-    expect(find.byType(ChoiceChip), findsNWidgets(3));
-    expect(find.text('Historial de consumo'), findsOneWidget);
+    expect(find.text('Historial de consumo'), findsNothing);
+    expect(find.text('Detalles de compra'), findsNothing);
+    expect(find.byType(ChoiceChip), findsNothing);
   });
 }

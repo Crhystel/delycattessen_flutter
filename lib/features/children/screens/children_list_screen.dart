@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,6 +10,7 @@ import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
+import '../../../core/widgets/tab_header.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/screens/student_registration_screen.dart';
 import '../../menu/models/menu_models.dart';
@@ -189,43 +189,40 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.page,
-            AppLayout.pageTopPadding(context),
-            AppSpacing.page,
-            AppSpacing.xxl,
-          ),
+          // The header brings its own top and side margins (TabHeader); the
+          // body below gets the side margins from the Padding.
+          padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _todayLabel,
-                          style: AppText.secondary.copyWith(fontSize: 14),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '¡Hola, ${widget.userName.isNotEmpty ? widget.userName : "Usuario"}!',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.greeting,
-                        ),
-                      ],
+              TabHeader(
+                leading: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _todayLabel,
+                      style: AppText.secondary.copyWith(fontSize: 14),
                     ),
-                  ),
-                  if (widget.profileAction != null) ...[
-                    const SizedBox(width: AppSpacing.md),
-                    widget.profileAction!,
+                    const SizedBox(height: 2),
+                    Text(
+                      '¡Hola, ${widget.userName.isNotEmpty ? widget.userName : "Usuario"}!',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.greeting,
+                    ),
                   ],
-                ],
+                ),
+                trailing: widget.profileAction,
               ),
-              ..._buildBody(provider, children),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _buildBody(provider, children),
+                ),
+              ),
             ],
           ),
         ),

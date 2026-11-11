@@ -3,43 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
 
-/// Campo del monto a recargar. Con [design] = true es el recuadro grande de la
-/// pestaña Billetera del padre; sin él, el campo de texto de siempre.
+/// Campo del monto a recargar: el recuadro grande de la pestaña Billetera.
 class RechargeAmountField extends StatelessWidget {
-  const RechargeAmountField({
-    super.key,
-    required this.controller,
-    this.design = false,
-  });
+  const RechargeAmountField({super.key, required this.controller});
 
   final TextEditingController controller;
-  final bool design;
 
   static const _keyboard = TextInputType.numberWithOptions(decimal: true);
 
   @override
   Widget build(BuildContext context) {
-    if (!design) {
-      return TextField(
-        controller: controller,
-        textAlign: TextAlign.center,
-        keyboardType: _keyboard,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: AppColors.ink900,
-        ),
-        decoration: InputDecoration(
-          prefixText: '\$ ',
-          prefixStyle: TextStyle(
-            fontSize: 22,
-            color: AppColors.ink900.withValues(alpha: 0.4),
-          ),
-          hintText: '0.00',
-        ),
-      );
-    }
-
     // El NÚMERO queda exactamente en el centro del recuadro: a cada lado hay un
     // `Expanded` igual, así el campo (que mide lo que mide el texto) se centra
     // solo. El "$" va pegado a su izquierda, dentro del hueco izquierdo, sin
@@ -119,12 +92,10 @@ class QuickAmountChips extends StatelessWidget {
     super.key,
     required this.controller,
     required this.amounts,
-    this.design = false,
   });
 
   final TextEditingController controller;
   final List<double> amounts;
-  final bool design;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +110,6 @@ class QuickAmountChips extends StatelessWidget {
                 child: _QuickAmountChip(
                   amount: amount,
                   selected: entered == amount,
-                  design: design,
                   onTap: () => controller.text = amount.toStringAsFixed(2),
                 ),
               ),
@@ -156,29 +126,21 @@ class _QuickAmountChip extends StatelessWidget {
   const _QuickAmountChip({
     required this.amount,
     required this.selected,
-    required this.design,
     required this.onTap,
   });
 
   final double amount;
   final bool selected;
-  final bool design;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final height = 44.0;
-    final textStyle = design
-        ? AppText.button.copyWith(
-            fontSize: 14,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-            color: selected ? AppColors.ink900 : AppColors.brand700,
-          )
-        : TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: selected ? AppColors.ink900 : AppColors.brand700,
-          );
+    const height = 44.0;
+    final textStyle = AppText.button.copyWith(
+      fontSize: 14,
+      fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+      color: selected ? AppColors.ink900 : AppColors.brand700,
+    );
     return Semantics(
       button: true,
       selected: selected,

@@ -1,3 +1,4 @@
+import 'package:delycattessen_flutter/core/widgets/subpage_header.dart';
 import 'package:delycattessen_flutter/features/auth/screens/change_email_screen.dart';
 import 'package:delycattessen_flutter/features/auth/screens/edit_names_screen.dart';
 import 'package:delycattessen_flutter/features/auth/screens/profile_password_screen.dart';
@@ -6,6 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/profile_test_support.dart';
+
+/// The pages have their own round back button (not the AppBar's).
+Future<void> _back(WidgetTester tester) async {
+  await tester.tap(find.byType(SubpageBackButton));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('shows who is signed in and one arrow row per option', (
@@ -86,7 +93,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(entry.value), findsOneWidget, reason: entry.key);
 
-      await tester.pageBack();
+      await _back(tester);
       await tester.pumpAndSettle();
       expect(find.byType(ProfileScreen), findsOneWidget);
     }
@@ -109,7 +116,7 @@ void main() {
 
     await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await _back(tester);
     await tester.pumpAndSettle();
 
     final host = hostOf(tester);
@@ -123,7 +130,7 @@ void main() {
       ProfileScreen(me: testMe(), authService: FakeAuthService()),
     );
 
-    await tester.pageBack();
+    await _back(tester);
     await tester.pumpAndSettle();
 
     expect(hostOf(tester).popped, isTrue);

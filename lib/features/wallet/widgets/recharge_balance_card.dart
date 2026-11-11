@@ -7,22 +7,17 @@ import '../../../core/theme/app_text.dart';
 /// Tarjeta azul con el saldo actual del hijo y, si ya hay un monto escrito en
 /// [amountController], lo que quedará después de recargar. Solo ella se
 /// reconstruye al teclear.
-///
-/// Con [design] = true usa el diseño de la pestaña Billetera del padre; sin él
-/// conserva la versión de la ficha del hijo.
 class RechargeBalanceCard extends StatelessWidget {
   const RechargeBalanceCard({
     super.key,
     required this.balance,
     required this.firstName,
     required this.amountController,
-    this.design = false,
   });
 
   final double balance;
   final String firstName;
   final TextEditingController amountController;
-  final bool design;
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +28,12 @@ class RechargeBalanceCard extends StatelessWidget {
         final afterRecharge = (amount != null && amount > 0)
             ? balance + amount
             : null;
-        return design
-            ? _buildDesign(afterRecharge)
-            : _buildLegacy(context, afterRecharge);
+        return _buildCard(afterRecharge);
       },
     );
   }
 
-  Widget _buildDesign(double? afterRecharge) {
+  Widget _buildCard(double? afterRecharge) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -91,59 +84,6 @@ class RechargeBalanceCard extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegacy(BuildContext context, double? afterRecharge) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.teal500,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.credit_card, color: Colors.white70, size: 18),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Saldo actual de $firstName',
-                  style: textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '\$${balance.toStringAsFixed(2)}',
-            style: textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          if (afterRecharge != null) ...[
-            const SizedBox(height: 6),
-            Text.rich(
-              TextSpan(
-                text: 'Después de recargar: ',
-                children: [
-                  TextSpan(
-                    text: '\$${afterRecharge.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-              style: textTheme.bodyMedium?.copyWith(color: Colors.white),
             ),
           ],
         ],

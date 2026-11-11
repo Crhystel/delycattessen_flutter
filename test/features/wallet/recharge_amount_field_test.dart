@@ -28,7 +28,7 @@ Future<TextEditingController> _pumpField(
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(20),
-          child: RechargeAmountField(controller: controller, design: true),
+          child: RechargeAmountField(controller: controller),
         ),
       ),
     ),
@@ -105,7 +105,6 @@ void main() {
             balance: 12.5,
             firstName: 'Julieta',
             amountController: controller,
-            design: true,
           ),
         ),
       ),

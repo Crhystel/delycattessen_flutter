@@ -46,7 +46,10 @@ class AppText {
   static final TextStyle pageTitle = _base(size: 25, weight: FontWeight.w800);
 
   /// Título de sección grande (Inicio, Productos).
-  static final TextStyle sectionTitle = _base(size: 20, weight: FontWeight.w800);
+  static final TextStyle sectionTitle = _base(
+    size: 20,
+    weight: FontWeight.w800,
+  );
 
   /// Título de sección mediano (día del menú, Combos de hoy).
   static final TextStyle sectionTitleSm = _base(

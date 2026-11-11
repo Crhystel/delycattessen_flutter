@@ -80,6 +80,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen>
       title: 'Correo',
       children: [
         FormSectionCard(
+          design: true,
           title: 'Nuevo correo',
           subtitle: current == null || current.isEmpty
               ? 'Confirma con tu contraseña actual para cambiar el correo.'
@@ -104,6 +105,8 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen>
         ),
         const SizedBox(height: AppSpacing.xl),
         PrimaryButton(
+          design: true,
+          shadow: true,
           label: 'Guardar correo',
           isLoading: _isSaving,
           onPressed: _save,

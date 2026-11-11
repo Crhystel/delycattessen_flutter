@@ -223,6 +223,12 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
                           '•••',
                           keyboardType: TextInputType.number,
                           obscure: true,
+                          // El CVV son exactamente 3 dígitos: no deja escribir
+                          // más ni letras.
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
                         ),
                       ],
                     ),

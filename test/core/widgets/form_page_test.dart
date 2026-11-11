@@ -46,7 +46,7 @@ void main() {
     expect(find.text('fila 29'), findsOneWidget);
   });
 
-  testWidgets('design: header instead of app bar, bubbles and 20 margins', (
+  testWidgets('header instead of app bar, bubbles and 20 margins', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -54,11 +54,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       const MaterialApp(
-        home: FormPage(
-          title: 'Mi perfil',
-          design: true,
-          children: [Text('contenido')],
-        ),
+        home: FormPage(title: 'Mi perfil', children: [Text('contenido')]),
       ),
     );
 

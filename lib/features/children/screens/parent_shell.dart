@@ -9,6 +9,7 @@ import '../../auth/models/auth_models.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/screens/profile_screen.dart';
 import '../../auth/services/auth_service.dart';
+import '../utils/parent_navigation.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/profile_children_section.dart';
 import '../../menu/widgets/menu_mode_switcher.dart';
@@ -50,10 +51,46 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
   /// pestaña Billetera en "Recargar".
   int _rechargeRequest = 0;
 
+  /// Sección con la que se vuelve a crear la pestaña Billetera: "Recargar", o
+  /// "Movimientos" cuando otra pantalla redirige al historial.
+  WalletSection _walletSection = WalletSection.recharge;
+
   @override
   void initState() {
     super.initState();
+    ParentNavigation.walletMovements.addListener(_onWalletMovementsRequest);
+    ParentNavigation.walletRecharge.addListener(_onWalletRechargeRequest);
     _loadMe();
+  }
+
+  @override
+  void dispose() {
+    ParentNavigation.walletMovements.removeListener(_onWalletMovementsRequest);
+    ParentNavigation.walletRecharge.removeListener(_onWalletRechargeRequest);
+    super.dispose();
+  }
+
+  /// Otra pantalla (ficha del hijo) pidió recargar: se elige al hijo y se abre
+  /// Billetera en "Recargar".
+  void _onWalletRechargeRequest() {
+    final request = ParentNavigation.walletRecharge.value;
+    if (request == null || !mounted) return;
+    _rechargeChild(request.childId);
+  }
+
+  /// Otra pantalla (ficha del hijo, detalle de pedido) pidió ver los
+  /// movimientos: se elige al hijo y se abre Billetera en "Movimientos".
+  void _onWalletMovementsRequest() {
+    final request = ParentNavigation.walletMovements.value;
+    if (request == null || !mounted) return;
+    final childId = request.childId;
+    if (childId != null) context.read<ChildrenProvider>().select(childId);
+    setState(() {
+      _rechargeRequest++;
+      _walletSection = WalletSection.movements;
+      _invalidateTabs();
+    });
+    _goTo(BottomNavDestination.wallet);
   }
 
   Future<void> _loadMe() async {
@@ -88,7 +125,6 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
             authService: _authService,
             extraSections: const ProfileChildrenSection(),
             onLogout: _confirmLogout,
-            parentStyle: true,
           ),
         ),
       );
@@ -160,10 +196,11 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
     _goTo(BottomNavDestination.menu);
   }
 
-  void _rechargeChild(int childId) {
-    context.read<ChildrenProvider>().select(childId);
+  void _rechargeChild(int? childId) {
+    if (childId != null) context.read<ChildrenProvider>().select(childId);
     setState(() {
       _rechargeRequest++;
+      _walletSection = WalletSection.recharge;
       _invalidateTabs();
     });
     _goTo(BottomNavDestination.wallet);
@@ -225,7 +262,7 @@ class _ParentShellState extends State<ParentShell> with NotificationMixin {
       default:
         return WalletRechargeScreen(
           key: ValueKey('wallet-$_rechargeRequest'),
-          embedded: true,
+          initialSection: _walletSection,
           profileAction: bubble,
         );
     }

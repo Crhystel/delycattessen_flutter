@@ -101,6 +101,7 @@ void main() {
         _data(holderName: ''),
         _data(expiration: '12/3'),
         _data(cvv: '12'),
+        _data(cvv: '1234'), // el CVV son exactamente 3 dígitos
       ]) {
         expect(
           data.validate(),

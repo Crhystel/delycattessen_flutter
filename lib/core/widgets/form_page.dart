@@ -3,30 +3,20 @@ import 'package:flutter/material.dart';
 import '../layout/responsive.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_theme.dart';
 import 'floating_bubbles.dart';
 import 'subpage_header.dart';
 
-/// Frame of the form-like pages (profile, edit data): `ink50` background,
-/// a light app bar that blends with it, content centered with a maximum width
-/// on tablets, and a scrollable column so nothing overflows on small screens,
-/// in landscape or with the keyboard open.
-///
-/// Con [design] = true toma el marco del rediseño del padre: sin barra de
-/// aplicación, cabecera [SubpageHeader] con el título, burbujas arriba a la
-/// derecha, ancho máximo de página (720) y márgenes de 20. Sin él queda igual
-/// que siempre para docente y caja.
+/// Marco de las pantallas de formulario del perfil (Mi perfil, nombres, correo,
+/// contraseña): fondo `ink50`, burbujas arriba a la derecha, cabecera
+/// [SubpageHeader] con el botón de volver circular y el título, contenido con
+/// ancho máximo de página (720) y márgenes de 20, dentro de una columna que se
+/// desplaza para que nada se desborde en pantallas pequeñas, en horizontal o con
+/// el teclado abierto. Lo usan todos los roles que pueden editar su perfil.
 class FormPage extends StatelessWidget {
-  const FormPage({
-    super.key,
-    required this.title,
-    required this.children,
-    this.design = false,
-  });
+  const FormPage({super.key, required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
-  final bool design;
 
   /// Separación entre la cabecera y el primer bloque (el diseño deja 22 en
   /// total, y la cabecera ya trae [AppSpacing.sm] debajo).
@@ -34,26 +24,7 @@ class FormPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (design) return _buildDesign(context);
-    return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppTheme.lightAppBar(
-        title: Text(title),
-        backgroundColor: AppColors.ink50,
-      ),
-      body: ResponsiveCenter(
-        maxWidth: AppLayout.formMaxWidth,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ),
-    );
+    return _buildDesign(context);
   }
 
   Widget _buildDesign(BuildContext context) {

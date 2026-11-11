@@ -104,6 +104,24 @@ class _FloatingBubblesState extends State<FloatingBubbles>
     super.dispose();
   }
 
+  /// Las burbujas de abajo se anclan al borde físico, donde la barra de
+  /// navegación de Android (tres botones, transparente en pantalla completa) las
+  /// tapaba. Se suben la altura de esa barra y lo que sobresale se recorta, así
+  /// se ven igual que en un teléfono sin ella. Se usa `viewPadding` (no
+  /// `padding`) para que no se muevan al abrir el teclado.
+  Widget _withBottomInset(BuildContext context, Widget bubbles) {
+    final isTop =
+        widget.corner == BubbleCorner.topLeft ||
+        widget.corner == BubbleCorner.topRight;
+    if (isTop) return bubbles;
+    final inset = MediaQuery.viewPaddingOf(context).bottom;
+    if (inset <= 0) return bubbles;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: ClipRect(child: bubbles),
+    );
+  }
+
   Widget _buildBubble({
     required Color color,
     required double width,
@@ -125,7 +143,7 @@ class _FloatingBubblesState extends State<FloatingBubbles>
   Widget build(BuildContext context) {
     final controller = _controller;
     if (widget.design || controller == null) {
-      return _DesignBubbles(corner: widget.corner);
+      return _withBottomInset(context, _DesignBubbles(corner: widget.corner));
     }
     // Escala proporcional al frame de 402 del Figma, con tope para que en
     // tablets (800-1280 de ancho) las burbujas no crezcan sin límite.
@@ -197,7 +215,7 @@ class _FloatingBubblesState extends State<FloatingBubbles>
         widget.corner == BubbleCorner.topLeft ||
         widget.corner == BubbleCorner.topRight;
 
-    return IgnorePointer(
+    final animated = IgnorePointer(
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
@@ -237,5 +255,6 @@ class _FloatingBubblesState extends State<FloatingBubbles>
         },
       ),
     );
+    return _withBottomInset(context, animated);
   }
 }
