@@ -140,6 +140,10 @@ class AuthService extends BaseApiService {
   Future<List<String>> saveMyAllergies(List<int> allergenIds) =>
       _saveAllergies(ApiConfig.allergies, allergenIds);
 
+  /// Alergias del estudiante autenticado. Solo lectura: las edita su padre.
+  Future<List<Allergen>> getOwnStudentAllergies() =>
+      _fetchAllergies(ApiConfig.ownAllergies);
+
   Future<List<Allergen>> _fetchAllergies(String url) async {
     final response = await performGetRequest(url);
     return (response as List)

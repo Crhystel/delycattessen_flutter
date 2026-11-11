@@ -8,8 +8,18 @@ class MenuService extends BaseApiService {
     final response = await performGetRequest(
       ApiConfig.studentMonthlyMenu(studentId),
     );
-    final data = response as List;
-    return data
+    return _parseMenuDays(response);
+  }
+
+  /// Menú mensual publicado de la propia sede del estudiante autenticado
+  /// (solo consulta: no necesita conocer su id de perfil).
+  Future<List<MenuDay>> getOwnMonthlyMenu() async {
+    final response = await performGetRequest(ApiConfig.ownMonthlyMenu);
+    return _parseMenuDays(response);
+  }
+
+  static List<MenuDay> _parseMenuDays(dynamic response) {
+    return (response as List)
         .map((json) => MenuDay.fromJson(json as Map<String, dynamic>))
         .toList();
   }

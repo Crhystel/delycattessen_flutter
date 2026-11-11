@@ -31,6 +31,9 @@ class ApiConfig {
       '$baseUrl/users/children/$studentId/photo/';
   static const String allergens = '$baseUrl/users/allergens/';
   static const String allergies = '$baseUrl/users/allergies/';
+
+  /// Alergias del estudiante autenticado (solo lectura; solo su padre las edita).
+  static const String ownAllergies = '$baseUrl/users/me/allergies/';
   static String studentAllergies(int studentId) =>
       '$baseUrl/users/students/$studentId/allergies/';
   static const String setPaymentPin = '$baseUrl/users/set-payment-pin/';
@@ -67,4 +70,8 @@ class ApiConfig {
   // Monthly Menu & Dishes
   static String studentMonthlyMenu(int studentId) =>
       '$baseUrl/catalog/students/$studentId/monthly_menu/';
+
+  // Monthly menu of the authenticated student (read only, no id needed)
+  static const String ownMonthlyMenu =
+      '$baseUrl/catalog/students/me/monthly_menu/';
 }

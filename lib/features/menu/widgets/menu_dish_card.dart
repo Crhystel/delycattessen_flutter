@@ -8,15 +8,16 @@ import '../models/menu_models.dart';
 
 /// Tarjeta de un platillo del menú del mes: foto, nombre, descripción, chip
 /// "Ver alérgenos" (rojo si choca con las alergias del hijo), precio y el botón
-/// "Agregar / Agregado". Tocar la tarjeta abre el detalle del platillo.
+/// "Agregar / Agregado". Tocar la tarjeta abre el detalle del platillo. Sin
+/// [onToggle] la tarjeta es de solo consulta (estudiante): no hay botón.
 class MenuDishCard extends StatelessWidget {
   const MenuDishCard({
     super.key,
     required this.dish,
-    required this.inCart,
     required this.onTap,
-    required this.onToggle,
     required this.onShowAllergens,
+    this.inCart = false,
+    this.onToggle,
   });
 
   final MenuDish dish;
@@ -25,8 +26,8 @@ class MenuDishCard extends StatelessWidget {
   final bool inCart;
   final VoidCallback onTap;
 
-  /// Agrega o quita el platillo (1 unidad).
-  final VoidCallback onToggle;
+  /// Agrega o quita el platillo (1 unidad). Nulo: solo consulta, sin botón.
+  final VoidCallback? onToggle;
   final VoidCallback onShowAllergens;
 
   static const double _imageSize = 104;
@@ -128,8 +129,8 @@ class MenuDishCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            if (!blocked)
-                              _AddButton(added: inCart, onTap: onToggle),
+                            if (!blocked && onToggle != null)
+                              _AddButton(added: inCart, onTap: onToggle!),
                           ],
                         ),
                       ],
