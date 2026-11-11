@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/menu_models.dart';
 
@@ -42,34 +41,21 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
                   width: double.infinity,
                   height: 280,
                   color: AppColors.ink50,
-                  child: dish.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: dish.imageUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: AppImageCacheHelper.cacheSize(
-                            context,
-                            MediaQuery.sizeOf(context).width,
-                          ),
-                          memCacheHeight: AppImageCacheHelper.cacheSize(
-                            context,
-                            280,
-                          ),
-                          placeholder: (_, _) => const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondary500,
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => const Icon(
-                            Icons.fastfood,
-                            size: 100,
-                            color: AppColors.secondary500,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.fastfood,
-                          size: 100,
-                          color: AppColors.secondary500,
-                        ),
+                  child: AppNetworkImage(
+                    url: dish.imageUrl,
+                    width: double.infinity,
+                    height: 280,
+                    placeholder: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.secondary500,
+                      ),
+                    ),
+                    error: const Icon(
+                      Icons.fastfood,
+                      size: 100,
+                      color: AppColors.secondary500,
+                    ),
+                  ),
                 ),
                 SafeArea(
                   child: Padding(

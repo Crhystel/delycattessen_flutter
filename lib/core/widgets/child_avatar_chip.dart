@@ -1,8 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import '../utils/app_image_cache_helper.dart';
+import 'app_network_image.dart';
 
 /// Child avatar with a small purple ring (accent). Falls back to an icon.
 class ChildAvatarChip extends StatelessWidget {
@@ -13,8 +12,7 @@ class ChildAvatarChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-    final size = AppImageCacheHelper.cacheSize(context, radius * 2);
+    const icon = Icon(Icons.person, color: AppColors.secondary500);
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: const BoxDecoration(
@@ -26,16 +24,12 @@ class ChildAvatarChip extends StatelessWidget {
       child: CircleAvatar(
         radius: radius,
         backgroundColor: AppColors.secondary50,
-        backgroundImage: hasImage
-            ? ResizeImage(
-                CachedNetworkImageProvider(imageUrl!),
-                width: size,
-                height: size,
-              )
-            : null,
-        child: hasImage
-            ? null
-            : const Icon(Icons.person, color: AppColors.secondary500),
+        child: AppNetworkImage.circle(
+          url: imageUrl,
+          size: radius * 2,
+          placeholder: const Center(child: icon),
+          error: const Center(child: icon),
+        ),
       ),
     );
   }

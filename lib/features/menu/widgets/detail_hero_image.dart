@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 /// Big photo at the top of a detail screen (product, combo) with the back
 /// arrow over it. Falls back to an icon when there is no photo.
@@ -31,26 +30,15 @@ class DetailHeroImage extends StatelessWidget {
           width: double.infinity,
           height: height,
           color: AppColors.ink50,
-          child: imageUrl != null
-              ? CachedNetworkImage(
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
-                  memCacheWidth: AppImageCacheHelper.cacheSize(
-                    context,
-                    MediaQuery.sizeOf(context).width,
-                  ),
-                  memCacheHeight: AppImageCacheHelper.cacheSize(
-                    context,
-                    height,
-                  ),
-                  placeholder: (_, _) => const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.secondary500,
-                    ),
-                  ),
-                  errorWidget: (_, _, _) => const _FallbackIcon(),
-                )
-              : const _FallbackIcon(),
+          child: AppNetworkImage(
+            url: imageUrl,
+            width: double.infinity,
+            height: height,
+            placeholder: const Center(
+              child: CircularProgressIndicator(color: AppColors.secondary500),
+            ),
+            error: const _FallbackIcon(),
+          ),
         ),
         SafeArea(
           child: Padding(

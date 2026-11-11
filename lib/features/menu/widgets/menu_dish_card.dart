@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../models/menu_models.dart';
 
 /// Tarjeta de un platillo del menú del mes: foto, nombre, descripción, chip
@@ -36,7 +35,6 @@ class MenuDishCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final blocked = dish.hasStudentAllergens;
     final url = dish.imageUrl;
-    final cache = AppImageCacheHelper.cacheSize(context, _imageSize);
 
     return Opacity(
       opacity: blocked ? 0.7 : 1,
@@ -67,15 +65,12 @@ class MenuDishCard extends StatelessWidget {
                       child: SizedBox(
                         width: _imageSize,
                         height: _imageSize,
-                        child: url != null
-                            ? CachedNetworkImage(
-                                imageUrl: url,
-                                fit: BoxFit.cover,
-                                memCacheWidth: cache,
-                                memCacheHeight: cache,
-                                errorWidget: (_, _, _) => const _Placeholder(),
-                              )
-                            : const _Placeholder(),
+                        child: AppNetworkImage(
+                          url: url,
+                          width: _imageSize,
+                          height: _imageSize,
+                          error: const _Placeholder(),
+                        ),
                       ),
                     ),
                   ),

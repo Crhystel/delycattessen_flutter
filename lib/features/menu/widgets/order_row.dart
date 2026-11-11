@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../models/menu_models.dart';
 
 /// Fila de la lista de Pedidos: foto del primer producto, "1× Pollo asado",
@@ -155,26 +154,17 @@ class OrderPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = imageUrl;
-    final cache = AppImageCacheHelper.cacheSize(context, size);
     const placeholder = ColoredBox(
       color: AppColors.ink50,
       child: Icon(Icons.fastfood, color: AppColors.secondary500),
     );
     return ClipRRect(
       borderRadius: AppRadius.fieldAll,
-      child: SizedBox(
+      child: AppNetworkImage(
+        url: imageUrl,
         width: size,
         height: size,
-        child: url == null
-            ? placeholder
-            : CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                memCacheWidth: cache,
-                memCacheHeight: cache,
-                errorWidget: (_, _, _) => placeholder,
-              ),
+        error: placeholder,
       ),
     );
   }
