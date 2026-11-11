@@ -21,7 +21,7 @@ const _textScales = [1.0, 2.0];
 const _long = 'Sánduche de pollo con queso derretido y vegetales frescos';
 
 final _catalog = {
-  1: product(1, _long, 2.50, originalPrice: 3.00, discount: 17),
+  1: product(1, _long, 2.50),
   2: product(2, 'Cola personal de vidrio retornable', 1.60),
   3: product(3, 'Galleta artesanal de avena con pasas', 1.00),
 };
@@ -43,15 +43,6 @@ final _offers = CatalogOffers(
           quantity: 1,
         ),
       ],
-    ),
-  ],
-  promotions: [
-    Promotion(
-      id: 1,
-      discountPercentage: 17,
-      endDate: DateTime(2026, 12, 31),
-      productNames: const [_long, 'Galleta artesanal de avena con pasas'],
-      productIds: const [1, 3],
     ),
   ],
 );

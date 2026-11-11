@@ -61,9 +61,6 @@ class ApiConfig {
   // Catalog: productos de la sede del usuario (padres: ?student_id=)
   static const String catalogMenu = '$baseUrl/catalog/menu/';
 
-  // Promotions in force for the user's institution (parents: ?student_id=)
-  static const String activePromotions = '$baseUrl/catalog/promotions/active/';
-
   // Combos in force for the user's institution (parents: ?student_id=)
   static const String activeCombos = '$baseUrl/catalog/combos/active/';
 

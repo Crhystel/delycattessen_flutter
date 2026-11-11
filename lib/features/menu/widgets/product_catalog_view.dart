@@ -478,10 +478,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   /// show only without a search or a category filter. This catalog only
   /// informs, so a sold out combo does not appear.
   Widget? _buildOffers() {
-    final offers = CatalogOffers(
-      promotions: _offers.promotions,
-      combos: _offers.visibleCombos,
-    );
+    final offers = CatalogOffers(combos: _offers.visibleCombos);
     if (offers.isEmpty ||
         _selectedCategory != null ||
         _searchQuery.isNotEmpty) {
@@ -498,7 +495,6 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
           builder: (_) => ComboDetailScreen(combo: combo, itemsById: itemsById),
         ),
       ),
-      onProductTap: _onTapItem,
     );
   }
 
@@ -508,15 +504,12 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       name: item.name,
       description: item.description,
       price: item.price,
-      originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
       leadingImage: widget.flatLayout,
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
-        if (item.discountPercentage != null)
-          CatalogBadge.discount(item.discountPercentage!),
         if (widget.flatLayout && item.stock == 1)
           const CatalogBadge(
             label: '¡Queda 1!',

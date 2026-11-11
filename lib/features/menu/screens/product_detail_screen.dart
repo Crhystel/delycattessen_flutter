@@ -41,28 +41,14 @@ class ProductDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    // Prices under the name (not beside it) so a long name or
-                    // a large system font never pushes them out of the screen.
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          '\$${item.price.toStringAsFixed(2)}',
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.brand700,
-                          ),
-                        ),
-                        if (item.hasDiscount)
-                          Text(
-                            '\$${item.originalPrice.toStringAsFixed(2)}',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink900.withValues(alpha: 0.45),
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                      ],
+                    // Price under the name (not beside it) so a long name or
+                    // a large system font never pushes it out of the screen.
+                    Text(
+                      '\$${item.price.toStringAsFixed(2)}',
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.brand700,
+                      ),
                     ),
                     if (item.description.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.sm),

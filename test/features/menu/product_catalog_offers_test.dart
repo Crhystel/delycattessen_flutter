@@ -8,22 +8,12 @@ import 'support/offers_test_support.dart';
 
 final _items = [
   product(1, 'Sánduche', 2.50),
-  product(
-    2,
-    'Cola',
-    1.60,
-    originalPrice: 2.00,
-    discount: 20,
-    category: 'Bebidas',
-  ),
+  product(2, 'Cola', 1.60, category: 'Bebidas'),
   // Enough products to make the page scroll past the offers.
   for (var i = 3; i <= 25; i++) product(i, 'Producto $i', 1.0 + i / 10),
 ];
 
-final _offers = CatalogOffers(
-  combos: [lunchCombo()],
-  promotions: [colaPromotion()],
-);
+final _offers = CatalogOffers(combos: [lunchCombo()]);
 
 Future<void> _pump(WidgetTester tester, {CatalogOffers? offers}) async {
   tester.view.physicalSize = const Size(360, 640);
@@ -44,7 +34,7 @@ Future<void> _pump(WidgetTester tester, {CatalogOffers? offers}) async {
 }
 
 void main() {
-  testWidgets('shows the offers with the dishes and the two prices', (
+  testWidgets('shows the combo with its dishes and the two prices', (
     tester,
   ) async {
     await _pump(tester, offers: _offers);

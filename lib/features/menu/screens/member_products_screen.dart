@@ -7,7 +7,7 @@ import '../widgets/product_catalog_view.dart';
 
 /// Catálogo de productos de solo consulta para estudiantes y docentes: de dónde
 /// salen los productos y las alergias lo decide la [source] que recibe. Usa el
-/// mismo diseño que el del padre (combos en carrusel, descuentos y filas con
+/// mismo diseño que el del padre (combos en carrusel y filas con
 /// foto); al no recibir `onAdd` no hay botón para agregar.
 class MemberProductsScreen extends StatelessWidget {
   const MemberProductsScreen({super.key, required this.source});

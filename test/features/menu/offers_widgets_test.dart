@@ -1,6 +1,5 @@
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/combo_offer_card.dart';
-import 'package:delycattessen_flutter/features/menu/widgets/discount_offer_card.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/offers_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +10,7 @@ Widget _host(Widget child) => MaterialApp(
   home: Scaffold(body: SingleChildScrollView(child: child)),
 );
 
-final _catalog = {
-  1: product(1, 'Sánduche', 2.50),
-  2: product(2, 'Cola', 1.60, originalPrice: 2.00, discount: 20),
-};
+final _catalog = {1: product(1, 'Sánduche', 2.50), 2: product(2, 'Cola', 1.60)};
 
 void main() {
   group('ComboOfferCard', () {
@@ -101,52 +97,15 @@ void main() {
     });
   });
 
-  group('DiscountOfferCard', () {
-    testWidgets('shows the previous and the new price of each product', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _host(
-          DiscountOfferCard(promotion: colaPromotion(), itemsById: _catalog),
-        ),
-      );
-
-      expect(find.text('-20%'), findsOneWidget);
-      expect(find.text('Cola'), findsOneWidget);
-      expect(find.text('\$2.00'), findsOneWidget); // previous, crossed out
-      expect(find.text('\$1.60'), findsOneWidget); // new
-      final previous = tester.widget<Text>(find.text('\$2.00'));
-      expect(previous.style?.decoration, TextDecoration.lineThrough);
-    });
-
-    testWidgets('falls back to the names when the catalog has no product', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _host(
-          DiscountOfferCard(promotion: colaPromotion(), itemsById: const {}),
-        ),
-      );
-
-      expect(find.text('Cola'), findsOneWidget);
-      expect(find.textContaining('\$'), findsNothing);
-    });
-  });
-
   group('OffersSection', () {
-    testWidgets('shows the combos first and then the discounts', (
-      tester,
-    ) async {
+    testWidgets('shows the title and a card per combo', (tester) async {
       tester.view.physicalSize = const Size(360, 900); // one column
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         _host(
           OffersSection(
-            offers: CatalogOffers(
-              combos: [lunchCombo()],
-              promotions: [colaPromotion()],
-            ),
+            offers: CatalogOffers(combos: [lunchCombo()]),
             itemsById: _catalog,
           ),
         ),
@@ -154,11 +113,6 @@ void main() {
 
       expect(find.text('Ofertas de hoy'), findsOneWidget);
       expect(find.byType(ComboOfferCard), findsOneWidget);
-      expect(find.byType(DiscountOfferCard), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.byType(ComboOfferCard)).dy,
-        lessThan(tester.getTopLeft(find.byType(DiscountOfferCard)).dy),
-      );
     });
 
     testWidgets('takes no space without offers', (tester) async {
@@ -187,34 +141,11 @@ void main() {
       expect(tapped, [10]);
     });
 
-    testWidgets('tapping a product of a discount opens that product', (
-      tester,
-    ) async {
-      final tapped = <int>[];
-      await tester.pumpWidget(
-        _host(
-          OffersSection(
-            offers: CatalogOffers(promotions: [colaPromotion()]),
-            itemsById: _catalog,
-            onProductTap: (item) => tapped.add(item.id),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Cola'));
-
-      expect(tapped, [2]);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-    });
-
     testWidgets('without callbacks the cards show no arrow', (tester) async {
       await tester.pumpWidget(
         _host(
           OffersSection(
-            offers: CatalogOffers(
-              combos: [lunchCombo()],
-              promotions: [colaPromotion()],
-            ),
+            offers: CatalogOffers(combos: [lunchCombo()]),
             itemsById: _catalog,
           ),
         ),

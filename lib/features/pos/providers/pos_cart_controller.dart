@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../menu/models/menu_models.dart';
 import '../models/sale_models.dart';
 
-/// Line of the POS cart: a loose product at its (discounted) price or a
+/// Line of the POS cart: a loose product at its price or a
 /// combo at its fixed price.
 class PosCartLine {
   final int id;

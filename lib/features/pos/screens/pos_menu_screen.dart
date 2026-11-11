@@ -392,7 +392,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   }
 
   /// Combos with their dishes, inside the scroll of the list. The POS sells
-  /// combos; discounts already show on each product card.
+  /// combos.
   Widget? _buildOffers() {
     if (_offers.combos.isEmpty ||
         _selectedCategory != null ||
@@ -404,7 +404,6 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       itemsById: _itemsById,
       onAddCombo: _addCombo,
       onComboTap: _openCombo,
-      onProductTap: _onTapItem,
       comboQuantity: (combo) => _cart.quantityOfCombo(combo.id),
       isComboBlocked: (combo) => _comboConflicts(combo).isNotEmpty,
       stockBadge: CatalogStockBadges.exact,
@@ -418,7 +417,6 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       name: item.name,
       description: item.description,
       price: item.price,
-      originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
       onTap: () => _onTapItem(item),

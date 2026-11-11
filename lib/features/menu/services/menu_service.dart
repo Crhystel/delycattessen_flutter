@@ -80,32 +80,19 @@ class MenuService extends BaseApiService {
         .toList();
   }
 
-  /// Discounts and combos in force today in the institution of [studentId]
-  /// (parents) or in the user's own institution.
+  /// Combos in force today in the institution of [studentId] (parents) or in
+  /// the user's own institution.
   Future<CatalogOffers> getActiveOffers({int? studentId}) async {
     final query = studentId != null
         ? {'student_id': studentId.toString()}
         : null;
-    // Future.wait atiende los errores de ambas peticiones: si una falla (p. ej.
-    // cuenta desactivada), la otra no deja un error asíncrono sin capturar.
-    final responses = await Future.wait([
-      performGetRequest(
-        Uri.parse(
-          ApiConfig.activePromotions,
-        ).replace(queryParameters: query).toString(),
-      ),
-      performGetRequest(
-        Uri.parse(
-          ApiConfig.activeCombos,
-        ).replace(queryParameters: query).toString(),
-      ),
-    ]);
+    final response = await performGetRequest(
+      Uri.parse(
+        ApiConfig.activeCombos,
+      ).replace(queryParameters: query).toString(),
+    );
     return CatalogOffers(
-      promotions: _parseSkippingInvalid(
-        responses[0] as List,
-        Promotion.fromJson,
-      ),
-      combos: _parseSkippingInvalid(responses[1] as List, Combo.fromJson),
+      combos: _parseSkippingInvalid(response as List, Combo.fromJson),
     );
   }
 

@@ -7,7 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
 
-/// Common frame of an offer card (combo or discount): the image uploaded by
+/// Common frame of an offer card (the combo): the image uploaded by
 /// the admin as a slim strip (if any), a label, the title, the end date and
 /// the [child] with the details. Everything flows with the available width and
 /// text, so nothing has a fixed height.

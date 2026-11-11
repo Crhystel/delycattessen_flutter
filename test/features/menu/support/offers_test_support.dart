@@ -5,8 +5,6 @@ MenuItem product(
   int id,
   String name,
   double price, {
-  double? originalPrice,
-  int? discount,
   String category = 'Snacks',
 }) => MenuItem(
   id: id,
@@ -17,8 +15,6 @@ MenuItem product(
   ingredients: const [],
   allergens: const [],
   stock: 10,
-  originalPrice: originalPrice,
-  discountPercentage: discount,
 );
 
 Combo lunchCombo({
@@ -38,14 +34,6 @@ Combo lunchCombo({
         ComboItem(productId: 1, name: 'Sánduche', quantity: 1),
         ComboItem(productId: 2, name: 'Cola', quantity: 2),
       ],
-);
-
-Promotion colaPromotion() => Promotion(
-  id: 20,
-  discountPercentage: 20,
-  endDate: DateTime(2026, 12, 31),
-  productNames: const ['Cola'],
-  productIds: const [2],
 );
 
 /// Catalog source with fixed data, for the catalog screen.
