@@ -8,8 +8,18 @@ class MenuService extends BaseApiService {
     final response = await performGetRequest(
       ApiConfig.studentMonthlyMenu(studentId),
     );
-    final data = response as List;
-    return data
+    return _parseMenuDays(response);
+  }
+
+  /// Menú mensual publicado de la propia sede del estudiante autenticado
+  /// (solo consulta: no necesita conocer su id de perfil).
+  Future<List<MenuDay>> getOwnMonthlyMenu() async {
+    final response = await performGetRequest(ApiConfig.ownMonthlyMenu);
+    return _parseMenuDays(response);
+  }
+
+  static List<MenuDay> _parseMenuDays(dynamic response) {
+    return (response as List)
         .map((json) => MenuDay.fromJson(json as Map<String, dynamic>))
         .toList();
   }
@@ -90,17 +100,28 @@ class MenuService extends BaseApiService {
         ).replace(queryParameters: query).toString(),
       ),
     ]);
-    final promotions = responses[0] as List;
-    final combos = responses[1] as List;
     return CatalogOffers(
-      promotions: promotions
-          .whereType<Map<String, dynamic>>()
-          .map(Promotion.fromJson)
-          .toList(),
-      combos: combos
-          .whereType<Map<String, dynamic>>()
-          .map(Combo.fromJson)
-          .toList(),
+      promotions: _parseSkippingInvalid(
+        responses[0] as List,
+        Promotion.fromJson,
+      ),
+      combos: _parseSkippingInvalid(responses[1] as List, Combo.fromJson),
     );
+  }
+
+  /// One malformed offer must not hide the others: it is skipped.
+  static List<T> _parseSkippingInvalid<T>(
+    List raw,
+    T Function(Map<String, dynamic>) parse,
+  ) {
+    final parsed = <T>[];
+    for (final entry in raw.whereType<Map<String, dynamic>>()) {
+      try {
+        parsed.add(parse(entry));
+      } catch (_) {
+        // Invalid entry (e.g. without id): the rest of the offers still show.
+      }
+    }
+    return parsed;
   }
 }

@@ -9,7 +9,20 @@ import 'features/children/providers/children_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // De borde a borde (no inmersivo): el fondo cubre la barra de estado y la
+  // zona de la cámara, y cada pantalla respeta el área segura. El modo
+  // inmersivo hacía que los márgenes cambiaran al reaparecer las barras.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
+    ),
+  );
 
   // Ninguna excepción sin capturar (API, red o de programación) debe cerrar
   // la app: se registra y la app sigue funcionando.

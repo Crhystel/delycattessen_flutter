@@ -24,6 +24,15 @@ class _FakeMenuService extends MenuService {
     if (error != null) throw error!;
     return days;
   }
+
+  int ownCalls = 0;
+
+  @override
+  Future<List<MenuDay>> getOwnMonthlyMenu() async {
+    ownCalls++;
+    if (error != null) throw error!;
+    return days;
+  }
 }
 
 void main() {
@@ -61,6 +70,44 @@ void main() {
 
       expect(menu.errorMessage, 'Sin conexión');
       expect(menu.isLoading, isFalse);
+    });
+  });
+
+  group('loadOwn', () {
+    test(
+      'loads the menu of the authenticated student and picks the first day',
+      () async {
+        final service = _FakeMenuService([monday, tuesday]);
+        final menu = ParentMenuController(menuService: service);
+
+        await menu.loadOwn();
+
+        expect(service.ownCalls, 1);
+        expect(menu.isLoading, isFalse);
+        expect(menu.days, hasLength(2));
+        expect(menu.selectedDay?.id, 1);
+        expect(menu.hasCart, isFalse);
+      },
+    );
+
+    test('reuses the day selection of the initial date', () async {
+      final menu = build();
+      await menu.loadOwn(initialDate: DateTime(2026, 10, 20));
+
+      expect(menu.selectedDay?.id, 2);
+    });
+
+    test('keeps a clean error message and can retry', () async {
+      final service = _FakeMenuService([monday])..error = Exception('Sin red');
+      final menu = ParentMenuController(menuService: service);
+
+      await menu.loadOwn();
+      expect(menu.errorMessage, 'Sin red');
+
+      service.error = null;
+      await menu.loadOwn();
+      expect(menu.errorMessage, isNull);
+      expect(menu.selectedDay?.id, 1);
     });
   });
 

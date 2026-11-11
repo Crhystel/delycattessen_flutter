@@ -3,12 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../models/menu_models.dart';
 import '../screens/combo_detail_screen.dart';
 import '../screens/product_detail_screen.dart';
@@ -40,6 +41,21 @@ class ProductCatalogView extends StatefulWidget {
   /// Se ejecuta tras recargar con pull-to-refresh (p. ej. refrescar saldos).
   final Future<void> Function()? onRefreshed;
 
+  /// Widget a la derecha del título (la burbuja de perfil del padre).
+  final Widget? titleTrailing;
+
+  /// Cómo se muestran las categorías (burbujas con icono o chips).
+  final CategoryFilterStyle categoryStyle;
+
+  /// Fondo de la pantalla y de la cabecera que se encoge.
+  final Color backgroundColor;
+
+  /// Vista del padre: círculos decorativos arriba, buscador con borde, sin
+  /// recuadro, combos en carrusel, "Productos" con su cantidad y filas con la
+  /// foto a la izquierda. La cabecera va en el orden del diseño: título,
+  /// selector, buscador y categorías (estas dos últimas quedan fijas).
+  final bool flatLayout;
+
   const ProductCatalogView({
     super.key,
     required this.source,
@@ -48,6 +64,10 @@ class ProductCatalogView extends StatefulWidget {
     this.headerAccessory,
     this.banner,
     this.onRefreshed,
+    this.titleTrailing,
+    this.categoryStyle = CategoryFilterStyle.circles,
+    this.backgroundColor = Colors.white,
+    this.flatLayout = false,
   });
 
   @override
@@ -141,7 +161,8 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   Future<CatalogOffers> _loadOffers(ProductCatalogSource source) async {
     try {
       return await source.loadOffers();
-    } on ApiException {
+    } catch (_) {
+      // Network, backend or a malformed offer: the catalog goes on without it.
       return CatalogOffers.empty;
     }
   }
@@ -157,7 +178,6 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       .toList();
 
   void _onSearchChanged(String value) {
-    setState(() {}); // refresca el botón de limpiar
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
@@ -184,56 +204,131 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     );
   }
 
+  Widget _buildCategories(List<String> categories) => CategoryFilterBar(
+    categories: categories,
+    style: widget.categoryStyle,
+    selected: _selectedCategory,
+    onSelected: (category) => setState(() => _selectedCategory = category),
+  );
+
+  /// Header of the parent view, in the order of the design (title, selector,
+  /// search, categories). When scrolling, title, selector and categories fold
+  /// away and only the search field stays pinned; the bubbles are drawn behind
+  /// the pinned band too, so they look the same as at the top of the page.
+  Widget _buildFlatHeader(
+    List<String> categories,
+    bool showFilters,
+    double topInset,
+  ) {
+    return CollapsingHeader(
+      backgroundColor: widget.backgroundColor,
+      transparentAtTop: true,
+      topInset: topInset,
+      backdrop: const FloatingBubbles(
+        corner: BubbleCorner.topRight,
+        design: true,
+      ),
+      collapsible: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CatalogTitleBlock(
+            design: true,
+            title: widget.title,
+            accessory: widget.headerAccessory,
+            trailing: widget.titleTrailing,
+          ),
+          if (widget.banner != null) widget.banner!,
+        ],
+      ),
+      kept: CatalogSearchRow(
+        hintText: 'Buscar productos',
+        outlined: true,
+        design: true,
+        showBackButton: widget.showBackButton,
+        searchController: _searchController,
+        onSearchChanged: _onSearchChanged,
+      ),
+      // Always given (empty while loading or without categories): it is what
+      // keeps the order title, selector, search; with null the header would
+      // fall back to the old one and put the search field on top.
+      collapsibleBelow: showFilters && categories.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.lg),
+              child: _buildCategories(categories),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = categoriesOf(_items);
     final showFilters = !_isLoading && _errorMessage == null;
+    final flat = widget.flatLayout;
+    final topInset = MediaQuery.viewPaddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: ResponsiveCenter(
-        maxWidth: AppLayout.wideMaxWidth,
-        child: SafeArea(
-          child: RefreshIndicator(
-            color: AppColors.secondary500,
-            onRefresh: _refresh,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // The search field stays; the title, selector, banner and
-                // categories shrink together with the scroll (1 to 1 with the
-                // finger) and come back when the list returns to its start.
-                CollapsingHeader(
-                  kept: CatalogSearchRow(
-                    showBackButton: widget.showBackButton,
-                    searchController: _searchController,
-                    onSearchChanged: _onSearchChanged,
-                  ),
-                  collapsible: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CatalogTitleBlock(
-                        title: widget.title,
-                        accessory: widget.headerAccessory,
-                      ),
-                      if (widget.banner != null) widget.banner!,
-                      const SizedBox(height: AppSpacing.sm),
-                      if (showFilters && categories.isNotEmpty)
-                        CategoryFilterBar(
-                          categories: categories,
-                          selected: _selectedCategory,
-                          onSelected: (category) =>
-                              setState(() => _selectedCategory = category),
+      backgroundColor: widget.backgroundColor,
+      body: Stack(
+        children: [
+          if (flat)
+            const RepaintBoundary(
+              child: FloatingBubbles(
+                corner: BubbleCorner.topRight,
+                design: true,
+              ),
+            ),
+          ResponsiveCenter(
+            maxWidth: AppLayout.wideMaxWidth,
+            // The parent view is drawn edge to edge: its header adds the
+            // status bar inset itself and stays pinned under it.
+            child: SafeArea(
+              top: !flat,
+              child: RefreshIndicator(
+                color: AppColors.secondary500,
+                edgeOffset: flat ? topInset : 0,
+                onRefresh: _refresh,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    if (flat)
+                      _buildFlatHeader(categories, showFilters, topInset)
+                    else
+                      // The search field stays; the title, selector, banner and
+                      // categories shrink together with the scroll (1 to 1 with
+                      // the finger) and come back when the list returns to its
+                      // start.
+                      CollapsingHeader(
+                        backgroundColor: widget.backgroundColor,
+                        kept: CatalogSearchRow(
+                          hintText: 'Buscar...',
+                          showBackButton: widget.showBackButton,
+                          searchController: _searchController,
+                          onSearchChanged: _onSearchChanged,
                         ),
-                      const SizedBox(height: AppSpacing.xs),
-                    ],
-                  ),
+                        collapsible: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CatalogTitleBlock(
+                              title: widget.title,
+                              accessory: widget.headerAccessory,
+                              trailing: widget.titleTrailing,
+                            ),
+                            if (widget.banner != null) widget.banner!,
+                            const SizedBox(height: AppSpacing.sm),
+                            if (showFilters && categories.isNotEmpty)
+                              _buildCategories(categories),
+                            const SizedBox(height: AppSpacing.xs),
+                          ],
+                        ),
+                      ),
+                    ..._buildContent(),
+                  ],
                 ),
-                ..._buildContent(),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -274,6 +369,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       query: _searchQuery,
     );
     final offers = _buildOffers();
+    if (widget.flatLayout) return _buildFlatContent(items, offers);
     return [
       CatalogSectionSliver(
         title: CategoryFilterBar.labelFor(_selectedCategory),
@@ -291,19 +387,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
               ),
             ),
           if (items.isEmpty)
-            SliverToBoxAdapter(
-              child: EmptyState(
-                icon: _searchQuery.isNotEmpty
-                    ? Icons.search_off
-                    : Icons.fastfood,
-                title: _searchQuery.isNotEmpty
-                    ? 'No encontramos "$_searchQuery"'
-                    : 'Tu sede aún no tiene productos disponibles',
-                message: _searchQuery.isNotEmpty
-                    ? 'Prueba con otro término.'
-                    : null,
-              ),
-            )
+            SliverToBoxAdapter(child: _buildEmptyItems())
           else
             SliverResponsiveItemList(
               padding: const EdgeInsets.fromLTRB(
@@ -320,6 +404,79 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     ];
   }
 
+  /// Parent layout: the combo carousel, then "Productos" with how many there
+  /// are and a row per product, with no box around them.
+  List<Widget> _buildFlatContent(List<MenuItem> items, Widget? offers) {
+    return [
+      if (offers != null)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              AppSpacing.xl,
+              AppSpacing.page,
+              0,
+            ),
+            child: offers,
+          ),
+        ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppSpacing.xl,
+            AppSpacing.page,
+            10,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  'Productos',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.sectionTitleSm,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                items.length == 1
+                    ? '1 disponible'
+                    : '${items.length} disponibles',
+                style: AppText.secondaryLg,
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (items.isEmpty)
+        SliverToBoxAdapter(child: _buildEmptyItems())
+      else
+        SliverResponsiveItemList(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            0,
+            AppSpacing.page,
+            AppSpacing.lg,
+          ),
+          itemCount: items.length,
+          itemBuilder: (_, index) => _buildItemCard(items[index]),
+        ),
+    ];
+  }
+
+  Widget _buildEmptyItems() {
+    return EmptyState(
+      icon: _searchQuery.isNotEmpty ? Icons.search_off : Icons.fastfood,
+      title: _searchQuery.isNotEmpty
+          ? 'No encontramos "$_searchQuery"'
+          : 'Tu sede aún no tiene productos disponibles',
+      message: _searchQuery.isNotEmpty ? 'Prueba con otro término.' : null,
+    );
+  }
+
   /// Offers go inside the scroll of the list, so they never shrink it. They
   /// show only without a search or a category filter.
   Widget? _buildOffers() {
@@ -332,6 +489,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     return OffersSection(
       offers: _offers,
       itemsById: itemsById,
+      carousel: widget.flatLayout,
       onComboTap: (combo) => Navigator.push(
         context,
         MaterialPageRoute(
@@ -351,12 +509,19 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
+      leadingImage: widget.flatLayout,
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
         if (item.discountPercentage != null)
           CatalogBadge.discount(item.discountPercentage!),
-        if (item.stock > 0 && item.stock <= _lowStockThreshold)
+        if (widget.flatLayout && item.stock == 1)
+          const CatalogBadge(
+            label: '¡Queda 1!',
+            background: AppColors.dangerBg,
+            foreground: AppColors.danger700,
+          )
+        else if (item.stock > 0 && item.stock <= _lowStockThreshold)
           CatalogBadge.info('Quedan ${item.stock}'),
       ],
     );

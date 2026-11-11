@@ -11,9 +11,12 @@ import '../models/menu_models.dart';
 
 class DishDetailScreen extends StatefulWidget {
   final MenuDish dish;
-  final Function(int) onAdd;
 
-  const DishDetailScreen({super.key, required this.dish, required this.onAdd});
+  /// Agrega [dish] con la cantidad elegida. Nulo: solo consulta (estudiante),
+  /// sin barra de cantidad ni botón de añadir.
+  final Function(int)? onAdd;
+
+  const DishDetailScreen({super.key, required this.dish, this.onAdd});
 
   @override
   State<DishDetailScreen> createState() => _DishDetailScreenState();
@@ -137,7 +140,7 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
                 ),
               ),
             ),
-            _buildBottomBar(),
+            if (widget.onAdd != null) _buildBottomBar(widget.onAdd!),
           ],
         ),
       ),
@@ -174,7 +177,7 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(Function(int) onAdd) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -229,7 +232,7 @@ class _DishDetailScreenState extends State<DishDetailScreen> {
                 label:
                     'Añadir \$${(widget.dish.price * _quantity).toStringAsFixed(2)}',
                 onPressed: () {
-                  widget.onAdd(_quantity);
+                  onAdd(_quantity);
                   Navigator.pop(context);
                 },
               ),

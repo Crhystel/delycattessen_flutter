@@ -70,6 +70,8 @@ flutter:
 
   assets:
     - assets/images/
+    # Nunito empaquetada (400-900): google_fonts la toma de aquí sin descargarla.
+    - assets/fonts/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

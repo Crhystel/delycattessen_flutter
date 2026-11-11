@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/child_avatar_chip.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
-import '../../children/widgets/child_picker_sheet.dart';
+import '../../children/widgets/child_switch_bar.dart';
 import '../services/product_catalog_source.dart';
+import '../widgets/category_filter_bar.dart';
 import '../widgets/product_catalog_view.dart';
 
 /// Catálogo de productos de la sede del hijo seleccionado (vista del padre).
@@ -16,7 +16,14 @@ class ParentProductsScreen extends StatefulWidget {
   /// Widget bajo el título (selector Menú/Productos).
   final Widget? headerAccessory;
 
-  const ParentProductsScreen({super.key, this.headerAccessory});
+  /// Burbuja de perfil a la derecha del título (la pone el ParentShell).
+  final Widget? profileAction;
+
+  const ParentProductsScreen({
+    super.key,
+    this.headerAccessory,
+    this.profileAction,
+  });
 
   @override
   State<ParentProductsScreen> createState() => _ParentProductsScreenState();
@@ -65,71 +72,36 @@ class _ParentProductsScreenState extends State<ParentProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final children = context.watch<ChildrenProvider>().children;
-    final child = _child;
+    // Se observa el provider para repintar la barra al cambiar de hijo.
+    context.watch<ChildrenProvider>();
     return ProductCatalogView(
       source: _source,
+      // The tab is called "Menú" in the design (the switch under it picks
+      // between the monthly menu and the products).
+      title: 'Menú',
       headerAccessory: widget.headerAccessory,
-      banner: child == null ? null : _buildChildBanner(child, children),
+      titleTrailing: widget.profileAction,
+      // The same child selector as the monthly menu: it sits under the Menú |
+      // Productos switch and folds away with it when the list scrolls.
+      banner: _child == null
+          ? null
+          : const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.lg,
+                AppSpacing.page,
+                0,
+              ),
+              child: ChildSwitchBar(
+                label: 'Pidiendo para',
+                showBalance: true,
+                sheetTitle: '¿Para quién estás pidiendo?',
+              ),
+            ),
+      categoryStyle: CategoryFilterStyle.evenCircles,
+      backgroundColor: AppColors.ink50,
+      flatLayout: true,
       onRefreshed: _childrenProvider.refresh,
-    );
-  }
-
-  Widget _buildChildBanner(Child child, List<Child> children) {
-    final canSwitch = children.length > 1;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        0,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: GestureDetector(
-          onTap: canSwitch
-              ? () => ChildPickerSheet.show(
-                  context,
-                  _childrenProvider,
-                  title: '¿Para quién estás viendo?',
-                )
-              : null,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-            decoration: BoxDecoration(
-              color: AppColors.secondary50,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 12),
-                const SizedBox(width: 8),
-                // Flexible: a long name or a large font is cut, never overflows.
-                Flexible(
-                  child: Text(
-                    'Productos para ${child.firstName}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.secondary700,
-                    ),
-                  ),
-                ),
-                if (canSwitch) ...[
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.expand_more,
-                    size: 18,
-                    color: AppColors.secondary700,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

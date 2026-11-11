@@ -4,26 +4,32 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/header_actions.dart';
+import '../../../core/widgets/profile_bubble.dart';
+import '../../../core/widgets/tab_header.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/screens/profile_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
-import '../../menu/screens/teacher_products_screen.dart';
+import '../../menu/screens/member_menu_screen.dart';
+import '../../menu/screens/member_products_screen.dart';
+import '../../menu/services/product_catalog_source.dart';
 import '../../pos/screens/credit_history_screen.dart';
 import '../../users/screens/allergy_management_screen.dart';
 import '../../users/services/allergy_owner.dart';
 import '../models/qr_token_model.dart';
 import '../services/qr_service.dart';
+import '../widgets/member_shortcut_list.dart';
 
 /// Inicio de estudiantes y docentes: saldo (solo estudiantes), QR dinámico
-/// para identificarse en el POS y, para docentes, crédito y alergias.
+/// para identificarse en el POS y accesos de solo consulta: el estudiante ve el
+/// menú del mes y los productos; el docente, los productos, su crédito y sus
+/// alergias.
 class MemberHomeScreen extends StatefulWidget {
   final String? initialUserName;
   final bool isTeacher;
@@ -133,8 +139,11 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
       if (!mounted) return;
       final updated = await Navigator.of(context).push<MeResponse>(
         MaterialPageRoute(
-          builder: (_) =>
-              ProfileScreen(me: me, onOpenAllergies: _openAllergies),
+          builder: (_) => ProfileScreen(
+            me: me,
+            onOpenAllergies: _openAllergies,
+            onLogout: _confirmLogout,
+          ),
         ),
       );
       // The greeting shows the name that comes with the QR data.
@@ -164,6 +173,28 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     }
   }
 
+  /// "Hola {nombre}" y el día de hoy.
+  Widget _buildGreeting(TextTheme textTheme, String displayName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Hola $displayName',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _getCurrentDayFormatted(),
+          style: textTheme.bodyMedium?.copyWith(
+            color: AppColors.ink900.withValues(alpha: 0.65),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -175,211 +206,226 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
         : '\$0.00';
 
     return AppScaffold(
+      // El docente usa TabHeader, que calcula su propio margen superior (la
+      // burbuja queda a la misma altura que en las pestañas del padre).
+      safeAreaTop: !widget.isTeacher,
       bubbleCorners: const [
         BubbleCorner.topRight,
         BubbleCorner.homeBottomLeft,
         BubbleCorner.homeBottomRight,
       ],
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          HeaderActions.topInset,
-          AppSpacing.xl,
-          AppSpacing.xl,
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cuenta (perfil y cerrar sesión) en la esquina superior, sobre
-            // una píldora blanca para que se lea sobre las burbujas.
-            Align(
-              alignment: Alignment.centerRight,
-              child: HeaderActions(
-                actions: [
-                  if (widget.isTeacher)
-                    HeaderAction(
-                      icon: Icons.manage_accounts_outlined,
-                      tooltip: 'Mi perfil',
-                      onPressed: _openProfile,
-                    ),
-                  HeaderAction(
-                    icon: Icons.logout,
-                    tooltip: 'Cerrar sesión',
-                    onPressed: _confirmLogout,
-                    color: AppColors.danger700,
-                  ),
+            _buildHeader(textTheme, displayName),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: _buildContent(textTheme, balanceText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Docente: saludo a la izquierda y la burbuja de perfil a la derecha, como
+  /// en las pestañas del padre (cerrar sesión está dentro de "Mi perfil").
+  /// Estudiante (sin perfil): solo cerrar sesión, en la esquina superior sobre
+  /// una píldora blanca para que se lea sobre las burbujas.
+  Widget _buildHeader(TextTheme textTheme, String displayName) {
+    if (widget.isTeacher) {
+      return TabHeader(
+        leading: _buildGreeting(textTheme, displayName),
+        trailing: ProfileBubble(
+          initial: displayName.trim().isEmpty
+              ? ''
+              : displayName.trim().substring(0, 1),
+          onTap: _openProfile,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        HeaderActions.topInset,
+        AppSpacing.xl,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: HeaderActions(
+              actions: [
+                HeaderAction(
+                  icon: Icons.logout,
+                  tooltip: 'Cerrar sesión',
+                  onPressed: _confirmLogout,
+                  color: AppColors.danger700,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildGreeting(textTheme, displayName),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(TextTheme textTheme, String balanceText) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Balance card with Figma gradient (docentes no usan billetera)
+        if (!widget.isTeacher) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.xl - 4),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0068D6), // Vibrant Blue
+                  Color(0xFF4F46E5), // Indigo / Purple
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Hola $displayName',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _getCurrentDayFormatted(),
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink900.withValues(alpha: 0.65),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Balance card with Figma gradient (docentes no usan billetera)
-            if (!widget.isTeacher) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.xl - 4),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0068D6), // Vibrant Blue
-                      Color(0xFF4F46E5), // Indigo / Purple
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: Colors.white70,
-                          size: 18,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Saldo actual',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      balanceText,
-                      style: textTheme.headlineLarge?.copyWith(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-            if (widget.isTeacher) ...[
-              _buildTeacherShortcuts(),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xFFE5A93C),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Tu código QR',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xFFE5A93C),
-                    size: 18,
-                  ),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.md),
-
-            // White card with the dynamic QR (always black on white to scan)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.xl - 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: AppRadius.mdAll,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: _buildQrContent(textTheme),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl - 4),
-
-            // Security badge
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md - 2,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.warningBg,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: AppColors.warning500.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
                     const Icon(
-                      Icons.shield_outlined,
-                      color: AppColors.warning700,
+                      Icons.account_balance_wallet_outlined,
+                      color: Colors.white70,
                       size: 18,
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
-                      'Este código es único y personal.',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.warning700,
-                        fontWeight: FontWeight.w800,
+                      'Saldo actual',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  balanceText,
+                  style: textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+        MemberShortcutList(shortcuts: _shortcuts()),
+        const SizedBox(height: AppSpacing.xl),
+
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome,
+                color: Color(0xFFE5A93C),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Tu código QR',
+                style: textTheme.titleMedium?.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.auto_awesome,
+                color: Color(0xFFE5A93C),
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // White card with the dynamic QR (always black on white to scan)
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.xl - 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: AppRadius.mdAll,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: _buildQrContent(textTheme),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl - 4),
+
+        // Security badge
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md - 2,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.warningBg,
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(
+                color: AppColors.warning500.withValues(alpha: 0.6),
               ),
             ),
-            // Espacio para que el contenido no quede bajo las burbujas inferiores.
-            const SizedBox(height: AppSpacing.xxl * 3),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.warning700,
+                  size: 18,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Este código es único y personal.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.warning700,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        // Espacio para que el contenido no quede bajo las burbujas inferiores.
+        const SizedBox(height: AppSpacing.xxl * 3),
+      ],
     );
   }
 
@@ -395,10 +441,19 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     );
   }
 
-  void _openProducts() {
+  void _openMenu() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const TeacherProductsScreen()));
+    ).push(MaterialPageRoute(builder: (_) => const MemberMenuScreen()));
+  }
+
+  void _openProducts() {
+    final source = widget.isTeacher
+        ? OwnCatalogSource.teacher()
+        : OwnCatalogSource.student();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MemberProductsScreen(source: source)),
+    );
   }
 
   void _openAllergies() {
@@ -412,48 +467,33 @@ class _MemberHomeScreenState extends State<MemberHomeScreen>
     );
   }
 
-  Widget _buildTeacherShortcuts() {
-    return Column(
-      children: [
-        _buildShortcut(
-          icon: Icons.storefront_outlined,
-          label: 'Catálogo de productos',
-          onTap: _openProducts,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildShortcut(
+  /// Accesos de solo consulta según el rol. El estudiante ve el menú del mes
+  /// (no existe para docentes) y los productos; el docente, los productos y su
+  /// crédito.
+  List<MemberShortcut> _shortcuts() {
+    final products = MemberShortcut(
+      icon: Icons.storefront_outlined,
+      label: 'Catálogo de productos',
+      onTap: _openProducts,
+    );
+    if (widget.isTeacher) {
+      return [
+        products,
+        MemberShortcut(
           icon: Icons.account_balance_outlined,
           label: 'Mi crédito',
           onTap: _openCreditHistory,
         ),
-      ],
-    );
-  }
-
-  Widget _buildShortcut({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.secondary500),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+      ];
+    }
+    return [
+      MemberShortcut(
+        icon: Icons.restaurant_menu_outlined,
+        label: 'Menú del mes',
+        onTap: _openMenu,
       ),
-    );
+      products,
+    ];
   }
 
   Widget _buildQrContent(TextTheme textTheme) {

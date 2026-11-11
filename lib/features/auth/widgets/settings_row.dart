@@ -6,6 +6,9 @@ import '../../../core/theme/app_spacing.dart';
 /// One option of a settings list: icon, title, current value and an arrow on
 /// the right that tells the user it opens its own screen. Text is cut with an
 /// ellipsis, so a long value never overflows the row.
+///
+/// Con [design] = true usa el estilo del rediseño del padre (título 15.5/700,
+/// detalle 13.5/600 en `muted`, flecha `chevron` de 18).
 class SettingsRow extends StatelessWidget {
   const SettingsRow({
     super.key,
@@ -13,12 +16,14 @@ class SettingsRow extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
+    this.design = false,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final bool design;
 
   static const double _minHeight = 64;
   static const double _iconCircle = 40;
@@ -45,7 +50,11 @@ class SettingsRow extends StatelessWidget {
                   color: AppColors.secondary50,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: AppColors.secondary500, size: 20),
+                child: Icon(
+                  icon,
+                  color: AppColors.secondary500,
+                  size: design ? 19 : 20,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -57,7 +66,8 @@ class SettingsRow extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontSize: design ? 15.5 : null,
+                        fontWeight: design ? FontWeight.w700 : FontWeight.w800,
                         color: AppColors.ink900,
                       ),
                     ),
@@ -66,9 +76,15 @@ class SettingsRow extends StatelessWidget {
                         detail,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.6),
-                        ),
+                        style: design
+                            ? textTheme.bodySmall?.copyWith(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.muted,
+                              )
+                            : textTheme.bodySmall?.copyWith(
+                                color: AppColors.ink900.withValues(alpha: 0.6),
+                              ),
                       ),
                   ],
                 ),
@@ -76,7 +92,10 @@ class SettingsRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Icon(
                 Icons.chevron_right,
-                color: AppColors.ink900.withValues(alpha: 0.5),
+                size: design ? 20 : 24,
+                color: design
+                    ? AppColors.chevron
+                    : AppColors.ink900.withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -86,10 +105,12 @@ class SettingsRow extends StatelessWidget {
   }
 }
 
-/// [rows] with a thin divider between them.
-List<Widget> withDividers(List<Widget> rows) => [
+/// [rows] with a thin divider between them. Con [design] usa el divisor más
+/// suave del rediseño.
+List<Widget> withDividers(List<Widget> rows, {bool design = false}) => [
   for (var i = 0; i < rows.length; i++) ...[
-    if (i > 0) const Divider(height: 1, color: AppColors.teal50),
+    if (i > 0)
+      Divider(height: 1, color: design ? AppColors.divider : AppColors.teal50),
     rows[i],
   ],
 ];

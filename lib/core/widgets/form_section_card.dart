@@ -7,6 +7,9 @@ import 'app_card.dart';
 /// A themed group of form fields: a small grey title over a white card.
 /// Meant for pages on the `ink50` background, so each topic reads as its own
 /// block. The card takes the width the page gives it.
+///
+/// Con [design] = true usa el estilo del rediseño del padre (título 15/700 en
+/// `muted`, tarjeta de radio 22 con borde `line`).
 class FormSectionCard extends StatelessWidget {
   const FormSectionCard({
     super.key,
@@ -14,6 +17,7 @@ class FormSectionCard extends StatelessWidget {
     required this.children,
     this.subtitle,
     this.contentPadding,
+    this.design = false,
   });
 
   final String title;
@@ -23,6 +27,7 @@ class FormSectionCard extends StatelessWidget {
   /// Padding inside the card; zero lets rows (e.g. a settings list) reach the
   /// card edges. Defaults to the standard card padding.
   final EdgeInsetsGeometry? contentPadding;
+  final bool design;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +42,20 @@ class FormSectionCard extends StatelessWidget {
           ),
           child: Text(
             title,
-            style: textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink900.withValues(alpha: 0.6),
-            ),
+            style: design
+                ? textTheme.titleSmall?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.muted,
+                  )
+                : textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink900.withValues(alpha: 0.6),
+                  ),
           ),
         ),
         AppCard(
+          design: design,
           padding: contentPadding ?? const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

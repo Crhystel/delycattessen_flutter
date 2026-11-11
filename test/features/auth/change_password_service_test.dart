@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:delycattessen_flutter/core/network/api_exception.dart';
+import 'package:delycattessen_flutter/core/network/base_api_service.dart';
 import 'package:delycattessen_flutter/core/storage/token_storage.dart';
 import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
@@ -15,11 +16,15 @@ final _request = ChangePasswordRequest(
   confirmPassword: 'New-Passw0rd!',
 );
 
-Future<void> _change(http.Response Function(http.Request) answer) {
-  return http.runWithClient(
-    () => AuthService().changePassword(_request),
-    () => MockClient((request) async => answer(request)),
-  );
+Future<void> _change(http.Response Function(http.Request) answer) async {
+  // BaseApiService usa un cliente compartido: se sustituye por uno simulado.
+  final original = BaseApiService.httpClient;
+  BaseApiService.httpClient = MockClient((request) async => answer(request));
+  try {
+    await AuthService().changePassword(_request);
+  } finally {
+    BaseApiService.httpClient = original;
+  }
 }
 
 void main() {

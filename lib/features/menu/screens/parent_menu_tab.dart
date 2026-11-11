@@ -10,15 +10,32 @@ import 'parent_products_screen.dart';
 class ParentMenuTab extends StatefulWidget {
   final DateTime? initialDate;
 
-  const ParentMenuTab({super.key, this.initialDate});
+  /// Vista con la que abre la pestaña (Inicio puede pedir "Productos").
+  final MenuMode initialMode;
+
+  /// Cambia cada vez que Inicio pide un día o "Productos". La pestaña lo
+  /// atiende sin recrearse: así conserva el carrito y lo que ya cargó. Si quien
+  /// la aloja no lo usa, debe recrearla con otra `key` para cada pedido.
+  final Object? request;
+
+  /// Burbuja de perfil que pone el ParentShell junto al título.
+  final Widget? profileAction;
+
+  const ParentMenuTab({
+    super.key,
+    this.initialDate,
+    this.initialMode = MenuMode.monthly,
+    this.request,
+    this.profileAction,
+  });
 
   @override
   State<ParentMenuTab> createState() => _ParentMenuTabState();
 }
 
 class _ParentMenuTabState extends State<ParentMenuTab> {
-  MenuMode _mode = MenuMode.monthly;
-  bool _productsVisited = false;
+  late MenuMode _mode = widget.initialMode;
+  late bool _productsVisited = widget.initialMode == MenuMode.products;
 
   void _setMode(MenuMode mode) {
     if (mode == _mode) return;
@@ -26,6 +43,17 @@ class _ParentMenuTabState extends State<ParentMenuTab> {
       _mode = mode;
       if (mode == MenuMode.products) _productsVisited = true;
     });
+  }
+
+  @override
+  void didUpdateWidget(ParentMenuTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new request from Inicio (a day, or "Productos"): switch the view.
+    final isNewRequest =
+        widget.request != oldWidget.request ||
+        widget.initialMode != oldWidget.initialMode ||
+        widget.initialDate != oldWidget.initialDate;
+    if (isNewRequest) _setMode(widget.initialMode);
   }
 
   Widget get _switcher => MenuModeSwitcher(mode: _mode, onChanged: _setMode);
@@ -38,10 +66,15 @@ class _ParentMenuTabState extends State<ParentMenuTab> {
         MenuScreen(
           embedded: true,
           initialDate: widget.initialDate,
+          dateRequest: widget.request,
           headerAccessory: _switcher,
+          profileAction: widget.profileAction,
         ),
         if (_productsVisited)
-          ParentProductsScreen(headerAccessory: _switcher)
+          ParentProductsScreen(
+            headerAccessory: _switcher,
+            profileAction: widget.profileAction,
+          )
         else
           const SizedBox.shrink(),
       ],

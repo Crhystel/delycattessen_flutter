@@ -1,4 +1,5 @@
 import 'package:delycattessen_flutter/core/theme/app_colors.dart';
+import 'package:delycattessen_flutter/core/widgets/floating_bubbles.dart';
 import 'package:delycattessen_flutter/core/widgets/form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,5 +44,24 @@ void main() {
     );
     await tester.pump();
     expect(find.text('fila 29'), findsOneWidget);
+  });
+
+  testWidgets('header instead of app bar, bubbles and 20 margins', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: FormPage(title: 'Mi perfil', children: [Text('contenido')]),
+      ),
+    );
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('Mi perfil'), findsOneWidget);
+    expect(find.byType(FloatingBubbles), findsOneWidget);
+    expect(tester.getTopLeft(find.text('contenido')).dx, 20);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -12,22 +12,39 @@ class CatalogSearchRow extends StatelessWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
 
+  /// Texto del campo y estilo del rediseño del padre (ver [CatalogSearchField]).
+  final String hintText;
+  final bool outlined;
+
+  /// Márgenes del rediseño del padre (20 a los lados, 14 sobre el campo).
+  final bool design;
+
   const CatalogSearchRow({
     super.key,
     required this.searchController,
     required this.onSearchChanged,
     this.showBackButton = false,
+    this.hintText = 'Buscar...',
+    this.outlined = false,
+    this.design = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        showBackButton ? AppSpacing.xs : AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xs,
-      ),
+      padding: design
+          ? EdgeInsets.fromLTRB(
+              showBackButton ? AppSpacing.xs : AppSpacing.page,
+              14,
+              AppSpacing.page,
+              0,
+            )
+          : EdgeInsets.fromLTRB(
+              showBackButton ? AppSpacing.xs : AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.xs,
+            ),
       child: Row(
         children: [
           if (showBackButton)
@@ -41,6 +58,8 @@ class CatalogSearchRow extends StatelessWidget {
             child: CatalogSearchField(
               controller: searchController,
               onChanged: onSearchChanged,
+              hintText: hintText,
+              outlined: outlined,
             ),
           ),
         ],

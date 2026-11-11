@@ -1,68 +1,115 @@
 import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
+import 'package:delycattessen_flutter/features/children/models/parental_control_model.dart';
+import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_account_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_screen.dart';
+import 'package:delycattessen_flutter/features/children/services/parental_control_service.dart';
+import 'package:delycattessen_flutter/features/users/models/allergy_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _child = Child(
   id: 3,
-  firstName: 'Luis',
+  firstName: 'Pepito',
+  secondName: 'Alejandro',
   lastName: 'Pérez',
-  username: 'luisp',
-  institutionName: 'Martim Cereré',
+  secondLastName: 'Pérez',
+  username: 'pepito123',
+  institutionName: 'Martin Cerere',
 );
 
 class _FakeAuthService extends AuthService {
-  ChildProfileUpdate? sent;
+  _FakeAuthService({this.allergies = const []});
+
+  final List<Allergen> allergies;
 
   @override
-  Future<Child> updateChildProfile(
-    int studentId,
-    ChildProfileUpdate data,
-  ) async {
-    sent = data;
-    return Child(
-      id: studentId,
-      firstName: data.names.firstName.trim(),
-      lastName: data.names.lastName.trim(),
-      username: data.username,
-      institutionName: 'Martim Cereré',
-    );
-  }
+  Future<List<Allergen>> getStudentAllergies(int studentId) async => allergies;
 }
 
-Future<void> _open(WidgetTester tester, _FakeAuthService service) async {
-  tester.view.physicalSize = const Size(900, 3000);
+class _FakeParentalService extends ParentalControlService {
+  @override
+  Future<ParentalControl> getParentalControl(int studentId) async =>
+      ParentalControl(
+        dailyLimitEnabled: true,
+        dailyLimitAmount: 1,
+        allowedDaysEnabled: false,
+        allowedDays: const [],
+        lowBalanceAlertEnabled: true,
+        lowBalanceAlertAmount: 2,
+      );
+}
+
+Future<void> _open(WidgetTester tester, {List<Allergen>? allergies}) async {
+  tester.view.physicalSize = const Size(390, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+  final auth = _FakeAuthService(
+    allergies: allergies ?? [Allergen(id: 1, name: 'Sulfitos')],
+  );
+  final settings = ChildSettingsController(
+    studentId: _child.id,
+    authService: auth,
+    parentalService: _FakeParentalService(),
+  );
+  addTearDown(settings.dispose);
   await tester.pumpWidget(
     MaterialApp(
-      home: EditChildScreen(child: _child, authService: service),
+      home: EditChildScreen(
+        child: _child,
+        authService: auth,
+        settings: settings,
+      ),
     ),
   );
+  await tester.pump();
 }
 
 void main() {
-  testWidgets('shows who is edited and the form in sections', (tester) async {
-    await _open(tester, _FakeAuthService());
+  testWidgets('is a menu: profile card, Cuenta and Configuración', (
+    tester,
+  ) async {
+    await _open(tester);
 
-    expect(find.text('Luis Pérez'), findsOneWidget);
-    expect(find.text('Martim Cereré'), findsOneWidget);
+    expect(find.text('Datos de tu hijo/a'), findsOneWidget);
+    expect(find.text('Pepito Pérez'), findsOneWidget);
+    expect(find.text('Martin Cerere'), findsOneWidget);
+    expect(find.text('Cuenta'), findsOneWidget);
     expect(find.text('Nombres'), findsOneWidget);
-    expect(find.text('Acceso'), findsOneWidget);
+    expect(find.text('Pepito Alejandro Pérez Pérez'), findsOneWidget);
     expect(find.text('Usuario'), findsOneWidget);
+    expect(find.text('pepito123 · con este inicia sesión'), findsOneWidget);
+    expect(find.text('Configuración'), findsOneWidget);
+    // The form moved to its own screen.
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Guardar cambios'), findsNothing);
   });
 
-  testWidgets('saves the edited names and closes the screen', (tester) async {
-    final service = _FakeAuthService();
-    await _open(tester, service);
+  testWidgets('summarizes the parental control and the allergies', (
+    tester,
+  ) async {
+    await _open(tester);
 
-    await tester.enterText(find.byType(TextField).first, 'Mateo');
-    await tester.tap(find.text('Guardar cambios'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Control parental'), findsOneWidget);
+    expect(find.text('Límite \$1.00/día · aviso bajo \$2.00'), findsOneWidget);
+    expect(find.text('Alergias'), findsOneWidget);
+    expect(find.text('Sulfitos'), findsOneWidget);
+  });
 
-    expect(service.sent!.names.firstName, 'Mateo');
-    expect(service.sent!.username, 'luisp');
+  testWidgets('shows a camera badge to change the photo', (tester) async {
+    await _open(tester);
+
+    expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+  });
+
+  testWidgets('Nombres opens the account form', (tester) async {
+    await _open(tester);
+
+    await tester.tap(find.text('Nombres'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EditChildAccountScreen), findsOneWidget);
+    expect(find.text('Guardar cambios'), findsOneWidget);
   });
 }

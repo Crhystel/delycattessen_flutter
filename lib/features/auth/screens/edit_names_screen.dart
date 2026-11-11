@@ -84,6 +84,7 @@ class _EditNamesScreenState extends State<EditNamesScreen>
       title: 'Nombres',
       children: [
         FormSectionCard(
+          design: true,
           title: 'Tus nombres',
           children: [
             LabeledTextField(
@@ -111,6 +112,8 @@ class _EditNamesScreenState extends State<EditNamesScreen>
         ),
         const SizedBox(height: AppSpacing.xl),
         PrimaryButton(
+          design: true,
+          shadow: true,
           label: 'Guardar cambios',
           isLoading: _isSaving,
           onPressed: _save,

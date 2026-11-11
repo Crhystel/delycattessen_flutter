@@ -56,17 +56,43 @@ class StudentCatalogSource implements ProductCatalogSource {
       (await _allergyOwner.load()).map((a) => a.id).toSet();
 }
 
-/// Catálogo para el docente: productos de su propia sede y sus alergias.
-class TeacherCatalogSource implements ProductCatalogSource {
+/// Catálogo de la propia sede de quien consulta (docente o estudiante): no
+/// lleva `student_id`, el backend usa la institución del usuario. Las alergias
+/// las aporta [allergyOwner]: las propias del docente o las del estudiante
+/// ([StudentSelfAllergyOwner], solo lectura). Si no se pueden cargar el catálogo
+/// falla y ofrece reintentar, en vez de mostrarse sin marcar alérgenos.
+class OwnCatalogSource implements ProductCatalogSource {
   final MenuService _menuService;
-  final AllergyOwner _allergyOwner;
-
-  TeacherCatalogSource({MenuService? menuService, AllergyOwner? allergyOwner})
-    : _menuService = menuService ?? MenuService(),
-      _allergyOwner = allergyOwner ?? TeacherAllergyOwner();
+  final AllergyOwner allergyOwner;
 
   @override
-  String get id => 'teacher';
+  final String id;
+
+  OwnCatalogSource({
+    required this.id,
+    required this.allergyOwner,
+    MenuService? menuService,
+  }) : _menuService = menuService ?? MenuService();
+
+  /// Docente: sus propias alergias.
+  factory OwnCatalogSource.teacher({
+    MenuService? menuService,
+    AllergyOwner? allergyOwner,
+  }) => OwnCatalogSource(
+    id: 'teacher',
+    allergyOwner: allergyOwner ?? TeacherAllergyOwner(),
+    menuService: menuService,
+  );
+
+  /// Estudiante: sus propias alergias (solo lectura).
+  factory OwnCatalogSource.student({
+    MenuService? menuService,
+    AllergyOwner? allergyOwner,
+  }) => OwnCatalogSource(
+    id: 'student',
+    allergyOwner: allergyOwner ?? StudentSelfAllergyOwner(),
+    menuService: menuService,
+  );
 
   @override
   String get allergyOwnerLabel => 'tus alergias';
@@ -79,5 +105,5 @@ class TeacherCatalogSource implements ProductCatalogSource {
 
   @override
   Future<Set<int>> loadAllergenIds() async =>
-      (await _allergyOwner.load()).map((a) => a.id).toSet();
+      (await allergyOwner.load()).map((a) => a.id).toSet();
 }

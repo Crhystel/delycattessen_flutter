@@ -2,28 +2,27 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/utils/date_formatter.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
-import '../../../core/widgets/child_avatar_chip.dart';
 import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../auth/models/auth_models.dart';
 import '../../children/providers/children_provider.dart';
-import '../../children/widgets/child_picker_sheet.dart';
+import '../../children/widgets/child_switch_bar.dart';
 import '../models/menu_models.dart';
 import '../providers/parent_menu_controller.dart';
 import '../widgets/catalog_search_row.dart';
 import '../widgets/catalog_title_block.dart';
 import '../widgets/menu_days_strip.dart';
+import '../widgets/menu_dish_card.dart';
 import 'cart_screen.dart';
 import 'dish_detail_screen.dart';
 
@@ -36,8 +35,16 @@ class MenuScreen extends StatefulWidget {
   /// Fecha preseleccionada (opcional, p.ej. al tocar un platillo desde Inicio)
   final DateTime? initialDate;
 
+  /// Cambia cada vez que Inicio vuelve a pedir un día: la pantalla abre
+  /// [initialDate] sin recrearse (así conserva el carrito). Con la misma fecha
+  /// pedida dos veces, el cambio de este valor es lo que la distingue.
+  final Object? dateRequest;
+
   /// Widget bajo el título (selector Menú/Productos del ParentShell).
   final Widget? headerAccessory;
+
+  /// Burbuja de perfil a la derecha del título (la pone el ParentShell).
+  final Widget? profileAction;
 
   /// Estado del menú. Por defecto la pantalla crea (y libera) el suyo; en las
   /// pruebas se inyecta uno con un servicio simulado.
@@ -48,7 +55,9 @@ class MenuScreen extends StatefulWidget {
     this.studentId,
     this.embedded = false,
     this.initialDate,
+    this.dateRequest,
     this.headerAccessory,
+    this.profileAction,
     this.menuController,
   });
 
@@ -64,6 +73,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
 
   Child? _selectedChild;
   bool _hasInitializedSelectedChild = false;
+
+  /// Día pedido por Inicio mientras el menú aún cargaba (p. ej. al cambiar de
+  /// hijo a la vez): se abre en cuanto termina la carga.
+  DateTime? _pendingDate;
   late final ChildrenProvider _childrenProvider;
 
   // Lecturas del estado del menú, que vive en [_menu].
@@ -85,6 +98,18 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       await _childrenProvider.ensureLoaded();
       _initializeSelectedChild();
     });
+  }
+
+  @override
+  void didUpdateWidget(MenuScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final requested = widget.initialDate;
+    final changed =
+        requested != oldWidget.initialDate ||
+        widget.dateRequest != oldWidget.dateRequest;
+    if (requested == null || !changed || !_hasInitializedSelectedChild) return;
+    _pendingDate = requested;
+    if (!_isLoading) _openPendingDate();
   }
 
   @override
@@ -130,8 +155,23 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     _fetchMonthlyMenu(initial.id);
   }
 
-  Future<void> _fetchMonthlyMenu(int studentId) =>
-      _menu.load(studentId, initialDate: widget.initialDate);
+  Future<void> _fetchMonthlyMenu(int studentId) async {
+    await _menu.load(
+      studentId,
+      initialDate: _pendingDate ?? widget.initialDate,
+    );
+    if (mounted) _openPendingDate();
+  }
+
+  /// Abre el día que pidió Inicio, si existe en el menú cargado.
+  void _openPendingDate() {
+    final date = _pendingDate;
+    if (date == null) return;
+    _pendingDate = null;
+    final iso = DateFormatter.toIsoDate(date);
+    final day = _days.where((d) => d.date == iso).firstOrNull;
+    if (day != null) _onSelectDay(day);
+  }
 
   Future<void> _refreshMenu() async {
     if (_selectedChild != null) {
@@ -151,7 +191,14 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         cancelLabel: 'Conservar',
         isDestructive: true,
       );
-      if (!confirmed) return;
+      if (!mounted) return;
+      if (!confirmed) {
+        // Se conserva al hijo del menú: la selección global vuelve a él para
+        // que Pedidos y Billetera no apunten a otro.
+        final current = _selectedChild;
+        if (current != null) _childrenProvider.select(current.id);
+        return;
+      }
     }
 
     _menu.clearCart();
@@ -221,135 +268,101 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     });
   }
 
-  void _openChildSwitcher(List<Child> children) {
-    if (children.length <= 1) return;
-    ChildPickerSheet.show(
-      context,
-      _childrenProvider,
-      title: '¿Para quién estás pidiendo?',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final children = context.watch<ChildrenProvider>().children;
     final total = _menu.total;
+    final topInset = MediaQuery.viewPaddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: ResponsiveCenter(
-        maxWidth: AppLayout.wideMaxWidth,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: RefreshIndicator(
-                  color: AppColors.secondary500,
-                  onRefresh: _refreshMenu,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // Only the search field and the days stay; the title,
-                      // selector and banner shrink together with the scroll
-                      // (1 to 1 with the finger) and return at the top.
-                      CollapsingHeader(
-                        keep: CollapsingHeaderKeep.bottom,
-                        kept: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CatalogSearchRow(
-                              showBackButton: !widget.embedded,
-                              searchController: _searchController,
-                              onSearchChanged: (value) {
-                                setState(() {});
-                                _onSearchChanged(value);
-                              },
-                            ),
-                            if (!_isLoading && _days.isNotEmpty)
-                              MenuDaysStrip(
-                                days: _days,
-                                selectedDayId: _selectedDay?.id,
-                                onSelect: _onSelectDay,
-                              ),
-                          ],
-                        ),
-                        collapsible: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CatalogTitleBlock(
-                              title: 'Menú',
-                              accessory: widget.headerAccessory,
-                            ),
-                            if (_selectedChild != null)
-                              _buildChildBanner(children),
-                            const SizedBox(height: AppSpacing.sm),
-                          ],
-                        ),
-                      ),
-                      ..._buildContent(),
-                    ],
-                  ),
-                ),
-              ),
-              if (total > 0 && _selectedDay != null)
-                _buildCartSummary(total, _selectedDay!),
-            ],
+      backgroundColor: AppColors.ink50,
+      body: Stack(
+        children: [
+          const RepaintBoundary(
+            child: FloatingBubbles(corner: BubbleCorner.topRight, design: true),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChildBanner(List<Child> children) {
-    final canSwitch = children.length > 1;
-    final child = _selectedChild!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        0,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: GestureDetector(
-          onTap: canSwitch ? () => _openChildSwitcher(children) : null,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-            decoration: BoxDecoration(
-              color: AppColors.secondary50,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ChildAvatarChip(imageUrl: child.profilePictureUrl, radius: 12),
-                const SizedBox(width: 8),
-                // Flexible: a long name or a large font is cut, never overflows.
-                Flexible(
-                  child: Text(
-                    'Pidiendo para ${child.firstName} · \$${(child.balance ?? 0).toStringAsFixed(2)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.secondary700,
+          ResponsiveCenter(
+            maxWidth: AppLayout.wideMaxWidth,
+            // The header adds the status bar inset itself (it stays pinned
+            // under it), so the page is drawn edge to edge.
+            child: SafeArea(
+              top: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: AppColors.secondary500,
+                      edgeOffset: topInset,
+                      onRefresh: _refreshMenu,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          // Only the search field and the days stay; the title,
+                          // selector and banner shrink together with the scroll
+                          // (1 to 1 with the finger) and return at the top.
+                          CollapsingHeader(
+                            backgroundColor: AppColors.ink50,
+                            transparentAtTop: true,
+                            keep: CollapsingHeaderKeep.bottom,
+                            topInset: topInset,
+                            kept: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CatalogSearchRow(
+                                  hintText: 'Buscar platos',
+                                  outlined: true,
+                                  design: true,
+                                  showBackButton: !widget.embedded,
+                                  searchController: _searchController,
+                                  onSearchChanged: _onSearchChanged,
+                                ),
+                                if (!_isLoading && _days.isNotEmpty)
+                                  MenuDaysStrip(
+                                    design: true,
+                                    days: _days,
+                                    selectedDayId: _selectedDay?.id,
+                                    onSelect: _onSelectDay,
+                                  ),
+                              ],
+                            ),
+                            collapsible: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CatalogTitleBlock(
+                                  design: true,
+                                  title: 'Menú',
+                                  accessory: widget.headerAccessory,
+                                  trailing: widget.profileAction,
+                                ),
+                                if (_selectedChild != null)
+                                  const Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      AppSpacing.page,
+                                      AppSpacing.lg,
+                                      AppSpacing.page,
+                                      0,
+                                    ),
+                                    child: ChildSwitchBar(
+                                      label: 'Pidiendo para',
+                                      showBalance: true,
+                                      sheetTitle: '¿Para quién estás pidiendo?',
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          ..._buildContent(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                if (canSwitch) ...[
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.expand_more,
-                    size: 18,
-                    color: AppColors.secondary700,
-                  ),
+                  if (total > 0 && _selectedDay != null)
+                    _buildCartSummary(total, _selectedDay!),
                 ],
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -394,9 +407,27 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
         ),
       ];
     }
+    final day = _selectedDay;
     return [
+      if (day != null)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              22,
+              AppSpacing.page,
+              0,
+            ),
+            child: _DayHeading(day: day, dishCount: dishes.length),
+          ),
+        ),
       SliverResponsiveItemList(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.page,
+          10,
+          AppSpacing.page,
+          AppSpacing.lg,
+        ),
         itemCount: dishes.length,
         itemBuilder: (context, index) => _buildDishCard(dishes[index]),
       ),
@@ -404,16 +435,17 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
   }
 
   Widget _buildDishCard(MenuDish dish) {
-    final hasAllergens = dish.hasStudentAllergens;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Opacity(
-      opacity: hasAllergens ? 0.6 : 1.0,
-      child: AppCard(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.md),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: MenuDishCard(
+        dish: dish,
+        inCart: _cart.containsKey(dish.id),
+        onShowAllergens: () => _showDishAllergens(dish),
+        onToggle: () => _cart.containsKey(dish.id)
+            ? _menu.removeFromCart(dish.id)
+            : _addToCart(dish.id, 1),
         onTap: () {
-          if (hasAllergens) {
+          if (dish.hasStudentAllergens) {
             _showAllergenBlockedDialog(dish);
             return;
           }
@@ -427,185 +459,116 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
             ),
           );
         },
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    dish.name,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (dish.description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      dish.description,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  // Wrap: with a large font the badge drops to the next line.
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      Text(
-                        '\$${dish.price.toStringAsFixed(2)}',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: AppColors.brand700,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (hasAllergens) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.dangerBg,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.warning_amber_rounded,
-                                size: 14,
-                                color: AppColors.danger700,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                'Alérgeno',
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: AppColors.danger700,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            ClipRRect(
-              borderRadius: AppRadius.smAll,
-              child: Container(
-                width: 100,
-                height: 75,
-                color: AppColors.ink50,
-                child: dish.imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: dish.imageUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: AppImageCacheHelper.cacheSize(
-                          context,
-                          100,
-                        ),
-                        memCacheHeight: AppImageCacheHelper.cacheSize(
-                          context,
-                          75,
-                        ),
-                        placeholder: (_, _) => const Center(
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.secondary500,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, _, _) => const Icon(
-                          Icons.fastfood,
-                          color: AppColors.secondary500,
-                        ),
-                      )
-                    : const Icon(Icons.fastfood, color: AppColors.secondary500),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
+  /// Chip "Ver alérgenos": si choca con las alergias del hijo es el aviso de
+  /// bloqueo; si no, solo lista lo que contiene el platillo.
+  void _showDishAllergens(MenuDish dish) {
+    if (dish.hasStudentAllergens) {
+      _showAllergenBlockedDialog(dish);
+      return;
+    }
+    AppNotificationDialog.show(
+      context,
+      type: NotificationType.warning,
+      title: 'Alérgenos de ${dish.name}',
+      message: dish.allergens.isEmpty
+          ? 'Este platillo no tiene alérgenos registrados.'
+          : 'Contiene: ${dish.allergens.join(', ')}.',
+    );
+  }
+
   Widget _buildCartSummary(double total, MenuDay currentDay) {
+    final count = _menu.cartItemCount;
+    final childName = _selectedChild?.firstName ?? 'tu hijo/a';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: const [
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
+      decoration: const BoxDecoration(
+        color: AppColors.secondary500,
+        borderRadius: AppRadius.mdAll,
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, -2),
+            color: AppColors.primaryShadow,
+            blurRadius: 24,
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '\$${total.toStringAsFixed(2)}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary500,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CartScreen(
-                    studentId: _selectedChild?.id ?? widget.studentId ?? 0,
-                    deliveryDate: currentDay.date,
-                    cart: _cart,
-                    dishes: currentDay.dishes,
-                    childName: _selectedChild != null
-                        ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
-                        : '',
-                    childBalance: _selectedChild?.balance,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${count == 1 ? '1 plato' : '$count platos'} para $childName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.secondary.copyWith(
+                    color: AppColors.secondary50,
                   ),
                 ),
-              ).then((result) {
-                if (result == true) {
-                  _menu.clearCart();
-                  _childrenProvider.refresh();
-                } else if (result is Map<int, int>) {
-                  _menu.replaceCart(result);
-                }
-              });
-            },
-            child: Text(
-              'Ver carrito (${_menu.cartItemCount})',
-              style: const TextStyle(fontWeight: FontWeight.w800),
+                Text(
+                  '\$${total.toStringAsFixed(2)}',
+                  style: AppText.price.copyWith(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.brand500,
+              foregroundColor: AppColors.ink900,
+              minimumSize: const Size(0, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.controlAll,
+              ),
+              textStyle: AppText.button.copyWith(fontSize: 15),
+            ),
+            onPressed: () => _openCart(currentDay),
+            child: const Text('Confirmar pedido'),
           ),
         ],
       ),
     );
+  }
+
+  void _openCart(MenuDay currentDay) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CartScreen(
+          studentId: _selectedChild?.id ?? widget.studentId ?? 0,
+          deliveryDate: currentDay.date,
+          cart: _cart,
+          dishes: currentDay.dishes,
+          childName: _selectedChild != null
+              ? '${_selectedChild!.firstName} ${_selectedChild!.lastName}'
+              : '',
+          childBalance: _selectedChild?.balance,
+        ),
+      ),
+    ).then((result) {
+      if (result == true) {
+        _menu.clearCart();
+        _childrenProvider.refresh();
+      } else if (result is Map<int, int>) {
+        _menu.replaceCart(result);
+      }
+    });
   }
 
   Widget _buildEmptyView() {
@@ -640,6 +603,36 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
           },
         ),
       ),
+    );
+  }
+}
+
+/// "Martes 10 de noviembre" con la cantidad de platos del día a la derecha.
+class _DayHeading extends StatelessWidget {
+  const _DayHeading({required this.day, required this.dishCount});
+
+  final MenuDay day;
+  final int dishCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateFormatter.parseIsoDate(day.date);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Expanded(
+          child: Text(
+            DateFormatter.formatLongCapitalized(date),
+            style: AppText.sectionTitleSm,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          dishCount == 1 ? '1 plato' : '$dishCount platos',
+          style: AppText.secondaryLg,
+        ),
+      ],
     );
   }
 }

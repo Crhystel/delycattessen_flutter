@@ -3,25 +3,43 @@ import 'package:flutter/material.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/child_avatar_chip.dart';
+import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/form_section_card.dart';
-import '../../../core/widgets/labeled_text_field.dart';
-import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/photo_source_dialog.dart';
 import '../../../core/widgets/profile_summary_card.dart';
+import '../../../core/widgets/subpage_header.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
+import '../../auth/widgets/settings_row.dart';
+import '../../users/screens/allergy_management_screen.dart';
+import '../../users/services/allergy_owner.dart';
+import '../providers/child_settings_controller.dart';
+import '../utils/allergy_summary.dart';
+import '../utils/child_account_text.dart';
+import '../utils/parental_control_summary.dart';
+import '../widgets/child_photo_avatar.dart';
+import 'edit_child_account_screen.dart';
+import 'parental_control_screen.dart';
 
-/// The parent edits a child's four name parts and username. The photo is
-/// changed from the child's detail screen because it also updates the face
-/// recognition. Pops with the updated [Child] after saving.
+/// "Datos del hijo": menú con su cuenta (nombres y usuario) y su configuración
+/// (control parental y alergias), más el cambio de foto, que también actualiza
+/// el reconocimiento facial. Pops with the updated [Child] when the names or
+/// the photo changed.
 class EditChildScreen extends StatefulWidget {
   final Child child;
   final AuthService? authService;
 
-  const EditChildScreen({super.key, required this.child, this.authService});
+  /// Resúmenes de alergias y control parental; se crea solo si no se da.
+  final ChildSettingsController? settings;
+
+  const EditChildScreen({
+    super.key,
+    required this.child,
+    this.authService,
+    this.settings,
+  });
 
   @override
   State<EditChildScreen> createState() => _EditChildScreenState();
@@ -30,142 +48,207 @@ class EditChildScreen extends StatefulWidget {
 class _EditChildScreenState extends State<EditChildScreen>
     with NotificationMixin {
   late final AuthService _authService = widget.authService ?? AuthService();
-  late final _firstName = TextEditingController(text: widget.child.firstName);
-  late final _secondName = TextEditingController(text: widget.child.secondName);
-  late final _lastName = TextEditingController(text: widget.child.lastName);
-  late final _secondLastName = TextEditingController(
-    text: widget.child.secondLastName,
-  );
-  late final _username = TextEditingController(text: widget.child.username);
-  bool _isSaving = false;
+  late final ChildSettingsController _settings;
+  late final bool _ownsSettings;
+  late Child _child = widget.child;
+  bool _isUpdatingPhoto = false;
+  // Names or photo changed: the updated child is returned on exit.
+  bool _changed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsSettings = widget.settings == null;
+    _settings =
+        widget.settings ??
+        ChildSettingsController(
+          studentId: widget.child.id,
+          authService: widget.authService,
+        );
+    _settings.load();
+  }
 
   @override
   void dispose() {
-    for (final controller in [
-      _firstName,
-      _secondName,
-      _lastName,
-      _secondLastName,
-      _username,
-    ]) {
-      controller.dispose();
-    }
+    if (_ownsSettings) _settings.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    final update = ChildProfileUpdate(
-      names: PersonNames(
-        firstName: _firstName.text,
-        secondName: _secondName.text,
-        lastName: _lastName.text,
-        secondLastName: _secondLastName.text,
+  Future<void> _openAccount() async {
+    final updated = await Navigator.of(context).push<Child>(
+      MaterialPageRoute(
+        builder: (_) =>
+            EditChildAccountScreen(child: _child, authService: _authService),
       ),
-      username: _username.text,
     );
-    final error = update.validate();
-    if (error != null) {
-      showWarningSnackBar(error, title: 'Revisa los datos');
-      return;
-    }
-    setState(() => _isSaving = true);
+    if (updated == null || !mounted) return;
+    setState(() {
+      _child = updated;
+      _changed = true;
+    });
+  }
+
+  Future<void> _openParentalControl() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ParentalControlScreen(
+          studentId: _child.id,
+          studentName: _child.displayName,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _settings.loadParentalControl();
+  }
+
+  Future<void> _openAllergies() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AllergyManagementScreen(
+          owner: StudentAllergyOwner(_child.id, authService: _authService),
+          personName: _child.displayName,
+          parentStyle: true,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _settings.loadAllergies();
+  }
+
+  Future<void> _updatePhoto() async {
+    final photo = await PhotoSourceDialog.show(
+      context,
+      title: 'Foto de ${_child.firstName}',
+    );
+    if (photo == null || !mounted) return;
+
+    setState(() => _isUpdatingPhoto = true);
     try {
-      final updated = await _authService.updateChildProfile(
-        widget.child.id,
-        update,
+      final updated = await _authService.updateChildPhoto(
+        _child.id,
+        photo.path,
       );
       if (!mounted) return;
+      setState(() {
+        _child = updated;
+        _changed = true;
+        _isUpdatingPhoto = false;
+      });
       showSuccessSnackBar(
-        'Los datos de ${updated.firstName} se guardaron correctamente.',
-        title: 'Datos actualizados',
+        'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
+        title: 'Foto actualizada',
       );
-      Navigator.of(context).pop(updated);
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo guardar');
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+      setState(() => _isUpdatingPhoto = false);
+      showErrorSnackBar(errorMessageOf(e), title: 'Error al actualizar');
     }
   }
 
-  String get _displayName => [
-    widget.child.firstName,
-    widget.child.lastName,
-  ].where((part) => part.trim().isNotEmpty).join(' ');
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.ink50,
-      appBar: AppTheme.lightAppBar(
-        title: const Text('Datos de tu hijo/a'),
+    return PopScope(
+      // Si cambió algo, se devuelve el hijo actualizado al salir.
+      canPop: !_changed,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Navigator.of(context).pop(_child);
+      },
+      child: Scaffold(
         backgroundColor: AppColors.ink50,
-      ),
-      body: ResponsiveCenter(
-        maxWidth: AppLayout.formMaxWidth,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ProfileSummaryCard(
-                  leading: ChildAvatarChip(
-                    imageUrl: widget.child.profilePictureUrl,
-                  ),
-                  title: _displayName,
-                  subtitle: widget.child.institutionName,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                FormSectionCard(
-                  title: 'Nombres',
-                  children: [
-                    LabeledTextField(
-                      label: 'Primer nombre',
-                      controller: _firstName,
-                      hint: 'Primer nombre de tu hijo/a',
-                    ),
-                    LabeledTextField(
-                      label: 'Segundo nombre',
-                      controller: _secondName,
-                      hint: 'Segundo nombre (opcional)',
-                    ),
-                    LabeledTextField(
-                      label: 'Primer apellido',
-                      controller: _lastName,
-                      hint: 'Primer apellido de tu hijo/a',
-                    ),
-                    LabeledTextField(
-                      label: 'Segundo apellido',
-                      controller: _secondLastName,
-                      hint: 'Segundo apellido (opcional)',
-                      bottomPadding: 0,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                FormSectionCard(
-                  title: 'Acceso',
-                  subtitle: 'Con este usuario inicia sesión tu hijo/a.',
-                  children: [
-                    LabeledTextField(
-                      label: 'Usuario',
-                      controller: _username,
-                      hint: 'Usuario con el que inicia sesión',
-                      textCapitalization: TextCapitalization.none,
-                      bottomPadding: 0,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                PrimaryButton(
-                  label: 'Guardar cambios',
-                  isLoading: _isSaving,
-                  onPressed: _save,
-                ),
-              ],
+        body: Stack(
+          children: [
+            const RepaintBoundary(
+              child: FloatingBubbles(
+                corner: BubbleCorner.topRight,
+                design: true,
+              ),
             ),
-          ),
+            ResponsiveCenter(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SubpageHeader(title: 'Datos de tu hijo/a'),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.page,
+                        14,
+                        AppSpacing.page,
+                        AppSpacing.xl +
+                            MediaQuery.viewPaddingOf(context).bottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ProfileSummaryCard(
+                            design: true,
+                            leading: ChildPhotoAvatar(
+                              child: _child,
+                              isUpdating: _isUpdatingPhoto,
+                              onChangePhoto: _updatePhoto,
+                            ),
+                            title: _child.displayName,
+                            subtitle: _child.institutionName,
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          FormSectionCard(
+                            design: true,
+                            title: 'Cuenta',
+                            contentPadding: EdgeInsets.zero,
+                            children: withDividers([
+                              SettingsRow(
+                                design: true,
+                                icon: Icons.badge_outlined,
+                                title: 'Nombres',
+                                subtitle: _child.fullName,
+                                onTap: _openAccount,
+                              ),
+                              SettingsRow(
+                                design: true,
+                                icon: Icons.person_outline,
+                                title: 'Usuario',
+                                subtitle: _child.usernameSummary,
+                                onTap: _openAccount,
+                              ),
+                            ], design: true),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          ListenableBuilder(
+                            listenable: _settings,
+                            builder: (context, _) => FormSectionCard(
+                              design: true,
+                              title: 'Configuración',
+                              contentPadding: EdgeInsets.zero,
+                              children: withDividers([
+                                SettingsRow(
+                                  design: true,
+                                  icon: Icons.shield_outlined,
+                                  title: 'Control parental',
+                                  subtitle: ParentalControlSummary.brief(
+                                    _settings.parentalControl,
+                                  ),
+                                  onTap: _openParentalControl,
+                                ),
+                                SettingsRow(
+                                  design: true,
+                                  icon: Icons.warning_amber_outlined,
+                                  title: 'Alergias',
+                                  subtitle: AllergySummary.of(
+                                    _settings.allergies,
+                                  ),
+                                  onTap: _openAllergies,
+                                ),
+                              ], design: true),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

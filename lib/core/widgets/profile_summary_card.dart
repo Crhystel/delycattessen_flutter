@@ -7,24 +7,30 @@ import 'app_card.dart';
 /// Top card of an edit form: who is being edited (avatar, name and a detail
 /// line). Texts wrap and cut with an ellipsis, so long names or emails never
 /// overflow on small screens or with a large system font.
+///
+/// Con [design] = true usa el estilo del rediseño del padre (tarjeta de radio
+/// 22, nombre 18/800 y detalle 14/600 en `muted`).
 class ProfileSummaryCard extends StatelessWidget {
   const ProfileSummaryCard({
     super.key,
     required this.leading,
     required this.title,
     this.subtitle,
+    this.design = false,
   });
 
   /// Avatar on the left, usually [InitialsAvatar] or `ChildAvatarChip`.
   final Widget leading;
   final String title;
   final String? subtitle;
+  final bool design;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final detail = subtitle;
     return AppCard(
+      design: design,
       child: Row(
         children: [
           leading,
@@ -38,6 +44,7 @@ class ProfileSummaryCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.titleMedium?.copyWith(
+                    fontSize: design ? 18 : null,
                     fontWeight: FontWeight.w800,
                     color: AppColors.ink900,
                   ),
@@ -48,9 +55,15 @@ class ProfileSummaryCard extends StatelessWidget {
                     detail,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.ink900.withValues(alpha: 0.6),
-                    ),
+                    style: design
+                        ? textTheme.bodySmall?.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.muted,
+                          )
+                        : textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink900.withValues(alpha: 0.6),
+                          ),
                   ),
                 ],
               ],

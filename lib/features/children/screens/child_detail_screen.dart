@@ -1,31 +1,48 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/app_image_cache_helper.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
-import '../../../core/widgets/photo_source_dialog.dart';
 import '../../auth/models/auth_models.dart';
-import '../../auth/services/auth_service.dart';
-import '../../wallet/screens/wallet_recharge_screen.dart';
-import '../../wallet/screens/transaction_history_screen.dart';
 import '../../users/models/allergy_models.dart';
 import '../../users/screens/allergy_management_screen.dart';
-import 'edit_child_screen.dart';
 import '../../users/services/allergy_owner.dart';
-import '../models/parental_control_model.dart';
-import '../services/parental_control_service.dart';
+import '../providers/child_movements_controller.dart';
+import '../providers/child_settings_controller.dart';
+import '../utils/allergy_summary.dart';
+import '../utils/parent_navigation.dart';
+import '../utils/parental_control_summary.dart';
+import '../widgets/child_balance_card.dart';
+import '../widgets/child_detail_header.dart';
+import '../widgets/child_info_row.dart';
+import '../widgets/child_recent_movements.dart';
+import 'edit_child_screen.dart';
 import 'parental_control_screen.dart';
-import '../../../core/utils/error_message.dart';
 
+/// Ficha de un hijo: saldo con "Recargar", su día (límite diario y alergias)
+/// y sus últimos movimientos. El lápiz abre sus datos.
+///
+/// Pops with `true` when something changed so the list refreshes.
 class ChildDetailScreen extends StatefulWidget {
   final Child child;
 
-  const ChildDetailScreen({super.key, required this.child});
+  /// Resúmenes de alergias y control parental; se crean solos si no se dan
+  /// (se inyectan en pruebas).
+  final ChildSettingsController? settings;
+
+  /// Últimos movimientos de la billetera; se crea solo si no se da.
+  final ChildMovementsController? movements;
+
+  const ChildDetailScreen({
+    super.key,
+    required this.child,
+    this.settings,
+    this.movements,
+  });
 
   @override
   State<ChildDetailScreen> createState() => _ChildDetailScreenState();
@@ -34,163 +51,84 @@ class ChildDetailScreen extends StatefulWidget {
 class _ChildDetailScreenState extends State<ChildDetailScreen>
     with NotificationMixin {
   late Child _currentChild;
-  bool _isUpdatingPhoto = false;
-  // Tells the list to refresh when the photo or the data changed.
+  // Tells the list to refresh when the data changed.
   bool _hasChanges = false;
-  final AuthService _authService = AuthService();
-  final ParentalControlService _parentalService = ParentalControlService();
-  List<Allergen>? _allergies; // null = cargando o no disponible
-  ParentalControl? _parentalControl; // null = cargando o no disponible
+  late final ChildSettingsController _settings;
+  late final bool _ownsSettings;
+  ChildMovementsController? _movements; // null = el hijo no tiene billetera
+  late final bool _ownsMovements;
 
   @override
   void initState() {
     super.initState();
     _currentChild = widget.child;
-    _loadAllergies();
-    _loadParentalControl();
-  }
+    _ownsSettings = widget.settings == null;
+    _settings =
+        widget.settings ?? ChildSettingsController(studentId: _currentChild.id);
+    _settings.load();
 
-  Future<void> _loadAllergies() async {
-    try {
-      final allergies = await _authService.getStudentAllergies(
-        _currentChild.id,
-      );
-      if (!mounted) return;
-      setState(() => _allergies = allergies);
-    } catch (_) {
-      // El resumen es informativo; si falla se muestra el texto genérico.
-    }
-  }
-
-  Future<void> _loadParentalControl() async {
-    try {
-      final control = await _parentalService.getParentalControl(
-        _currentChild.id,
-      );
-      if (!mounted) return;
-      setState(() => _parentalControl = control);
-    } catch (_) {
-      // Resumen informativo: si falla se muestra el texto genérico.
-    }
-  }
-
-  /// Una sola línea con lo que está activo, p. ej. "Límite $5.00/día · Lun, Mié".
-  String get _spendingControlSummary {
-    final control = _parentalControl;
-    if (control == null) return 'Límite diario y días permitidos';
-
-    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    final parts = <String>[];
-    if (control.dailyLimitEnabled) {
-      parts.add('Límite \$${control.dailyLimitAmount.toStringAsFixed(2)}/día');
-    }
-    if (control.allowedDaysEnabled) {
-      final days = ([...control.allowedDays]..sort())
-          .where((d) => d >= 0 && d < dayNames.length)
-          .map((d) => dayNames[d])
-          .toList();
-      parts.add(days.isEmpty ? 'Ningún día permitido' : days.join(', '));
-    }
-    return parts.isEmpty ? 'Sin restricciones' : parts.join(' · ');
-  }
-
-  String get _allergiesSummary {
-    final allergies = _allergies;
-    if (allergies == null) return 'Toca para ver o editar';
-    if (allergies.isEmpty) return 'Sin alergias registradas';
-    return allergies.map((a) => a.name).join(', ');
-  }
-
-  void _goToHistory(BuildContext context) {
     final walletId = _currentChild.walletId;
-    if (walletId == null) {
-      showWarningSnackBar('Este hijo aún no tiene billetera activa.');
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TransactionHistoryScreen.forWallet(
-          walletId: walletId,
-          childName: '${_currentChild.firstName} ${_currentChild.lastName}',
-        ),
-      ),
-    );
+    _ownsMovements = widget.movements == null;
+    _movements =
+        widget.movements ??
+        (walletId == null
+            ? null
+            : ChildMovementsController(walletId: walletId));
+    _movements?.load();
   }
 
-  void _goToWallet(BuildContext context) async {
+  @override
+  void dispose() {
+    if (_ownsSettings) _settings.dispose();
+    if (_ownsMovements) _movements?.dispose();
+    super.dispose();
+  }
+
+  /// Los movimientos tienen una sola vista: Billetera > Movimientos.
+  void _goToHistory() {
     if (_currentChild.walletId == null) {
       showWarningSnackBar('Este hijo aún no tiene billetera activa.');
       return;
     }
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) =>
-            WalletRechargeScreen(initialWalletId: _currentChild.walletId!),
-      ),
-    );
-    if (result == true && context.mounted) {
-      Navigator.of(context).pop(true);
-    }
+    ParentNavigation.openWalletMovements(context, childId: _currentChild.id);
   }
 
-  void _goToParentalControl(BuildContext context) async {
+  /// Recargar tiene una sola vista: Billetera > Recargar.
+  void _goToWallet() {
+    if (_currentChild.walletId == null) {
+      showWarningSnackBar('Este hijo aún no tiene billetera activa.');
+      return;
+    }
+    ParentNavigation.openWalletRecharge(context, childId: _currentChild.id);
+  }
+
+  Future<void> _goToParentalControl() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ParentalControlScreen(studentId: _currentChild.id),
-      ),
-    );
-    if (!mounted) return;
-    _loadParentalControl(); // refresca el resumen con lo que se acaba de guardar
-  }
-
-  void _goToAllergies(BuildContext context) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => AllergyManagementScreen(
-          owner: StudentAllergyOwner(_currentChild.id),
-          personName: '${_currentChild.firstName} ${_currentChild.lastName}',
+        builder: (_) => ParentalControlScreen(
+          studentId: _currentChild.id,
+          studentName: _currentChild.displayName,
         ),
       ),
     );
     if (!mounted) return;
-    _loadAllergies();
-    if (result == true && context.mounted) {
-      Navigator.of(
-        context,
-      ).pop(true); // avisa a ChildrenListScreen que refresque
-    }
+    _settings.loadParentalControl(); // refresca el resumen con lo guardado
   }
 
-  Future<void> _updateProfilePicture() async {
-    final photo = await PhotoSourceDialog.show(
-      context,
-      title: 'Foto de ${_currentChild.firstName}',
+  Future<void> _goToAllergies() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AllergyManagementScreen(
+          owner: StudentAllergyOwner(_currentChild.id),
+          personName: _currentChild.displayName,
+          parentStyle: true,
+        ),
+      ),
     );
-    if (photo == null || !mounted) return;
-
-    setState(() => _isUpdatingPhoto = true);
-    try {
-      final updated = await _authService.updateChildPhoto(
-        _currentChild.id,
-        photo.path,
-      );
-      if (!mounted) return;
-      setState(() {
-        _currentChild = updated;
-        _isUpdatingPhoto = false;
-        _hasChanges = true;
-      });
-      showSuccessSnackBar(
-        'La foto de perfil y el reconocimiento facial se han actualizado con éxito.',
-        title: 'Foto actualizada',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isUpdatingPhoto = false);
-      showErrorSnackBar(
-        errorMessageOf(e),
-        title: 'Error al actualizar',
-      );
+    if (!mounted) return;
+    _settings.loadAllergies();
+    if (result == true) {
+      Navigator.of(context).pop(true); // avisa a Inicio que refresque
     }
   }
 
@@ -198,7 +136,10 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     final updated = await Navigator.of(context).push<Child>(
       MaterialPageRoute(builder: (_) => EditChildScreen(child: _currentChild)),
     );
-    if (updated == null || !mounted) return;
+    if (!mounted) return;
+    // Datos del hijo también edita control parental y alergias.
+    _settings.load();
+    if (updated == null) return;
     setState(() {
       _currentChild = updated;
       _hasChanges = true;
@@ -208,310 +149,129 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   @override
   Widget build(BuildContext context) {
     final child = _currentChild;
-    final textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      backgroundColor: AppColors.ink50,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 12,
-                bottom: 46,
+    final movements = _movements;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Navigator.of(context).pop(_hasChanges);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.ink50,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ChildDetailHeader(
+                child: child,
+                onBack: () => Navigator.of(context).pop(_hasChanges),
+                onEdit: _editData,
               ),
-              decoration: const BoxDecoration(color: AppColors.secondary500),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(_hasChanges),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.edit_outlined,
-                          color: Colors.white,
-                        ),
-                        tooltip: 'Editar datos',
-                        onPressed: _isUpdatingPhoto ? null : _editData,
-                      ),
-                    ],
-                  ),
-                  GestureDetector(
-                    onTap: _isUpdatingPhoto ? null : _updateProfilePicture,
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: CircleAvatar(
-                            radius: 40,
-                            backgroundColor: AppColors.ink50,
-                            backgroundImage: child.profilePictureUrl != null
-                                ? ResizeImage(
-                                    CachedNetworkImageProvider(
-                                      child.profilePictureUrl!,
-                                    ),
-                                    width: AppImageCacheHelper.cacheSize(
-                                      context,
-                                      80,
-                                    ),
-                                    height: AppImageCacheHelper.cacheSize(
-                                      context,
-                                      80,
-                                    ),
-                                  )
-                                : null,
-                            child: _isUpdatingPhoto
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.secondary500,
-                                    ),
-                                  )
-                                : (child.profilePictureUrl == null
-                                      ? const Icon(
-                                          Icons.person,
-                                          color: AppColors.secondary500,
-                                          size: 40,
-                                        )
-                                      : null),
-                          ),
-                        ),
-                        if (!_isUpdatingPhoto)
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: const BoxDecoration(
-                              color: AppColors.brand500,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              size: 14,
-                              color: AppColors.ink900,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    '${child.firstName} ${child.lastName}',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    child.institutionName,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ResponsiveCenter(
-              child: Transform.translate(
-                offset: const Offset(0, -30),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: AppColors.teal500,
-                      borderRadius: AppRadius.mdAll,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+              // El contenido sube sobre la franja inferior de la cabecera: la
+              // tarjeta de saldo queda a medias sobre el morado. Transform no
+              // cambia el layout, por eso abajo se suma esa misma altura.
+              Transform.translate(
+                offset: const Offset(0, -ChildDetailHeader.balanceOverlap),
+                child: ResponsiveCenter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      0,
+                      AppSpacing.page,
+                      ChildDetailHeader.balanceOverlap +
+                          AppSpacing.xl +
+                          MediaQuery.viewPaddingOf(context).bottom,
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.credit_card,
-                              color: Colors.white70,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Saldo Actual',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
+                        ChildBalanceCard(
+                          balance: child.balance ?? 0,
+                          onRecharge: _goToWallet,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '\$${(child.balance ?? 0).toStringAsFixed(2)}',
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 30,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 44,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _goToWallet(context),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: BorderSide.none,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.add,
-                              color: AppColors.teal500,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Recargar saldo',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.teal500,
-                              ),
-                            ),
-                          ),
-                        ),
+                        const SizedBox(height: 22),
+                        Text('Su día', style: AppText.sectionTitleXs),
                         const SizedBox(height: AppSpacing.sm),
-                        GestureDetector(
-                          onTap: () => _goToHistory(context),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.brand500,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.receipt_long,
-                                  size: 16,
-                                  color: AppColors.ink900,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Ver historial de movimientos',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.ink900,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(
-                                  Icons.chevron_right,
-                                  size: 16,
-                                  color: AppColors.ink900,
-                                ),
-                              ],
-                            ),
+                        _buildDayCard(),
+                        if (movements != null) ...[
+                          const SizedBox(height: 22),
+                          ChildRecentMovements(
+                            controller: movements,
+                            onSeeAll: _goToHistory,
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-            ResponsiveCenter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Column(
-                  children: [
-                    buildSettingRow(
-                      icon: Icons.shield_outlined,
-                      title: 'Control parental',
-                      subtitle: _spendingControlSummary,
-                      onTap: () => _goToParentalControl(context),
-                    ),
-                    buildSettingRow(
-                      icon: Icons.warning_amber_outlined,
-                      title: 'Alergias registradas',
-                      subtitle: _allergiesSummary,
-                      onTap: () => _goToAllergies(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget buildSettingRow({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    VoidCallback? onTap,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
+  Widget _buildDayCard() {
     return AppCard(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.secondary500, size: 22),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      design: true,
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: AppRadius.cardAll,
+        child: ListenableBuilder(
+          listenable: _settings,
+          builder: (context, _) {
+            final allergies = _settings.allergies;
+            return Column(
               children: [
-                Text(
-                  title,
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                ChildInfoRow(
+                  icon: Icons.shield_outlined,
+                  title: 'Límite diario',
+                  onTap: _goToParentalControl,
+                  child: Text(
+                    ParentalControlSummary.detailed(_settings.parentalControl),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.secondaryLg,
                   ),
                 ),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink900.withValues(alpha: 0.6),
-                  ),
+                const Divider(height: 1, color: AppColors.divider),
+                ChildInfoRow(
+                  icon: Icons.warning_amber_outlined,
+                  iconBackground: AppColors.dangerBg,
+                  iconColor: AppColors.danger700,
+                  title: 'Alergias',
+                  onTap: _goToAllergies,
+                  child: _buildAllergiesContent(allergies),
                 ),
               ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.teal500, size: 20),
-        ],
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  Widget _buildAllergiesContent(List<Allergen>? allergies) {
+    if (allergies == null) {
+      return Text(AllergySummary.placeholder, style: AppText.secondaryLg);
+    }
+    if (allergies.isEmpty) {
+      return Text(AllergySummary.none, style: AppText.secondaryLg);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [for (final a in allergies) AllergyPill(name: a.name)],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Te avisamos en el menú si un plato las contiene',
+          style: AppText.caption,
+        ),
+      ],
     );
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../models/menu_models.dart';
+import 'combo_carousel.dart';
 import 'combo_offer_card.dart';
 import 'discount_offer_card.dart';
 
@@ -32,6 +34,10 @@ class OffersSection extends StatelessWidget {
   /// Opens the detail of a product on discount (tapping its row).
   final ValueChanged<MenuItem>? onProductTap;
 
+  /// Parents: the combos go in a carousel ("Combos de hoy") and the discounts
+  /// under their own title. Otherwise everything is one list of cards.
+  final bool carousel;
+
   const OffersSection({
     super.key,
     required this.offers,
@@ -41,6 +47,7 @@ class OffersSection extends StatelessWidget {
     this.isComboBlocked,
     this.onComboTap,
     this.onProductTap,
+    this.carousel = false,
   });
 
   static const double _minCardWidth = 340;
@@ -49,6 +56,7 @@ class OffersSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (offers.isEmpty) return const SizedBox.shrink();
+    if (carousel) return _buildCarousel(context);
     final cards = <Widget Function()>[
       for (final combo in offers.combos)
         () => ComboOfferCard(
@@ -59,50 +67,75 @@ class OffersSection extends StatelessWidget {
           blocked: isComboBlocked?.call(combo) ?? false,
           onTap: onComboTap == null ? null : () => onComboTap!(combo),
         ),
-      for (final promotion in offers.promotions)
-        () => DiscountOfferCard(
-          promotion: promotion,
-          itemsById: itemsById,
-          onProductTap: onProductTap,
-        ),
+      ..._promotionCards(),
     ];
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Text(
-              'Ofertas de hoy',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        children: [_title(context, 'Ofertas de hoy'), _grid(cards)],
+      ),
+    );
+  }
+
+  Widget _buildCarousel(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (offers.combos.isNotEmpty)
+          ComboCarousel(combos: offers.combos, onComboTap: onComboTap),
+        if (offers.promotions.isNotEmpty) ...[
+          if (offers.combos.isNotEmpty) const SizedBox(height: AppSpacing.xl),
+          _title(context, 'Descuentos de hoy', design: true),
+          _grid(_promotionCards()),
+        ],
+      ],
+    );
+  }
+
+  List<Widget Function()> _promotionCards() => [
+    for (final promotion in offers.promotions)
+      () => DiscountOfferCard(
+        promotion: promotion,
+        itemsById: itemsById,
+        onProductTap: onProductTap,
+      ),
+  ];
+
+  Widget _title(BuildContext context, String text, {bool design = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: design ? 10 : AppSpacing.sm),
+      child: Text(
+        text,
+        style: design
+            ? AppText.sectionTitleSm
+            : Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.ink900,
               ),
-            ),
-          ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = AppLayout.columnsFor(
-                constraints.maxWidth,
-                minItemWidth: _minCardWidth,
-                maxColumns: _maxColumns,
-              );
-              final cardWidth =
-                  (constraints.maxWidth - AppSpacing.md * (columns - 1)) /
-                  columns;
-              return Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.md,
-                children: [
-                  for (final buildCard in cards)
-                    SizedBox(width: cardWidth, child: buildCard()),
-                ],
-              );
-            },
-          ),
-        ],
       ),
+    );
+  }
+
+  Widget _grid(List<Widget Function()> cards) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = AppLayout.columnsFor(
+          constraints.maxWidth,
+          minItemWidth: _minCardWidth,
+          maxColumns: _maxColumns,
+        );
+        final cardWidth =
+            (constraints.maxWidth - AppSpacing.md * (columns - 1)) / columns;
+        return Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            for (final buildCard in cards)
+              SizedBox(width: cardWidth, child: buildCard()),
+          ],
+        );
+      },
     );
   }
 }

@@ -84,11 +84,13 @@ void main() {
         expect(tester.takeException(), isNull);
 
         await tester.drag(find.byType(CustomScrollView), const Offset(0, -900));
-        await tester.pumpAndSettle();
+        await tester.pump(
+          const Duration(seconds: 2),
+        ); // the bubbles animate forever
         expect(tester.takeException(), isNull);
 
         await tester.drag(find.byType(CustomScrollView), const Offset(0, 3000));
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 2));
         expect(tester.takeException(), isNull);
       });
     }

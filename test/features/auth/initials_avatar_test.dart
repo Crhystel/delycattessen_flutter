@@ -1,3 +1,4 @@
+import 'package:delycattessen_flutter/core/theme/app_colors.dart';
 import 'package:delycattessen_flutter/features/auth/widgets/initials_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,5 +45,21 @@ void main() {
 
     expect(find.byIcon(Icons.person), findsOneWidget);
     expect(find.text('?'), findsNothing);
+  });
+
+  testWidgets('solid paints a purple circle with white initials', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: InitialsAvatar(name: 'Crhystel Velasco', radius: 32, solid: true),
+      ),
+    );
+
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
+    expect(avatar.backgroundColor, AppColors.secondary500);
+    final text = tester.widget<Text>(find.text('CV'));
+    expect(text.style?.color, Colors.white);
+    expect(text.style?.fontSize, 22);
   });
 }

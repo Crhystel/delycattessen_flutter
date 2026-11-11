@@ -70,13 +70,26 @@ class ParentMenuController extends ChangeNotifier {
 
   /// Carga el menú mensual del estudiante. Si [initialDate] existe en el menú
   /// se elige ese día; si no, el primero.
-  Future<void> load(int studentId, {DateTime? initialDate}) async {
+  Future<void> load(int studentId, {DateTime? initialDate}) => _loadDays(
+    () => _menuService.getStudentMonthlyMenu(studentId),
+    initialDate,
+  );
+
+  /// Igual que [load], pero del estudiante autenticado (inicio del estudiante,
+  /// solo lectura: el carrito no se usa).
+  Future<void> loadOwn({DateTime? initialDate}) =>
+      _loadDays(_menuService.getOwnMonthlyMenu, initialDate);
+
+  Future<void> _loadDays(
+    Future<List<MenuDay>> Function() fetch,
+    DateTime? initialDate,
+  ) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final days = await _menuService.getStudentMonthlyMenu(studentId);
+      final days = await fetch();
 
       MenuDay? targetDay;
       if (initialDate != null) {
@@ -106,6 +119,11 @@ class ParentMenuController extends ChangeNotifier {
   void addToCart(int dishId, int quantity) {
     _cart[dishId] = (_cart[dishId] ?? 0) + quantity;
     notifyListeners();
+  }
+
+  /// Quita el platillo del carrito (botón "Agregado" de la tarjeta).
+  void removeFromCart(int dishId) {
+    if (_cart.remove(dishId) != null) notifyListeners();
   }
 
   void replaceCart(Map<int, int> cart) {

@@ -6,7 +6,13 @@ import 'package:delycattessen_flutter/features/auth/screens/edit_names_screen.da
 import 'package:delycattessen_flutter/features/auth/screens/profile_password_screen.dart';
 import 'package:delycattessen_flutter/features/auth/screens/profile_screen.dart';
 import 'package:delycattessen_flutter/features/auth/widgets/initials_avatar.dart';
+import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
+import 'package:delycattessen_flutter/features/children/models/parental_control_model.dart';
+import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
+import 'package:delycattessen_flutter/features/children/screens/edit_child_account_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_screen.dart';
+import 'package:delycattessen_flutter/features/children/services/parental_control_service.dart';
+import 'package:delycattessen_flutter/features/users/models/allergy_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,6 +52,26 @@ final _child = Child(
   username: 'maria.fernanda.villavicencio.zambrano',
   institutionName: 'Unidad Educativa Particular Bilingue Martim Cerere Norte',
 );
+
+/// Services that answer right away so the child menu does not hit the network.
+class _FakeAuthService extends AuthService {
+  @override
+  Future<List<Allergen>> getStudentAllergies(int studentId) async => [
+    Allergen(id: 1, name: 'Sulfitos'),
+  ];
+}
+
+class _FakeParentalService extends ParentalControlService {
+  @override
+  Future<ParentalControl> getParentalControl(int studentId) async =>
+      ParentalControl(
+        dailyLimitEnabled: true,
+        dailyLimitAmount: 1,
+        allowedDaysEnabled: false,
+        allowedDays: const [],
+        lowBalanceAlertEnabled: true,
+      );
+}
 
 Future<void> _pump(
   WidgetTester tester,
@@ -166,8 +192,31 @@ void main() {
         });
       }
 
+      testWidgets('child menu: $label', (tester) async {
+        final settings = ChildSettingsController(
+          studentId: _child.id,
+          authService: _FakeAuthService(),
+          parentalService: _FakeParentalService(),
+        );
+        addTearDown(settings.dispose);
+        await _pump(
+          tester,
+          entry.value,
+          scale,
+          EditChildScreen(child: _child, settings: settings),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Nombres'), findsOneWidget);
+      });
+
       testWidgets('child form: $label', (tester) async {
-        await _pump(tester, entry.value, scale, EditChildScreen(child: _child));
+        await _pump(
+          tester,
+          entry.value,
+          scale,
+          EditChildAccountScreen(child: _child),
+        );
 
         expect(tester.takeException(), isNull);
         expect(find.text('Guardar cambios'), findsOneWidget);

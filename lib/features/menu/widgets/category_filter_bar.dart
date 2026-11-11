@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
-enum CategoryFilterStyle { circles, chips }
+/// `circles`: burbujas con título "Categorías" que se desplazan (docente).
+/// `evenCircles`: burbujas sin título que se reparten el ancho (padre).
+/// `chips`: ChoiceChip (POS).
+enum CategoryFilterStyle { circles, evenCircles, chips }
 
 /// Filtro de categorías compartido. [selected] nulo = todas.
-/// `circles`: burbujas con icono (vista del padre). `chips`: ChoiceChip (POS).
 class CategoryFilterBar extends StatelessWidget {
   final List<String> categories;
   final String? selected;
@@ -24,6 +26,10 @@ class CategoryFilterBar extends StatelessWidget {
   });
 
   static const double _circleSize = 58;
+  static const double _evenCircleSize = 56;
+  static const double _evenItemWidth = 76;
+  static const int _evenColumns = 4;
+  static const String evenAllLabel = 'Todo';
   static const double _circleLabelGap = 6;
   static const double _circleLabelFont = 13;
   static const double _circlesMinHeight = 92;
@@ -49,9 +55,11 @@ class CategoryFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     final options = <String?>[null, ...categories];
-    return style == CategoryFilterStyle.chips
-        ? _buildChips(context, options)
-        : _buildCircles(context, options);
+    return switch (style) {
+      CategoryFilterStyle.chips => _buildChips(context, options),
+      CategoryFilterStyle.evenCircles => _buildEvenCircles(context, options),
+      CategoryFilterStyle.circles => _buildCircles(context, options),
+    };
   }
 
   Widget _buildChips(BuildContext context, List<String?> options) {
@@ -76,6 +84,39 @@ class CategoryFilterBar extends StatelessWidget {
             onSelected: (_) => onSelected(category),
           );
         },
+      ),
+    );
+  }
+
+  /// Burbujas del padre: hasta 4 se reparten el ancho en columnas iguales;
+  /// con más, se desplazan de lado a lado.
+  Widget _buildEvenCircles(BuildContext context, List<String?> options) {
+    Widget item(String? category) => _EvenCircle(
+      label: category ?? evenAllLabel,
+      icon: category == null ? Icons.storefront_outlined : iconFor(category),
+      selected: selected == category,
+      onTap: () => onSelected(category),
+    );
+    if (options.length <= _evenColumns) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final category in options) Expanded(child: item(category)),
+          ],
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final category in options)
+            SizedBox(width: _evenItemWidth, child: item(category)),
+        ],
       ),
     );
   }
@@ -163,6 +204,67 @@ class CategoryFilterBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Burbuja de categoría del padre: morada llena si está elegida, blanca con
+/// borde morado si no; la etiqueta se adapta a la letra del sistema.
+class _EvenCircle extends StatelessWidget {
+  const _EvenCircle({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: CategoryFilterBar._evenCircleSize,
+              height: CategoryFilterBar._evenCircleSize,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.secondary500 : Colors.white,
+                shape: BoxShape.circle,
+                border: selected
+                    ? null
+                    : Border.all(color: AppColors.secondary500, width: 1.5),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: selected ? Colors.white : AppColors.secondary500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? AppColors.ink900 : AppColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

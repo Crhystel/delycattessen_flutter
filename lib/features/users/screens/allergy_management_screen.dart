@@ -9,19 +9,30 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/subpage_header.dart';
 import '../models/allergy_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../services/allergy_owner.dart';
+import '../widgets/parent_allergy_form.dart';
 import '../../../core/utils/error_message.dart';
 
 class AllergyManagementScreen extends StatefulWidget {
   final AllergyOwner owner;
   final String personName;
 
+  /// Rediseño del padre: cabecera de subpantalla, tarjetas y barra inferior
+  /// fija. Sin él (docente) la pantalla queda igual que siempre.
+  final bool parentStyle;
+
+  /// Para simular el servicio en pruebas; por defecto el real.
+  final AuthService? authService;
+
   const AllergyManagementScreen({
     super.key,
     required this.owner,
     required this.personName,
+    this.parentStyle = false,
+    this.authService,
   });
 
   @override
@@ -31,7 +42,7 @@ class AllergyManagementScreen extends StatefulWidget {
 
 class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     with NotificationMixin {
-  final _authService = AuthService();
+  late final AuthService _authService = widget.authService ?? AuthService();
   final _newAllergenController = TextEditingController();
 
   List<Allergen> _allAllergens = [];
@@ -111,10 +122,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
       });
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        errorMessageOf(e),
-        title: 'No se pudo agregar',
-      );
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo agregar');
     } finally {
       if (mounted) setState(() => _isCreatingAllergen = false);
     }
@@ -142,10 +150,7 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(
-        errorMessageOf(e),
-        title: 'No se pudo guardar',
-      );
+      showErrorSnackBar(errorMessageOf(e), title: 'No se pudo guardar');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -155,32 +160,42 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
     return InputDecoration(hintText: hint);
   }
 
+  /// Nombre de pila para el aviso del final ("Pepito Pérez" -> "Pepito").
+  String get _firstName {
+    final words = widget.personName.trim().split(RegExp(r'\s+'));
+    return words.first;
+  }
+
+  Widget _buildLoading() => const Center(
+    child: CircularProgressIndicator(color: AppColors.secondary500),
+  );
+
+  Widget _buildLoadFailed() => Center(
+    child: EmptyState(
+      icon: Icons.cloud_off_outlined,
+      title: 'No pudimos cargar las alergias',
+      message: 'Revisa tu conexión e inténtalo de nuevo.',
+      actionLabel: 'Reintentar',
+      onAction: _load,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (widget.parentStyle) return _buildParentStyle();
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.ink50,
       appBar: AppTheme.lightAppBar(
         title: Text('Alergias de ${widget.personName}'),
+        backgroundColor: AppColors.ink50,
       ),
       body: ResponsiveCenter(
         child: SafeArea(
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.secondary500,
-                  ),
-                )
+              ? _buildLoading()
               : _loadFailed
-              ? Center(
-                  child: EmptyState(
-                    icon: Icons.cloud_off_outlined,
-                    title: 'No pudimos cargar las alergias',
-                    message: 'Revisa tu conexión e inténtalo de nuevo.',
-                    actionLabel: 'Reintentar',
-                    onAction: _load,
-                  ),
-                )
+              ? _buildLoadFailed()
               : Column(
                   children: [
                     Expanded(
@@ -348,6 +363,57 @@ class _AllergyManagementScreenState extends State<AllergyManagementScreen>
                   ],
                 ),
         ),
+      ),
+    );
+  }
+
+  /// "Alergias" con el estilo del rediseño del padre: cabecera de subpantalla
+  /// con el nombre del hijo, tarjetas y barra de guardado fija al pie.
+  Widget _buildParentStyle() {
+    final ready = !_isLoading && !_loadFailed;
+    return Scaffold(
+      backgroundColor: AppColors.ink50,
+      body: Column(
+        children: [
+          Expanded(
+            child: ResponsiveCenter(
+              child: Column(
+                children: [
+                  SubpageHeader(title: 'Alergias', subtitle: widget.personName),
+                  Expanded(
+                    child: _isLoading
+                        ? _buildLoading()
+                        : _loadFailed
+                        ? _buildLoadFailed()
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.page,
+                              14, // 22 en total con el margen de la cabecera.
+                              AppSpacing.page,
+                              AppSpacing.xl,
+                            ),
+                            child: ParentAllergyForm(
+                              registered: _selectedAllergens,
+                              available: _availableToAdd,
+                              selectedToAdd: _dropdownValue,
+                              onSelectedToAddChanged: (value) =>
+                                  setState(() => _dropdownValue = value),
+                              onAdd: _addSelected,
+                              onRemove: _removeAllergen,
+                              showNewAllergenField: _showNewAllergenField,
+                              onShowNewAllergenField: () =>
+                                  setState(() => _showNewAllergenField = true),
+                              newAllergenForm: _buildNewAllergenForm(),
+                              firstName: _firstName,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (ready) ParentAllergySaveBar(isSaving: _isSaving, onSave: _save),
+        ],
       ),
     );
   }
