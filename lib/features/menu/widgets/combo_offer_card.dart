@@ -5,6 +5,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../models/menu_models.dart';
 import 'catalog_item_card.dart';
+import 'catalog_stock_badges.dart';
 import 'offer_card_frame.dart';
 import 'offer_thumbnail.dart';
 
@@ -12,7 +13,8 @@ import 'offer_thumbnail.dart';
 /// fixed price with the regular one crossed out and what the customer saves.
 /// With [onAdd] (POS) it has an "Agregar combo" button that adds the whole
 /// combo as one line; without it (parents and teachers only consult the
-/// catalog) it points to the counter.
+/// catalog) it points to the counter. A sold out combo ([Combo.isAvailable]
+/// false) shows dimmed with "Agotado" and no add action.
 class ComboOfferCard extends StatelessWidget {
   final Combo combo;
 
@@ -31,6 +33,10 @@ class ComboOfferCard extends StatelessWidget {
   /// Opens the detail of the combo, like tapping a normal product.
   final VoidCallback? onTap;
 
+  /// How the units left are announced; by default "Quedan N" (consult-only
+  /// catalogs). The POS passes the exact stock.
+  final StockBadgeBuilder stockBadge;
+
   const ComboOfferCard({
     super.key,
     required this.combo,
@@ -39,13 +45,18 @@ class ComboOfferCard extends StatelessWidget {
     this.inCart = 0,
     this.blocked = false,
     this.onTap,
+    this.stockBadge = CatalogStockBadges.low,
   });
+
+  static const double _dimmedOpacity = 0.75;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final soldOut = !combo.isAvailable;
+    final stock = stockBadge(combo.availableQuantity);
     return Opacity(
-      opacity: blocked ? 0.75 : 1.0,
+      opacity: blocked || soldOut ? _dimmedOpacity : 1.0,
       child: OfferCardFrame(
         label: 'COMBO',
         title: combo.name,
@@ -85,11 +96,14 @@ class ComboOfferCard extends StatelessWidget {
                   ),
                 ],
                 if (blocked) const CatalogBadge.allergen(),
+                if (soldOut) CatalogStockBadges.soldOut else ?stock,
                 if (inCart > 0) CatalogBadge.info('$inCart en carrito'),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
-            _buildAction(context),
+            if (!soldOut) ...[
+              const SizedBox(height: AppSpacing.md),
+              _buildAction(context),
+            ],
           ],
         ),
       ),

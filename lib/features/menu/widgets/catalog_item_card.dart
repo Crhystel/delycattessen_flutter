@@ -38,14 +38,6 @@ class CatalogBadge extends StatelessWidget {
       onRemove = null,
       pill = false;
 
-  const CatalogBadge.discount(int percentage, {super.key})
-    : label = '-$percentage%',
-      background = AppColors.successBg,
-      foreground = AppColors.success700,
-      icon = Icons.local_offer_rounded,
-      onRemove = null,
-      pill = false;
-
   const CatalogBadge.info(this.label, {super.key, this.onRemove})
     : background = AppColors.secondary50,
       foreground = AppColors.secondary700,
@@ -123,9 +115,6 @@ class CatalogItemCard extends StatelessWidget {
   final String name;
   final String description;
   final double price;
-
-  /// Price before a discount; shown crossed out next to [price].
-  final double? originalPrice;
   final String? imageUrl;
   final List<CatalogBadge> badges;
 
@@ -143,7 +132,6 @@ class CatalogItemCard extends StatelessWidget {
     required this.description,
     required this.price,
     required this.onTap,
-    this.originalPrice,
     this.imageUrl,
     this.badges = const [],
     this.dimmed = false,
@@ -209,16 +197,6 @@ class CatalogItemCard extends StatelessWidget {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (originalPrice != null)
-                              Text(
-                                '\$${originalPrice!.toStringAsFixed(2)}',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.ink900.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
                             Text(
                               '\$${price.toStringAsFixed(2)}',
                               style: textTheme.titleMedium?.copyWith(
@@ -244,7 +222,7 @@ class CatalogItemCard extends StatelessWidget {
   }
 
   /// Fila del padre: foto, nombre, descripción, insignias y el precio a la
-  /// derecha (con el anterior tachado si hay descuento).
+  /// derecha.
   Widget _buildLeadingImageCard(TextTheme textTheme, BuildContext context) {
     return Opacity(
       opacity: dimmed ? 0.6 : 1.0,
@@ -295,25 +273,12 @@ class CatalogItemCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (originalPrice != null)
-                        Text(
-                          '\$${originalPrice!.toStringAsFixed(2)}',
-                          style: AppText.secondary.copyWith(
-                            color: AppColors.placeholder,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                      Text(
-                        '\$${price.toStringAsFixed(2)}',
-                        style: AppText.price.copyWith(
-                          color: AppColors.brand700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: AppText.price.copyWith(
+                      color: AppColors.brand700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ],
               ),

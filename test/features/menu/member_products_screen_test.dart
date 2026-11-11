@@ -10,14 +10,7 @@ import 'support/offers_test_support.dart';
 
 final _items = [
   product(1, 'Sánduche', 2.50),
-  product(
-    2,
-    'Cola',
-    1.60,
-    originalPrice: 2.00,
-    discount: 20,
-    category: 'Bebidas',
-  ),
+  product(2, 'Cola', 1.60, category: 'Bebidas'),
 ];
 
 Future<void> _pump(WidgetTester tester, {CatalogOffers? offers}) async {
@@ -43,10 +36,7 @@ void main() {
   testWidgets('shows the combo carousel, a back button and no add button', (
     tester,
   ) async {
-    await _pump(
-      tester,
-      offers: CatalogOffers(combos: [lunchCombo()], promotions: []),
-    );
+    await _pump(tester, offers: CatalogOffers(combos: [lunchCombo()]));
 
     expect(find.byType(ComboCarousel), findsOneWidget);
     expect(find.text('Combos de hoy'), findsOneWidget);

@@ -1,6 +1,5 @@
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/screens/combo_detail_screen.dart';
-import 'package:delycattessen_flutter/features/menu/screens/product_detail_screen.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/category_filter_bar.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/product_catalog_view.dart';
 import 'package:flutter/material.dart';
@@ -26,15 +25,6 @@ final _offers = CatalogOffers(
         ComboItem(productId: 1, name: 'Producto 1', quantity: 1),
         ComboItem(productId: 2, name: 'Producto 2', quantity: 1),
       ],
-    ),
-  ],
-  promotions: [
-    Promotion(
-      id: 3,
-      discountPercentage: 20,
-      endDate: DateTime(2026, 12, 31),
-      productNames: const ['Producto 4'],
-      productIds: const [4],
     ),
   ],
 );
@@ -168,20 +158,5 @@ void main() {
     expect(find.byType(ComboDetailScreen), findsOneWidget);
     expect(find.text('Incluye'), findsOneWidget);
     expect(find.textContaining('Añadir'), findsNothing);
-  });
-
-  testWidgets('tapping a product of a discount opens its normal detail', (
-    tester,
-  ) async {
-    await _pump(tester, offers: _offers);
-
-    // "Producto 4" is also in the list below; the first one is in the offer.
-    final inOffer = find.text('Producto 4').first;
-    await tester.ensureVisible(inOffer);
-    await tester.pumpAndSettle();
-    await tester.tap(inOffer);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ProductDetailScreen), findsOneWidget);
   });
 }

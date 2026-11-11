@@ -71,6 +71,112 @@ void main() {
     expect(cart.isEmpty, isTrue);
   });
 
+  group('stock of the combo products', () {
+    Combo comboOf(
+      List<ComboItem> items, {
+      int id = 20,
+      int? availableQuantity,
+    }) => Combo(
+      id: id,
+      name: 'Combo especial',
+      price: 5.00,
+      regularPrice: 6.00,
+      endDate: DateTime(2026, 10, 31),
+      items: items,
+      availableQuantity: availableQuantity,
+    );
+
+    test(
+      'a product outside the visible catalog uses the stock of its item',
+      () {
+        final hidden = comboOf(const [
+          ComboItem(productId: 1, name: 'Sanduche', quantity: 1, stock: 3),
+          ComboItem(
+            productId: 99,
+            name: 'Postre oculto',
+            quantity: 2,
+            stock: 4,
+          ),
+        ]);
+
+        expect(cart.addCombo(hidden, 2), isNull);
+        expect(cart.quantityOfCombo(hidden.id), 2);
+        // 2 combos use 4 units of the hidden product: a third needs 6 > 4.
+        expect(cart.addCombo(hidden), 'Postre oculto');
+        expect(cart.quantityOfCombo(hidden.id), 2);
+      },
+    );
+
+    test('a product outside the catalog without stock data is rejected', () {
+      final unknown = comboOf(const [
+        ComboItem(productId: 99, name: 'Postre oculto', quantity: 1),
+      ]);
+
+      expect(cart.addCombo(unknown), 'Postre oculto');
+      expect(cart.isEmpty, isTrue);
+    });
+
+    test('stock zero means sold out, in the catalog and in the item', () {
+      final soldOut = product(3, 'Galleta', 1.0, stock: 0);
+      cart.setCatalog([sandwich, cola, soldOut]);
+
+      expect(cart.addProduct(soldOut, 1), 'Galleta');
+      expect(cart.isEmpty, isTrue);
+
+      final hiddenZero = comboOf(const [
+        ComboItem(productId: 99, name: 'Postre oculto', quantity: 1, stock: 0),
+      ]);
+      expect(cart.addCombo(hiddenZero), 'Postre oculto');
+      expect(cart.isEmpty, isTrue);
+    });
+
+    test('the catalog stock wins over the one of the item', () {
+      final stale = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 1, stock: 100),
+      ]);
+
+      // Cola has 5 in the catalog.
+      expect(cart.addCombo(stale, 5), isNull);
+      expect(cart.addCombo(stale), 'Cola');
+    });
+
+    test('availableQuantity limits the combos, counting those in the cart', () {
+      final limited = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 1),
+      ], availableQuantity: 2);
+
+      expect(cart.addCombo(limited), isNull);
+      expect(cart.addCombo(limited), isNull);
+      expect(cart.addCombo(limited), 'Combo especial');
+      expect(cart.quantityOfCombo(limited.id), 2);
+
+      // The checkout "+" button goes through the same rule.
+      expect(cart.changeLine(cart.lines.single, 1), 'Combo especial');
+    });
+
+    test('availableQuantity zero rejects the combo', () {
+      final soldOut = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 1),
+      ], availableQuantity: 0);
+
+      expect(cart.addCombo(soldOut), 'Combo especial');
+      expect(cart.isEmpty, isTrue);
+    });
+
+    test('loose product plus combo of the same product count together', () {
+      final colaCombo = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 2, stock: 5),
+      ], availableQuantity: 10);
+
+      expect(cart.addProduct(cola, 3), isNull); // 3 of 5
+      expect(cart.addCombo(colaCombo), isNull); // +2 = 5 of 5
+      expect(cart.addCombo(colaCombo), 'Cola');
+      expect(cart.addProduct(cola, 1), 'Cola');
+      expect(cart.quantityOfProduct(cola.id), 3);
+      expect(cart.quantityOfCombo(colaCombo.id), 1);
+    });
+  });
+
   test('changing a line to zero removes it', () {
     cart.addCombo(combo);
     final line = cart.lines.single;

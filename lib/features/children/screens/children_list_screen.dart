@@ -126,7 +126,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
   Future<Combo?> _fetchFirstCombo(int studentId) async {
     try {
       final offers = await _menuService.getActiveOffers(studentId: studentId);
-      return offers.combos.firstOrNull;
+      return offers.visibleCombos.firstOrNull;
     } catch (_) {
       // Las ofertas son secundarias: sin ellas no hay banner.
       return null;

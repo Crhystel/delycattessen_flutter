@@ -14,8 +14,7 @@ abstract class ProductCatalogSource {
 
   Future<List<MenuItem>> loadItems();
 
-  /// Discounts and combos in force today in the same institution as the
-  /// products.
+  /// Combos in force today in the same institution as the products.
   Future<CatalogOffers> loadOffers();
 
   /// Ids de los alérgenos registrados de la persona.

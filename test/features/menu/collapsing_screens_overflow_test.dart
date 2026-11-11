@@ -44,10 +44,7 @@ final _items = [
     ),
 ];
 
-final _offers = CatalogOffers(
-  combos: [lunchCombo()],
-  promotions: [colaPromotion()],
-);
+final _offers = CatalogOffers(combos: [lunchCombo()]);
 
 Widget _catalog(double scale, {int count = 25}) => MaterialApp(
   builder: (context, child) => MediaQuery(

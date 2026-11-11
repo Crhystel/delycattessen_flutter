@@ -345,40 +345,12 @@ void main() {
       expect(find.text('Julieta Venegas'), findsOneWidget);
       expect(find.text('Subtotal'), findsOneWidget);
       expect(find.text('Total'), findsOneWidget);
-      // The table has quantity, product and price only (no "Importe" column),
-      // and without a discount there is no "Descuento" line.
+      // The table has quantity, product and price only (no "Importe" column)
+      // and there is no "Descuento" line.
       expect(find.text('Precio'), findsOneWidget);
       expect(find.text('Importe'), findsNothing);
       expect(find.text('Descuento'), findsNothing);
       expect(find.text('Ver en movimientos de la billetera'), findsNothing);
-    });
-
-    testWidgets('shows the discount line only when there was a discount', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(390, 1200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      // Items add up to 5.00 but the order total is 3.50: a 1.50 discount.
-      final discounted = OrderEntry(
-        id: 8,
-        studentId: 3,
-        studentName: 'Julieta Venegas',
-        createdAt: DateTime(2026, 10, 15, 22, 49),
-        status: PreOrderStatus.delivered,
-        statusDisplay: 'Entregado',
-        deliveryDate: '',
-        totalAmount: 3.5,
-        items: [_item('Crepes', price: 5.0)],
-        origin: OrderOrigin.pointOfSale,
-        paymentLabel: 'Billetera',
-      );
-      await tester.pumpWidget(
-        MaterialApp(home: OrderDetailScreen(order: discounted)),
-      );
-
-      expect(find.text('Descuento'), findsOneWidget);
-      expect(find.text('\$1.50'), findsOneWidget);
     });
 
     testWidgets('offers the wallet movements only when the wallet is known', (
@@ -433,7 +405,6 @@ void main() {
             name: 'Powerade de frutas tropicales extra grande',
             description: 'Bebida hidratante para después del recreo',
             price: 1.1,
-            originalPrice: 1.5,
             leadingImage: true,
             badges: const [CatalogBadge.info('Quedan 3')],
             onTap: () {},

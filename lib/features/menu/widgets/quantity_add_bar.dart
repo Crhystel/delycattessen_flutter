@@ -11,10 +11,15 @@ class QuantityAddBar extends StatefulWidget {
   final double unitPrice;
   final ValueChanged<int> onAdd;
 
+  /// Most units that can be chosen; null = no limit. With zero (or less) there
+  /// is nothing to sell: the button reads "Agotado" and does nothing.
+  final int? maxQuantity;
+
   const QuantityAddBar({
     super.key,
     required this.unitPrice,
     required this.onAdd,
+    this.maxQuantity,
   });
 
   @override
@@ -23,6 +28,11 @@ class QuantityAddBar extends StatefulWidget {
 
 class _QuantityAddBarState extends State<QuantityAddBar> {
   int _quantity = 1;
+
+  bool get _soldOut => (widget.maxQuantity ?? 1) <= 0;
+
+  bool get _canAddOne =>
+      widget.maxQuantity == null || _quantity < widget.maxQuantity!;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +81,9 @@ class _QuantityAddBarState extends State<QuantityAddBar> {
                   IconButton(
                     icon: const Icon(Icons.add, color: AppColors.secondary500),
                     tooltip: 'Agregar uno',
-                    onPressed: () => setState(() => _quantity++),
+                    onPressed: _canAddOne
+                        ? () => setState(() => _quantity++)
+                        : null,
                   ),
                 ],
               ),
@@ -79,12 +91,15 @@ class _QuantityAddBarState extends State<QuantityAddBar> {
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: PrimaryButton(
-                label:
-                    'Añadir \$${(widget.unitPrice * _quantity).toStringAsFixed(2)}',
-                onPressed: () {
-                  widget.onAdd(_quantity);
-                  Navigator.pop(context);
-                },
+                label: _soldOut
+                    ? 'Agotado'
+                    : 'Añadir \$${(widget.unitPrice * _quantity).toStringAsFixed(2)}',
+                onPressed: _soldOut
+                    ? null
+                    : () {
+                        widget.onAdd(_quantity);
+                        Navigator.pop(context);
+                      },
               ),
             ),
           ],

@@ -314,12 +314,6 @@ class MenuItem {
   final List<Allergen> allergens;
   final int stock;
 
-  /// Price without today's discount; equals [price] when there is none.
-  final double originalPrice;
-
-  /// Discount of the promotion in force today, null without one.
-  final int? discountPercentage;
-
   MenuItem({
     required this.id,
     required this.name,
@@ -330,12 +324,7 @@ class MenuItem {
     required this.ingredients,
     required this.allergens,
     this.stock = 0,
-    double? originalPrice,
-    this.discountPercentage,
-  }) : originalPrice = originalPrice ?? price;
-
-  /// True while a discount lowers the price (show the original crossed out).
-  bool get hasDiscount => originalPrice > price;
+  });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     final allergensList = json['allergens'] as List? ?? [];
@@ -344,62 +333,14 @@ class MenuItem {
       id: json['id'],
       name: json['name'],
       description: json['description'] ?? '',
-      // final_price already includes today's promotion (HU-03.3); it is the
-      // price the POS charges, so totals shown here match the sale.
-      price:
-          double.tryParse(
-            (json['final_price'] ?? json['price'] ?? '0.00').toString(),
-          ) ??
-          0.0,
+      // Only `price`: discounts no longer exist, so any `final_price` or
+      // `discount_percentage` an older backend still sends is ignored.
+      price: double.tryParse((json['price'] ?? '0.00').toString()) ?? 0.0,
       imageUrl: json['image'] as String?,
       category: json['category'] as String? ?? '',
       stock: json['stock'] as int? ?? 0,
-      originalPrice: double.tryParse((json['price'] ?? '').toString()),
-      discountPercentage: json['discount_percentage'] as int?,
       ingredients: ingredientsList.map((i) => Ingredient.fromJson(i)).toList(),
       allergens: allergensList.map((a) => Allergen.fromJson(a)).toList(),
-    );
-  }
-}
-
-/// Promotion in force for the user's institution (HU-03.3), shown as a
-/// banner above the product catalog.
-class Promotion {
-  final int id;
-  final int discountPercentage;
-  final DateTime endDate;
-  final String? imageUrl;
-  final List<String> productNames;
-
-  /// Ids of the products on offer, to look up their prices in the catalog.
-  final List<int> productIds;
-
-  Promotion({
-    required this.id,
-    required this.discountPercentage,
-    required this.endDate,
-    this.imageUrl,
-    this.productNames = const [],
-    this.productIds = const [],
-  });
-
-  /// Tolerant: only a missing `id` makes it invalid (the caller skips that
-  /// promotion); a null discount, date, image or product name takes a default
-  /// instead of failing the whole list of offers.
-  factory Promotion.fromJson(Map<String, dynamic> json) {
-    final products = (json['products'] as List? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    return Promotion(
-      id: json['id'] as int,
-      discountPercentage: (json['discount_percentage'] as num?)?.toInt() ?? 0,
-      endDate: _dateOrNow(json['end_date']),
-      imageUrl: json['image'] as String?,
-      productNames: products.map((p) => (p['name'] ?? '').toString()).toList(),
-      productIds: [
-        for (final p in products)
-          if (p['id'] is int) p['id'] as int,
-      ],
     );
   }
 }
@@ -410,16 +351,22 @@ class ComboItem {
   final String name;
   final int quantity;
 
+  /// Units in stock of the product; null when the backend does not send it
+  /// (then the catalog is the only source). Zero means sold out.
+  final int? stock;
+
   const ComboItem({
     required this.productId,
     required this.name,
     required this.quantity,
+    this.stock,
   });
 
   factory ComboItem.fromJson(Map<String, dynamic> json) => ComboItem(
     productId: (json['product_id'] as num?)?.toInt() ?? 0,
     name: (json['name'] ?? '').toString(),
     quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+    stock: _intOrNull(json['stock']),
   );
 }
 
@@ -436,6 +383,11 @@ class Combo {
   final DateTime endDate;
   final List<ComboItem> items;
 
+  /// How many combos can still be sold: the least of floor(stock / quantity)
+  /// over its products, zero if one is inactive. The combo has no stock of its
+  /// own. Null when the backend does not send it (no limit is known).
+  final int? availableQuantity;
+
   const Combo({
     required this.id,
     required this.name,
@@ -444,7 +396,12 @@ class Combo {
     required this.endDate,
     this.imageUrl,
     this.items = const [],
+    this.availableQuantity,
   });
+
+  /// False only when the backend says no unit can be sold; without the data
+  /// the combo is considered available.
+  bool get isAvailable => availableQuantity == null || availableQuantity! > 0;
 
   /// True when the combo costs less than its products bought separately.
   bool get hasSavings => regularPrice > price;
@@ -467,21 +424,33 @@ class Combo {
         .whereType<Map<String, dynamic>>()
         .map(ComboItem.fromJson)
         .toList(),
+    availableQuantity: _intOrNull(json['available_quantity']),
   );
 }
+
+/// Whole number of an optional count; null when it is missing or unreadable
+/// (so the extra stock data can never make a combo invalid).
+int? _intOrNull(Object? value) =>
+    value is num ? value.toInt() : int.tryParse((value ?? '').toString());
 
 /// Date of an offer; today when the backend sends none or an unreadable one.
 DateTime _dateOrNow(Object? value) =>
     DateTime.tryParse((value ?? '').toString()) ?? DateTime.now();
 
-/// Offers in force for an institution: discounts and combos.
+/// Offers in force for an institution: the combos.
 class CatalogOffers {
-  final List<Promotion> promotions;
   final List<Combo> combos;
 
-  const CatalogOffers({this.promotions = const [], this.combos = const []});
+  const CatalogOffers({this.combos = const []});
 
   static const empty = CatalogOffers();
 
-  bool get isEmpty => promotions.isEmpty && combos.isEmpty;
+  bool get isEmpty => combos.isEmpty;
+
+  /// Combos that can still be sold. Informational surfaces (parents, students,
+  /// teachers) show only these; the POS shows all of them, dimming the sold out.
+  List<Combo> get visibleCombos => [
+    for (final combo in combos)
+      if (combo.isAvailable) combo,
+  ];
 }

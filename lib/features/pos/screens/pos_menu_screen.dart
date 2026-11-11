@@ -18,6 +18,7 @@ import '../../menu/screens/combo_detail_screen.dart';
 import '../../menu/widgets/catalog_search_row.dart';
 import '../../menu/widgets/catalog_title_block.dart';
 import '../../menu/widgets/catalog_item_card.dart';
+import '../../menu/widgets/catalog_stock_badges.dart';
 import '../../menu/widgets/catalog_section.dart';
 import '../../menu/widgets/category_filter_bar.dart';
 import '../../menu/widgets/offers_section.dart';
@@ -178,6 +179,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           combo: combo,
           itemsById: _itemsById,
           onAdd: (qty) => _addCombo(combo, qty),
+          stockBadge: CatalogStockBadges.exact,
         ),
       ),
     );
@@ -390,7 +392,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   }
 
   /// Combos with their dishes, inside the scroll of the list. The POS sells
-  /// combos; discounts already show on each product card.
+  /// combos.
   Widget? _buildOffers() {
     if (_offers.combos.isEmpty ||
         _selectedCategory != null ||
@@ -402,9 +404,9 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       itemsById: _itemsById,
       onAddCombo: _addCombo,
       onComboTap: _openCombo,
-      onProductTap: _onTapItem,
       comboQuantity: (combo) => _cart.quantityOfCombo(combo.id),
       isComboBlocked: (combo) => _comboConflicts(combo).isNotEmpty,
+      stockBadge: CatalogStockBadges.exact,
     );
   }
 
@@ -415,14 +417,13 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       name: item.name,
       description: item.description,
       price: item.price,
-      originalPrice: item.hasDiscount ? item.originalPrice : null,
       imageUrl: item.imageUrl,
       dimmed: blocked,
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
-        // Stock 0 = producto sin control de inventario (no limita la venta).
-        if (item.stock > 0) CatalogBadge.info('Stock: ${item.stock}'),
+        // Stock 0 = agotado, igual que lo trata el servidor.
+        CatalogBadge.info('Stock: ${item.stock}'),
         if (inCart > 0)
           CatalogBadge.info(
             '$inCart en carrito',

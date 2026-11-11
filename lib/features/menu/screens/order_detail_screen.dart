@@ -35,8 +35,6 @@ class OrderDetailScreen extends StatelessWidget {
       ? order.totalAmount
       : order.items.fold(0.0, (sum, i) => sum + i.priceAtPurchase * i.quantity);
 
-  double get _discount => math.max(0, _subtotal - order.totalAmount);
-
   /// Los movimientos tienen una sola vista: Billetera > Movimientos.
   void _openMovements(BuildContext context) =>
       ParentNavigation.openWalletMovements(context, childId: order.studentId);
@@ -160,15 +158,6 @@ class OrderDetailScreen extends StatelessWidget {
                                     label: 'Subtotal',
                                     value: _money(_subtotal),
                                   ),
-                                  // Solo cuando hubo descuento: sin él el
-                                  // desglose es Subtotal y Total, como el diseño.
-                                  if (_discount > 0) ...[
-                                    const SizedBox(height: 8),
-                                    _Total(
-                                      label: 'Descuento',
-                                      value: _money(_discount),
-                                    ),
-                                  ],
                                   const SizedBox(height: 8),
                                   Container(
                                     padding: const EdgeInsets.only(top: 8),

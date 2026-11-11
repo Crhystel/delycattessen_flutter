@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../menu/models/menu_models.dart';
 import '../models/sale_models.dart';
 
-/// Line of the POS cart: a loose product at its (discounted) price or a
+/// Line of the POS cart: a loose product at its price or a
 /// combo at its fixed price.
 class PosCartLine {
   final int id;
@@ -81,7 +81,14 @@ class PosCartController extends ChangeNotifier {
     return null;
   }
 
+  /// A combo is limited by its own [Combo.availableQuantity] (counting the
+  /// units already in the cart) and by the stock of each of its products.
+  /// Returns the name of what would run out.
   String? addCombo(Combo combo, [int quantity = 1]) {
+    final limit = combo.availableQuantity;
+    if (limit != null && quantityOfCombo(combo.id) + quantity > limit) {
+      return combo.name;
+    }
     final short = _shortProduct(_unitsOfCombo(combo, quantity), combo: combo);
     if (short != null) return short;
     _combos[combo.id] = combo;
@@ -152,14 +159,28 @@ class PosCartController extends ChangeNotifier {
   }
 
   /// First product that would exceed its stock after adding [extraUnits]
-  /// (productId -> units). A product the POS does not sell (e.g. a combo
-  /// product without stock) counts as out; [combo] names it.
+  /// (productId -> units). Stock zero means sold out, as the server treats it.
+  /// The stock comes from the POS catalog or, for a combo product that is not
+  /// in it, from the combo's own item; with neither, the product counts as out
+  /// (the safe choice) and [combo] names it.
   String? _shortProduct(Map<int, int> extraUnits, {Combo? combo}) {
     for (final entry in extraUnits.entries) {
-      final product = _products[entry.key];
-      if (product == null) return _nameInCombo(combo, entry.key);
+      final stock = _stockOf(entry.key, combo);
       final needed = _unitsInCart(entry.key) + entry.value;
-      if (product.stock > 0 && needed > product.stock) return product.name;
+      if (stock == null || needed > stock) {
+        return _products[entry.key]?.name ?? _nameInCombo(combo, entry.key);
+      }
+    }
+    return null;
+  }
+
+  /// Units in stock of [productId]; null when neither the catalog nor [combo]
+  /// say so.
+  int? _stockOf(int productId, Combo? combo) {
+    final product = _products[productId];
+    if (product != null) return product.stock;
+    for (final item in combo?.items ?? const <ComboItem>[]) {
+      if (item.productId == productId) return item.stock;
     }
     return null;
   }

@@ -10,8 +10,6 @@ final _item = MenuItem(
   name: 'Cola',
   description: 'Bebida fría',
   price: 1.60,
-  originalPrice: 2.00,
-  discountPercentage: 20,
   category: 'Bebidas',
   ingredients: [Ingredient(id: 1, name: 'Azúcar')],
   allergens: [Allergen(id: 3, name: 'Cafeína')],
@@ -43,14 +41,13 @@ Future<void> _pump(WidgetTester tester, {ValueChanged<int>? onAdd}) async {
 }
 
 void main() {
-  testWidgets('shows the name, both prices, ingredients and allergens', (
+  testWidgets('shows the name, price, ingredients and allergens', (
     tester,
   ) async {
     await _pump(tester);
 
     expect(find.text('Cola'), findsOneWidget);
     expect(find.text('Bebida fría'), findsOneWidget);
-    expect(find.text('\$2.00'), findsOneWidget);
     expect(find.text('\$1.60'), findsOneWidget);
     expect(find.text('Ingredientes'), findsOneWidget);
     expect(find.text('Azúcar'), findsOneWidget);
