@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/collapsing_header.dart';
+import '../../../core/widgets/collapsing_scroll_view.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../models/menu_models.dart';
@@ -266,6 +267,10 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     final showFilters = !_isLoading && _errorMessage == null;
     final flat = widget.flatLayout;
     final topInset = MediaQuery.viewPaddingOf(context).top;
+    // Loading and error show no products, so they count as 0.
+    final items = showFilters
+        ? filterItems(_items, category: _selectedCategory, query: _searchQuery)
+        : const <MenuItem>[];
 
     return Scaffold(
       backgroundColor: widget.backgroundColor,
@@ -288,42 +293,40 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
                 color: AppColors.secondary500,
                 edgeOffset: flat ? topInset : 0,
                 onRefresh: _refresh,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    if (flat)
-                      _buildFlatHeader(categories, showFilters, topInset)
-                    else
-                      // The search field stays; the title, selector, banner and
-                      // categories shrink together with the scroll (1 to 1 with
-                      // the finger) and come back when the list returns to its
-                      // start.
-                      CollapsingHeader(
-                        backgroundColor: widget.backgroundColor,
-                        kept: CatalogSearchRow(
-                          hintText: 'Buscar...',
-                          showBackButton: widget.showBackButton,
-                          searchController: _searchController,
-                          onSearchChanged: _onSearchChanged,
+                // The header always folds completely once there are 2+
+                // products (the offers do not count).
+                child: CollapsingScrollView(
+                  itemCount: items.length,
+                  // The search field stays; the title, selector, banner and
+                  // categories shrink together with the scroll and come back
+                  // when the list returns to its start.
+                  header: flat
+                      ? _buildFlatHeader(categories, showFilters, topInset)
+                      : CollapsingHeader(
+                          backgroundColor: widget.backgroundColor,
+                          kept: CatalogSearchRow(
+                            hintText: 'Buscar...',
+                            showBackButton: widget.showBackButton,
+                            searchController: _searchController,
+                            onSearchChanged: _onSearchChanged,
+                          ),
+                          collapsible: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CatalogTitleBlock(
+                                title: widget.title,
+                                accessory: widget.headerAccessory,
+                                trailing: widget.titleTrailing,
+                              ),
+                              if (widget.banner != null) widget.banner!,
+                              const SizedBox(height: AppSpacing.sm),
+                              if (showFilters && categories.isNotEmpty)
+                                _buildCategories(categories),
+                              const SizedBox(height: AppSpacing.xs),
+                            ],
+                          ),
                         ),
-                        collapsible: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CatalogTitleBlock(
-                              title: widget.title,
-                              accessory: widget.headerAccessory,
-                              trailing: widget.titleTrailing,
-                            ),
-                            if (widget.banner != null) widget.banner!,
-                            const SizedBox(height: AppSpacing.sm),
-                            if (showFilters && categories.isNotEmpty)
-                              _buildCategories(categories),
-                            const SizedBox(height: AppSpacing.xs),
-                          ],
-                        ),
-                      ),
-                    ..._buildContent(),
-                  ],
+                  slivers: _buildContent(items),
                 ),
               ),
             ),
@@ -335,7 +338,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
 
   /// Loading, error or the section with the offers and the products. All of
   /// them are slivers of the same scroll view as the header.
-  List<Widget> _buildContent() {
+  List<Widget> _buildContent(List<MenuItem> items) {
     if (_isLoading) {
       return const [
         SliverFillRemaining(
@@ -363,11 +366,6 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       ];
     }
 
-    final items = filterItems(
-      _items,
-      category: _selectedCategory,
-      query: _searchQuery,
-    );
     final offers = _buildOffers();
     if (widget.flatLayout) return _buildFlatContent(items, offers);
     return [

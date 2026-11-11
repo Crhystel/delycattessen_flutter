@@ -146,6 +146,50 @@ void main() {
     expect(_top(tester, find.byType(TextField)), greaterThanOrEqualTo(30));
   });
 
+  testWidgets('with only 3 products the header still folds completely', (
+    tester,
+  ) async {
+    await _pump(tester, items: _items.take(3).toList());
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_shown(find.text('Menú')), findsNothing);
+    expect(_shown(find.text('selector menu-productos')), findsNothing);
+    expect(_shown(find.byType(CategoryFilterBar)), findsNothing);
+    expect(_shown(find.byType(TextField)), findsOneWidget);
+  });
+
+  testWidgets('with a single product there is nothing to scroll: the header '
+      'stays whole', (tester) async {
+    await _pump(tester, items: _items.take(1).toList());
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(_shown(find.text('Menú')), findsOneWidget);
+    expect(_shown(find.text('selector menu-productos')), findsOneWidget);
+    expect(_shown(find.byType(CategoryFilterBar)), findsOneWidget);
+  });
+
+  testWidgets('filtering a folded list down to 1 product expands the header', (
+    tester,
+  ) async {
+    await _pump(tester, items: _items.take(3).toList());
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(_shown(find.text('Menú')), findsNothing);
+
+    await tester.enterText(_shown(find.byType(TextField)), 'Producto 1');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_shown(find.text('Menú')), findsOneWidget);
+    expect(_shown(find.byType(CategoryFilterBar)), findsOneWidget);
+  });
+
   testWidgets('the search clear button follows the text', (tester) async {
     await _pump(tester);
 

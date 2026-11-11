@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/collapsing_header.dart';
+import '../../../core/widgets/collapsing_scroll_view.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../menu/models/menu_models.dart';
 import '../../menu/screens/product_detail_screen.dart';
@@ -235,6 +236,10 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
+    // Loading and error show no products, so they count as 0.
+    final items = _isLoading || _errorMessage != null
+        ? const <MenuItem>[]
+        : _visibleItems;
     return Scaffold(
       backgroundColor: Colors.white,
       body: ResponsiveCenter(
@@ -247,37 +252,35 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
                 child: RefreshIndicator(
                   color: AppColors.secondary500,
                   onRefresh: _loadMenu,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // The search field and the customer box (allergies are
-                      // safety information) stay; the title and categories
-                      // shrink together with the scroll.
-                      CollapsingHeader(
-                        kept: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CatalogSearchRow(
-                              showBackButton: true,
-                              searchController: _searchController,
-                              onSearchChanged: (value) => setState(
-                                () => _searchQuery = value.trim().toLowerCase(),
-                              ),
+                  child: CollapsingScrollView(
+                    itemCount: items.length,
+                    // The search field and the customer box (allergies are
+                    // safety information) stay; the title and categories
+                    // shrink together with the scroll.
+                    header: CollapsingHeader(
+                      kept: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CatalogSearchRow(
+                            showBackButton: true,
+                            searchController: _searchController,
+                            onSearchChanged: (value) => setState(
+                              () => _searchQuery = value.trim().toLowerCase(),
                             ),
-                            if (user != null) PosUserBanner(user: user),
-                          ],
-                        ),
-                        collapsible: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const CatalogTitleBlock(title: 'Productos'),
-                            _buildCategoryChips(),
-                            const SizedBox(height: AppSpacing.xs),
-                          ],
-                        ),
+                          ),
+                          if (user != null) PosUserBanner(user: user),
+                        ],
                       ),
-                      ..._buildContent(),
-                    ],
+                      collapsible: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CatalogTitleBlock(title: 'Productos'),
+                          _buildCategoryChips(),
+                          const SizedBox(height: AppSpacing.xs),
+                        ],
+                      ),
+                    ),
+                    slivers: _buildContent(items),
                   ),
                 ),
               ),
@@ -311,7 +314,7 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
 
   /// Loading, error or the section with the combos and the products, as
   /// slivers of the same scroll view as the header.
-  List<Widget> _buildContent() {
+  List<Widget> _buildContent(List<MenuItem> items) {
     if (_isLoading) {
       return const [
         SliverFillRemaining(
@@ -339,7 +342,6 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       ];
     }
 
-    final items = _visibleItems;
     final offers = _buildOffers();
     return [
       CatalogSectionSliver(
