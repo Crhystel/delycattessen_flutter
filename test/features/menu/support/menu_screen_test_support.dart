@@ -51,6 +51,14 @@ class FakeMenuService extends MenuService {
   Future<List<MenuDay>> getStudentMonthlyMenu(int studentId) async => days;
 }
 
+/// Same days, but for the logged-in student (the read-only menu).
+class FakeOwnMenuService extends FakeMenuService {
+  FakeOwnMenuService(super.days);
+
+  @override
+  Future<List<MenuDay>> getOwnMonthlyMenu() async => days;
+}
+
 /// The monthly menu screen with a simulated service, ready to pump.
 Widget menuScreenApp({
   List<MenuDay>? days,
