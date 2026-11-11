@@ -1,5 +1,6 @@
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/screens/combo_detail_screen.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/catalog_stock_badges.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/quantity_add_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,6 +32,8 @@ Future<List<int>> _open(
   WidgetTester tester, {
   bool canAdd = false,
   Map<int, MenuItem>? catalog,
+  Combo? combo,
+  StockBadgeBuilder? stockBadge,
 }) async {
   tester.view.physicalSize = const Size(411, 900);
   tester.view.devicePixelRatio = 1;
@@ -45,9 +48,10 @@ Future<List<int>> _open(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ComboDetailScreen(
-                    combo: lunchCombo(),
+                    combo: combo ?? lunchCombo(),
                     itemsById: catalog ?? _catalog,
                     onAdd: canAdd ? added.add : null,
+                    stockBadge: stockBadge ?? CatalogStockBadges.low,
                   ),
                 ),
               ),
@@ -133,5 +137,105 @@ void main() {
 
     expect(added, [2]);
     expect(find.byType(ComboDetailScreen), findsNothing);
+  });
+
+  group('stock', () {
+    testWidgets('shows "Quedan N" with few units left', (tester) async {
+      await _open(tester, combo: lunchCombo(availableQuantity: 3));
+
+      expect(find.text('Quedan 3'), findsOneWidget);
+      expect(find.text('Agotado'), findsNothing);
+    });
+
+    testWidgets('shows "Última unidad" with one left', (tester) async {
+      await _open(tester, combo: lunchCombo(availableQuantity: 1));
+
+      expect(find.text('Última unidad'), findsOneWidget);
+    });
+
+    testWidgets('shows nothing about stock with plenty of units', (
+      tester,
+    ) async {
+      await _open(tester, combo: lunchCombo(availableQuantity: 40));
+
+      expect(find.textContaining('Quedan'), findsNothing);
+      expect(find.text('Última unidad'), findsNothing);
+    });
+
+    testWidgets('shows nothing about stock without the data', (tester) async {
+      await _open(tester);
+
+      expect(find.textContaining('Quedan'), findsNothing);
+      expect(find.text('Agotado'), findsNothing);
+    });
+
+    testWidgets('the POS can show the exact stock instead', (tester) async {
+      await _open(
+        tester,
+        canAdd: true,
+        combo: lunchCombo(availableQuantity: 8),
+        stockBadge: CatalogStockBadges.exact,
+      );
+
+      expect(find.text('Stock: 8'), findsOneWidget);
+    });
+
+    testWidgets('sold out: says Agotado and the add button is disabled', (
+      tester,
+    ) async {
+      final added = await _open(
+        tester,
+        canAdd: true,
+        combo: lunchCombo(availableQuantity: 0),
+      );
+
+      // The badge and the disabled button, both reading "Agotado".
+      expect(find.text('Agotado'), findsNWidgets(2));
+      expect(find.textContaining('Añadir'), findsNothing);
+      final button = tester.widget<ElevatedButton>(
+        find.ancestor(
+          of: find.text('Agotado').last,
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+      expect(button.onPressed, isNull);
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      expect(added, isEmpty);
+      expect(find.byType(ComboDetailScreen), findsOneWidget);
+    });
+
+    testWidgets('the quantity cannot exceed the available units', (
+      tester,
+    ) async {
+      final added = await _open(
+        tester,
+        canAdd: true,
+        combo: lunchCombo(availableQuantity: 2),
+      );
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      expect(find.text('Añadir \$7.00'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.add)); // already at the limit
+      await tester.pump();
+      expect(find.text('Añadir \$7.00'), findsOneWidget);
+
+      await tester.tap(find.text('Añadir \$7.00'));
+      await tester.pumpAndSettle();
+      expect(added, [2]);
+    });
+
+    testWidgets('without data the quantity has no limit', (tester) async {
+      await _open(tester, canAdd: true);
+
+      for (var i = 0; i < 4; i++) {
+        await tester.tap(find.byIcon(Icons.add));
+        await tester.pump();
+      }
+      expect(find.text('Añadir \$17.50'), findsOneWidget);
+    });
   });
 }

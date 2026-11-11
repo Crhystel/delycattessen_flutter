@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../models/menu_models.dart';
 import '../widgets/catalog_item_card.dart';
+import '../widgets/catalog_stock_badges.dart';
 import '../widgets/detail_chip.dart';
 import '../widgets/detail_hero_image.dart';
 import '../widgets/offer_thumbnail.dart';
@@ -14,7 +15,8 @@ import '../widgets/quantity_add_bar.dart';
 /// Detail of a combo, laid out like the detail of a normal product: photo,
 /// name and price (with the regular one crossed out), the dishes it includes
 /// and their allergens. With [onAdd] (POS) it has the quantity bar; without it
-/// (parents and teachers only consult the catalog) it is read-only.
+/// (parents and teachers only consult the catalog) it is read-only. It shows
+/// the units left and, sold out, "Agotado" with the add button disabled.
 class ComboDetailScreen extends StatelessWidget {
   final Combo combo;
 
@@ -24,11 +26,16 @@ class ComboDetailScreen extends StatelessWidget {
   /// Adds [quantity] combos to the cart; null in the consult-only catalogs.
   final ValueChanged<int>? onAdd;
 
+  /// How the units left are announced; by default "Quedan N". The POS passes
+  /// the exact stock.
+  final StockBadgeBuilder stockBadge;
+
   const ComboDetailScreen({
     super.key,
     required this.combo,
     required this.itemsById,
     this.onAdd,
+    this.stockBadge = CatalogStockBadges.low,
   });
 
   /// Photo of the combo, or the one of its first dish when it has none.
@@ -59,6 +66,7 @@ class ComboDetailScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final add = onAdd;
     final allergens = _allergenNames;
+    final stock = stockBadge(combo.availableQuantity);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -110,6 +118,10 @@ class ComboDetailScreen extends StatelessWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const CatalogBadge.info('Combo'),
+                        if (!combo.isAvailable)
+                          CatalogStockBadges.soldOut
+                        else
+                          ?stock,
                         if (combo.hasSavings)
                           CatalogBadge(
                             label:
@@ -148,7 +160,12 @@ class ComboDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-            if (add != null) QuantityAddBar(unitPrice: combo.price, onAdd: add),
+            if (add != null)
+              QuantityAddBar(
+                unitPrice: combo.price,
+                onAdd: add,
+                maxQuantity: combo.availableQuantity,
+              ),
           ],
         ),
       ),

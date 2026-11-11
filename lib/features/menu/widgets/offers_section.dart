@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
 import '../models/menu_models.dart';
+import 'catalog_stock_badges.dart';
 import 'combo_carousel.dart';
 import 'combo_offer_card.dart';
 import 'discount_offer_card.dart';
@@ -38,6 +39,10 @@ class OffersSection extends StatelessWidget {
   /// under their own title. Otherwise everything is one list of cards.
   final bool carousel;
 
+  /// How the units left of each combo card are announced (POS: exact stock).
+  /// By default "Quedan N".
+  final StockBadgeBuilder stockBadge;
+
   const OffersSection({
     super.key,
     required this.offers,
@@ -48,6 +53,7 @@ class OffersSection extends StatelessWidget {
     this.onComboTap,
     this.onProductTap,
     this.carousel = false,
+    this.stockBadge = CatalogStockBadges.low,
   });
 
   static const double _minCardWidth = 340;
@@ -66,6 +72,7 @@ class OffersSection extends StatelessWidget {
           inCart: comboQuantity?.call(combo) ?? 0,
           blocked: isComboBlocked?.call(combo) ?? false,
           onTap: onComboTap == null ? null : () => onComboTap!(combo),
+          stockBadge: stockBadge,
         ),
       ..._promotionCards(),
     ];

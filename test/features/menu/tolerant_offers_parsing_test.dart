@@ -90,5 +90,34 @@ void main() {
       expect(offers.promotions.map((p) => p.id), [2]);
       expect(offers.combos.map((c) => c.id), [3]);
     });
+
+    test('combos with and without the stock fields live together', () async {
+      final service = _OffersService(
+        promotions: const [],
+        combos: [
+          {
+            'id': 1,
+            'name': 'Con stock',
+            'available_quantity': 0,
+            'is_available': false,
+            'items': [
+              {'product_id': 1, 'name': 'A', 'quantity': 1, 'stock': 0},
+            ],
+          },
+          {
+            'id': 2,
+            'name': 'Sin campos nuevos',
+            'items': [
+              {'product_id': 1, 'name': 'A', 'quantity': 1},
+            ],
+          },
+        ],
+      );
+
+      final offers = await service.getActiveOffers();
+
+      expect(offers.combos.map((c) => c.availableQuantity), [0, null]);
+      expect(offers.visibleCombos.map((c) => c.id), [2]);
+    });
   });
 }

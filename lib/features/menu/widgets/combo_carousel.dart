@@ -10,6 +10,7 @@ import '../../../core/theme/app_text.dart';
 import '../../../core/utils/app_image_cache_helper.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../models/menu_models.dart';
+import 'catalog_stock_badges.dart';
 
 /// "Combos de hoy" de la vista del padre: tarjetas con foto que avanzan solas
 /// cada pocos segundos (o con un deslizamiento), con el contador "1 de 3" y
@@ -345,6 +346,9 @@ class _ComboSlide extends StatelessWidget {
                               weight: FontWeight.w700,
                             ),
                           ],
+                          ?CatalogStockBadges.low(
+                            combo.availableQuantity,
+                          )?.asPill(),
                         ],
                       ),
                     ],

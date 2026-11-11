@@ -16,6 +16,7 @@ import '../screens/combo_detail_screen.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/product_catalog_source.dart';
 import '../utils/catalog_filters.dart';
+import '../utils/low_stock_rule.dart';
 import 'catalog_item_card.dart';
 import 'catalog_search_row.dart';
 import 'catalog_section.dart';
@@ -76,8 +77,6 @@ class ProductCatalogView extends StatefulWidget {
 }
 
 class _ProductCatalogViewState extends State<ProductCatalogView> {
-  static const int _lowStockThreshold = 5;
-
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -476,16 +475,21 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
   }
 
   /// Offers go inside the scroll of the list, so they never shrink it. They
-  /// show only without a search or a category filter.
+  /// show only without a search or a category filter. This catalog only
+  /// informs, so a sold out combo does not appear.
   Widget? _buildOffers() {
-    if (_offers.isEmpty ||
+    final offers = CatalogOffers(
+      promotions: _offers.promotions,
+      combos: _offers.visibleCombos,
+    );
+    if (offers.isEmpty ||
         _selectedCategory != null ||
         _searchQuery.isNotEmpty) {
       return null;
     }
     final itemsById = {for (final item in _items) item.id: item};
     return OffersSection(
-      offers: _offers,
+      offers: offers,
       itemsById: itemsById,
       carousel: widget.flatLayout,
       onComboTap: (combo) => Navigator.push(
@@ -519,7 +523,7 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
             background: AppColors.dangerBg,
             foreground: AppColors.danger700,
           )
-        else if (item.stock > 0 && item.stock <= _lowStockThreshold)
+        else if (LowStockRule.isLow(item.stock))
           CatalogBadge.info('Quedan ${item.stock}'),
       ],
     );
