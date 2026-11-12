@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/responsive.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import 'scanner_overlay.dart';
@@ -39,10 +38,6 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
   /// Acción en la barra superior de la vista de tablet (p. ej. cambiar cámara).
   Widget? buildTopAction(BuildContext context) => null;
 
-  /// En tablet la cámara ocupa toda la pantalla; en teléfono se usa el
-  /// recuadro del Figma (Figura 25 y 26).
-  bool get isFullScreen => AppLayout.isTablet(context);
-
   @override
   void initState() {
     super.initState();
@@ -62,97 +57,15 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
     super.dispose();
   }
 
+  /// En tablet y en teléfono la cámara llena la pantalla y los controles van
+  /// arriba y abajo sobre degradados oscuros (más compactos en teléfono). El
+  /// recuadro guía se dibuja solo en el espacio libre entre ambos, para que
+  /// nada lo tape.
   @override
   Widget build(BuildContext context) {
-    if (isFullScreen) return _buildFullScreen(context);
-    final screenSize = MediaQuery.of(context).size;
-    final boxSize = (screenSize.width * 0.72).clamp(240.0, 300.0);
-    final noticeWidth = (boxSize * 0.82).clamp(210.0, 250.0);
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
-          onPressed: onCancelPressed,
-        ),
-        title: Text(screenTitle),
-        centerTitle: false,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.md,
-          ),
-          child: Column(
-            children: [
-              const Spacer(flex: 1),
-              Center(
-                child: ScannerFrame(
-                  size: boxSize,
-                  scanAnimation: scanAnimation,
-                  child: buildScannerContent(context),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl - 4),
-              Text(
-                instructionText,
-                textAlign: TextAlign.center,
-                style: textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Center(
-                child: ScannerNotice(text: helpNoticeText, width: noticeWidth),
-              ),
-              const Spacer(flex: 2),
-              Center(
-                child: SizedBox(
-                  width: noticeWidth,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: onCancelPressed,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.secondary500,
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Color(0xFF5932EA),
-                        width: 2.0,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl - 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Vista de tablet: la cámara llena la pantalla y los controles, grandes,
-  /// van arriba y abajo sobre degradados oscuros. El recuadro guía se dibuja
-  /// solo en el espacio libre entre ambos, para que nada lo tape.
-  Widget _buildFullScreen(BuildContext context) {
     final primary = buildPrimaryAction(context);
     final topAction = buildTopAction(context);
+    final tablet = AppLayout.isTablet(context);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -161,7 +74,7 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
           Positioned.fill(child: buildScannerContent(context)),
           Column(
             children: [
-              _buildTopBar(topAction),
+              _buildTopBar(topAction, tablet),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -181,7 +94,7 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
                   },
                 ),
               ),
-              _buildBottomPanel(primary),
+              _buildBottomPanel(primary, tablet),
             ],
           ),
         ],
@@ -189,7 +102,7 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
     );
   }
 
-  Widget _buildTopBar(Widget? topAction) {
+  Widget _buildTopBar(Widget? topAction, bool tablet) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -214,13 +127,13 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
                 tooltip: 'Volver',
                 onPressed: onCancelPressed,
               ),
-              const SizedBox(width: AppSpacing.lg),
+              SizedBox(width: tablet ? AppSpacing.lg : AppSpacing.md),
               Expanded(
                 child: Text(
                   screenTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
+                    fontSize: tablet ? 30 : 22,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -233,7 +146,30 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
     );
   }
 
-  Widget _buildBottomPanel(Widget? primary) {
+  Widget _buildBottomPanel(Widget? primary, bool tablet) {
+    final cancel = SizedBox(
+      width: tablet ? 240 : null,
+      height: tablet ? 64 : 52,
+      child: OutlinedButton(
+        onPressed: onCancelPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          minimumSize: Size(0, tablet ? 64 : 52),
+          side: const BorderSide(color: Colors.white, width: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(tablet ? 18 : 16),
+          ),
+        ),
+        child: Text(
+          'Cancelar',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: tablet ? 22 : 17,
+          ),
+        ),
+      ),
+    );
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -247,10 +183,10 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
+            tablet ? AppSpacing.xl : AppSpacing.page,
             AppSpacing.xl,
-            AppSpacing.xl,
-            AppSpacing.xl,
+            tablet ? AppSpacing.xl : AppSpacing.page,
             AppSpacing.lg,
           ),
           child: Column(
@@ -259,9 +195,9 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
               Text(
                 instructionText.replaceAll('\n', ' '),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 26,
+                  fontSize: tablet ? 26 : 18,
                   fontWeight: FontWeight.w700,
                   height: 1.3,
                 ),
@@ -269,40 +205,28 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
               const SizedBox(height: AppSpacing.sm),
               ScannerNotice(
                 text: helpNoticeText.replaceAll('\n', ' '),
-                width: 560,
-                fontSize: 18,
+                width: tablet ? 560 : double.infinity,
+                fontSize: tablet ? 18 : 13,
               ),
               const SizedBox(height: AppSpacing.lg),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: AppSpacing.lg,
-                runSpacing: AppSpacing.md,
-                children: [
-                  ?primary,
-                  SizedBox(
-                    width: 240,
-                    height: 64,
-                    child: OutlinedButton(
-                      onPressed: onCancelPressed,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 64),
-                        side: const BorderSide(color: Colors.white, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 22,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              if (tablet)
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: AppSpacing.lg,
+                  runSpacing: AppSpacing.md,
+                  children: [?primary, cancel],
+                )
+              else
+                // Phone: both actions share the row, or Cancel takes it all.
+                Row(
+                  children: [
+                    if (primary != null) ...[
+                      Expanded(flex: 3, child: primary),
+                      const SizedBox(width: AppSpacing.md),
+                    ],
+                    Expanded(flex: 2, child: cancel),
+                  ],
+                ),
             ],
           ),
         ),
@@ -311,7 +235,8 @@ abstract class BaseScannerScreenState<T extends BaseScannerScreen>
   }
 }
 
-/// Botón circular grande y semitransparente para la vista de cámara en tablet.
+/// Botón circular semitransparente para la vista de cámara (más pequeño en
+/// teléfono).
 class ScannerRoundButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
@@ -326,6 +251,7 @@ class ScannerRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = AppLayout.isTablet(context);
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -335,8 +261,8 @@ class ScannerRoundButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: onPressed,
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Icon(icon, color: Colors.white, size: 34),
+            padding: EdgeInsets.all(tablet ? 14 : 10),
+            child: Icon(icon, color: Colors.white, size: tablet ? 34 : 26),
           ),
         ),
       ),

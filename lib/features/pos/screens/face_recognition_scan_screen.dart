@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../widgets/base_scanner_screen.dart';
 
@@ -115,10 +116,7 @@ class _FaceRecognitionScanScreenState
       }
     } catch (e) {
       if (mounted) {
-        showErrorSnackBar(
-          errorMessageOf(e),
-          title: 'Identificación fallida',
-        );
+        showErrorSnackBar(errorMessageOf(e), title: 'Identificación fallida');
         setState(() => _isProcessing = false);
       }
     }
@@ -134,12 +132,14 @@ class _FaceRecognitionScanScreenState
     );
   }
 
-  /// Botón grande "Escanear rostro" de la vista de tablet.
+  /// Botón "Escanear rostro" (más pequeño en teléfono).
   @override
   Widget? buildPrimaryAction(BuildContext context) {
     final ready = _isCameraReady && !_isProcessing;
+    final tablet = AppLayout.isTablet(context);
+    final height = tablet ? 64.0 : 52.0;
     return SizedBox(
-      height: 64,
+      height: height,
       child: ElevatedButton.icon(
         onPressed: ready ? _captureAndIdentify : null,
         style: ElevatedButton.styleFrom(
@@ -147,25 +147,31 @@ class _FaceRecognitionScanScreenState
           foregroundColor: Colors.black,
           disabledBackgroundColor: AppColors.brand500.withValues(alpha: 0.6),
           // El tema global estira los botones a todo el ancho; aquí no.
-          minimumSize: const Size(0, 64),
-          padding: const EdgeInsets.symmetric(horizontal: 36),
+          minimumSize: Size(0, height),
+          padding: EdgeInsets.symmetric(horizontal: tablet ? 36 : 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(tablet ? 18 : 16),
           ),
         ),
         icon: _isProcessing
-            ? const SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(
+            ? SizedBox(
+                width: tablet ? 26 : 20,
+                height: tablet ? 26 : 20,
+                child: const CircularProgressIndicator(
                   color: Colors.black,
                   strokeWidth: 3,
                 ),
               )
-            : const Icon(Icons.camera_alt, size: 30),
-        label: Text(
-          _isProcessing ? 'Identificando...' : 'Escanear rostro',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            : Icon(Icons.camera_alt, size: tablet ? 30 : 22),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _isProcessing ? 'Identificando...' : 'Escanear rostro',
+            style: TextStyle(
+              fontSize: tablet ? 22 : 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ),
     );
@@ -209,108 +215,24 @@ class _FaceRecognitionScanScreenState
       ),
     );
 
-    // Tablet: solo la cámara; los botones grandes los pone la plantilla base.
-    if (isFullScreen) {
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          cameraFeed,
-          Icon(
-            Icons.face_retouching_natural_rounded,
-            color: AppColors.brand500.withValues(alpha: 0.45),
-            size: 180,
-          ),
-          if (_isProcessing)
-            Container(
-              color: Colors.black45,
-              child: const Center(
-                child: CircularProgressIndicator(color: AppColors.brand500),
-              ),
-            ),
-        ],
-      );
-    }
-
+    // Solo la cámara y la guía; los botones los pone la plantilla base.
+    final tablet = AppLayout.isTablet(context);
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Camera Viewfinder Feed
         cameraFeed,
-
-        // Stylized Orange Face Outline (Figura 25)
         Icon(
           Icons.face_retouching_natural_rounded,
-          color: AppColors.brand500.withValues(alpha: 0.7),
-          size: 110,
+          color: AppColors.brand500.withValues(alpha: 0.45),
+          size: tablet ? 180 : 120,
         ),
-
-        // Camera Switch Button (Top-Right)
-        if (_availableCameras.length > 1)
-          Positioned(
-            top: 12,
-            right: 12,
-            child: GestureDetector(
-              onTap: _isProcessing ? null : _switchCamera,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.flip_camera_ios_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
+        if (_isProcessing)
+          Container(
+            color: Colors.black45,
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.brand500),
             ),
           ),
-
-        // Shutter / Capture Trigger Overlay Button
-        Positioned(
-          bottom: 12,
-          child: GestureDetector(
-            onTap: _isProcessing ? null : _captureAndIdentify,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.brand500,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_isProcessing)
-                    const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        color: Colors.black,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  else
-                    const Icon(Icons.camera_alt, color: Colors.black, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    _isProcessing ? 'Identificando...' : 'Escanear Rostro',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
