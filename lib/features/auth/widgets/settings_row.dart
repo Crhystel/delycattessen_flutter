@@ -17,6 +17,7 @@ class SettingsRow extends StatelessWidget {
     required this.onTap,
     this.subtitle,
     this.design = false,
+    this.destructive = false,
   });
 
   final IconData icon;
@@ -24,6 +25,9 @@ class SettingsRow extends StatelessWidget {
   final String? subtitle;
   final VoidCallback onTap;
   final bool design;
+
+  /// Red icon and title for an action that ends something ("Dar de baja").
+  final bool destructive;
 
   static const double _minHeight = 64;
   static const double _iconCircle = 40;
@@ -46,13 +50,17 @@ class SettingsRow extends StatelessWidget {
               Container(
                 width: _iconCircle,
                 height: _iconCircle,
-                decoration: const BoxDecoration(
-                  color: AppColors.secondary50,
+                decoration: BoxDecoration(
+                  color: destructive
+                      ? AppColors.dangerBg
+                      : AppColors.secondary50,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.secondary500,
+                  color: destructive
+                      ? AppColors.danger700
+                      : AppColors.secondary500,
                   size: design ? 19 : 20,
                 ),
               ),
@@ -68,7 +76,9 @@ class SettingsRow extends StatelessWidget {
                       style: textTheme.titleSmall?.copyWith(
                         fontSize: design ? 15.5 : null,
                         fontWeight: design ? FontWeight.w700 : FontWeight.w800,
-                        color: AppColors.ink900,
+                        color: destructive
+                            ? AppColors.danger700
+                            : AppColors.ink900,
                       ),
                     ),
                     if (detail != null && detail.isNotEmpty)

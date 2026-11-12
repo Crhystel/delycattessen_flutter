@@ -111,6 +111,23 @@ class AuthService extends BaseApiService {
     await performPostRequest(ApiConfig.childPassword(studentId), data.toJson());
   }
 
+  /// Asks whether [studentId] can be removed now and what is in the way.
+  Future<ChildRemovalCheck> getChildRemovalCheck(int studentId) async {
+    final response = await performGetRequest(
+      ApiConfig.childRemovalCheck(studentId),
+    );
+    return ChildRemovalCheck.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Removes a child (the backend keeps their history). The parent confirms
+  /// with their own password; a wrong one is a 400, so the parent's session is
+  /// never touched. A 409 means the child still has a balance or open orders.
+  Future<void> removeChild(int studentId, String parentPassword) async {
+    await performPostRequest(ApiConfig.childRemove(studentId), {
+      'parent_password': parentPassword,
+    });
+  }
+
   Future<List<Child>> getChildren() async {
     final response = await performGetRequest(ApiConfig.children);
     return (response as List)

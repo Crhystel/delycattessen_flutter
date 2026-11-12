@@ -21,6 +21,7 @@ import '../utils/allergy_summary.dart';
 import '../utils/child_account_text.dart';
 import '../utils/parental_control_summary.dart';
 import '../widgets/child_photo_avatar.dart';
+import 'deactivate_child_screen.dart';
 import 'edit_child_names_screen.dart';
 import 'edit_child_password_screen.dart';
 import 'edit_child_username_screen.dart';
@@ -115,6 +116,16 @@ class _EditChildScreenState extends State<EditChildScreen>
     );
     if (!mounted) return;
     _settings.loadAllergies();
+  }
+
+  /// The removal screen leaves this flow itself once the child is removed.
+  Future<void> _openRemoval() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            DeactivateChildScreen(child: _child, authService: _authService),
+      ),
+    );
   }
 
   Future<void> _updatePhoto() async {
@@ -273,6 +284,23 @@ class _EditChildScreenState extends State<EditChildScreen>
                                 ),
                               ], design: true),
                             ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          FormSectionCard(
+                            design: true,
+                            title: 'Cuenta de ${_child.firstName}',
+                            contentPadding: EdgeInsets.zero,
+                            children: [
+                              SettingsRow(
+                                design: true,
+                                destructive: true,
+                                icon: Icons.person_remove_outlined,
+                                title: 'Dar de baja a ${_child.firstName}',
+                                subtitle:
+                                    'Solo sin saldo ni preórdenes pendientes',
+                                onTap: _openRemoval,
+                              ),
+                            ],
                           ),
                         ],
                       ),

@@ -134,7 +134,13 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
     final selected = _childrenProvider.selectedChild;
     if (selected == null) return;
     if (selected.id != _selectedChild?.id) {
-      _switching = _confirmAndSwitchChild(selected);
+      // A removed child cannot be kept: switch without asking about the cart.
+      final stillThere = _childrenProvider.children.any(
+        (child) => child.id == _selectedChild?.id,
+      );
+      _switching = stillThere
+          ? _confirmAndSwitchChild(selected)
+          : Future.value(_switchTo(selected));
     } else if (!identical(selected, _selectedChild)) {
       setState(() => _selectedChild = selected);
     }
@@ -211,6 +217,10 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
       }
     }
 
+    return _switchTo(newChild);
+  }
+
+  bool _switchTo(Child newChild) {
     _menu.clearCart();
     setState(() => _selectedChild = newChild);
     _fetchMonthlyMenu(newChild.id);

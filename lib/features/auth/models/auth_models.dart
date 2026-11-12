@@ -375,3 +375,34 @@ class ChildPasswordChange {
     'confirm_password': confirmPassword,
   };
 }
+
+/// Answer of `GET /api/users/children/<id>/removal-check/`: whether the parent
+/// can remove the child and, if not, what is in the way. A reason that does not
+/// apply is null (balance) or 0.
+class ChildRemovalCheck {
+  final bool canRemove;
+
+  /// Money still in the wallet; removal waits until it is spent.
+  final double? balance;
+  final int pendingPreOrders;
+  final int pendingRecharges;
+
+  const ChildRemovalCheck({
+    required this.canRemove,
+    this.balance,
+    this.pendingPreOrders = 0,
+    this.pendingRecharges = 0,
+  });
+
+  factory ChildRemovalCheck.fromJson(Map<String, dynamic> json) {
+    final blockers = json['blockers'] as Map<String, dynamic>? ?? const {};
+    return ChildRemovalCheck(
+      canRemove: json['can_remove'] as bool? ?? false,
+      balance: blockers['balance'] == null
+          ? null
+          : double.tryParse(blockers['balance'].toString()),
+      pendingPreOrders: blockers['pending_pre_orders'] as int? ?? 0,
+      pendingRecharges: blockers['pending_recharges'] as int? ?? 0,
+    );
+  }
+}

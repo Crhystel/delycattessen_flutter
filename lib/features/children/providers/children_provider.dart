@@ -99,6 +99,26 @@ class ChildrenProvider extends ChangeNotifier {
     }
   }
 
+  /// Da de baja a [childId] (el padre confirma con su contraseña) y lo saca de
+  /// la lista. Si quedan hijos se refresca la lista; si no, queda como sin
+  /// cargar para que un hijo nuevo se pida de cero. Lanza lo que lance el
+  /// service (contraseña errónea, condiciones sin cumplir, red).
+  Future<void> removeChild(
+    int childId, {
+    required String parentPassword,
+  }) async {
+    await _authService.removeChild(childId, parentPassword);
+    // Una carga en vuelo podría traer todavía al hijo dado de baja.
+    _generation++;
+    _refreshInFlight = null;
+    _isLoading = false;
+    _children = _children.where((child) => child.id != childId).toList();
+    if (_selectedChildId == childId) _selectedChildId = null;
+    if (_children.isEmpty) _hasLoadedOnce = false;
+    notifyListeners();
+    if (_children.isNotEmpty) refresh();
+  }
+
   /// Olvida todo lo de la cuenta anterior (cierre de sesión).
   void reset() {
     _generation++;

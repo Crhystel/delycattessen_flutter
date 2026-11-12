@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text.dart';
+import '../../../core/widgets/danger_button.dart';
 import '../../../core/widgets/form_page.dart';
 import '../../../core/widgets/form_section_card.dart';
 import '../../../core/widgets/profile_summary_card.dart';
@@ -142,36 +141,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           if (widget.onLogout != null) ...[
             const SizedBox(height: AppSpacing.xl),
-            _LogoutButton(onPressed: widget.onLogout!),
+            DangerButton(
+              label: 'Cerrar sesión',
+              icon: Icons.logout,
+              onPressed: widget.onLogout,
+            ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// "Cerrar sesión": 54 de alto, fondo blanco, borde de
-/// 1.5 en rojo y texto rojo oscuro 16/800 con icono de 20.
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.logout, size: 20),
-      label: Text(
-        'Cerrar sesión',
-        style: AppText.button.copyWith(color: AppColors.danger700),
-      ),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.danger700,
-        side: const BorderSide(color: AppColors.danger500, width: 1.5),
-        shape: const StadiumBorder(),
       ),
     );
   }

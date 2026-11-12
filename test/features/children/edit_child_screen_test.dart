@@ -2,6 +2,7 @@ import 'package:delycattessen_flutter/features/auth/models/auth_models.dart';
 import 'package:delycattessen_flutter/features/auth/services/auth_service.dart';
 import 'package:delycattessen_flutter/features/children/models/parental_control_model.dart';
 import 'package:delycattessen_flutter/features/children/providers/child_settings_controller.dart';
+import 'package:delycattessen_flutter/features/children/screens/deactivate_child_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_names_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_password_screen.dart';
 import 'package:delycattessen_flutter/features/children/screens/edit_child_username_screen.dart';
@@ -120,5 +121,17 @@ void main() {
     await openAndBack('Nombres', EditChildNamesScreen);
     await openAndBack('Usuario', EditChildUsernameScreen);
     await openAndBack('Contraseña', EditChildPasswordScreen);
+  });
+
+  testWidgets('offers to remove the child in its own red row', (tester) async {
+    await _open(tester);
+
+    expect(find.text('Dar de baja a Pepito'), findsOneWidget);
+    expect(find.byIcon(Icons.person_remove_outlined), findsOneWidget);
+
+    await tester.tap(find.text('Dar de baja a Pepito'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DeactivateChildScreen), findsOneWidget);
   });
 }

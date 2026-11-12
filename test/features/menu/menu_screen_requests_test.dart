@@ -26,8 +26,15 @@ final _luis = Child(
 );
 
 class _TwoChildrenAuth extends AuthService {
+  List<Child> children = [_ana, _luis];
+
   @override
-  Future<List<Child>> getChildren() async => [_ana, _luis];
+  Future<List<Child>> getChildren() async => children;
+
+  @override
+  Future<void> removeChild(int studentId, String parentPassword) async {
+    children = children.where((c) => c.id != studentId).toList();
+  }
 }
 
 /// The same tree on every call, so pumping it again updates the screen in
@@ -164,6 +171,33 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
+    expect(provider.selectedChild!.id, _luis.id);
+    expect(controller.hasCart, isFalse);
+  });
+
+  testWidgets('a removed child is replaced without asking about the cart', (
+    tester,
+  ) async {
+    _phone(tester);
+    final provider = ChildrenProvider(authService: _TwoChildrenAuth());
+    final controller = ParentMenuController(
+      menuService: FakeMenuService(testMenuDays()),
+    );
+    addTearDown(provider.dispose);
+    await tester.pumpWidget(_app(provider, controller));
+    await settleMenu(tester);
+    expect(provider.selectedChild!.id, _ana.id);
+
+    await tester.tap(find.text('Agregar').first);
+    await tester.pump();
+    expect(controller.hasCart, isTrue);
+
+    await provider.removeChild(_ana.id, parentPassword: 'Parent-Passw0rd!');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Cambiar de estudiante'), findsNothing);
+    expect(find.text('Conservar'), findsNothing);
     expect(provider.selectedChild!.id, _luis.id);
     expect(controller.hasCart, isFalse);
   });
