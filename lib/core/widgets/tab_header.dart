@@ -19,7 +19,11 @@ class TabHeader extends StatelessWidget {
     required this.leading,
     this.trailing,
     this.topPadding,
+    this.horizontalPadding = AppSpacing.page,
   });
+
+  /// Margen lateral; las pantallas de inicio en tablet usan [AppSpacing.pageWide].
+  final double horizontalPadding;
 
   /// Título, saludo o subtítulos (normalmente una `Column`).
   final Widget leading;
@@ -37,9 +41,9 @@ class TabHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSpacing.page,
+        horizontalPadding,
         topPadding ?? AppLayout.pageTopPadding(context),
-        AppSpacing.page,
+        horizontalPadding,
         0,
       ),
       child: Row(

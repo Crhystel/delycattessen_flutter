@@ -46,6 +46,10 @@ class AppColors {
   /// Sombra del botón morado fijo al pie (morado al 30%).
   static const Color primaryShadow = Color(0x4D5B2D9E);
 
+  /// Botón de acción rápida de la caja ("Venta rápida") y su sombra (al 30%).
+  static const Color quickAction = Color(0xFF5A32EA);
+  static const Color quickActionShadow = Color(0x4D5A32EA);
+
   /// Sombra de la tarjeta de saldo azul (azul al 25%).
   static const Color balanceShadow = Color(0x400478C9);
 

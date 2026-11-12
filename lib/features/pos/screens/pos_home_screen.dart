@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../../../core/widgets/app_confirmation_dialog.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/floating_bubbles.dart';
 import '../../../core/widgets/greeting_text.dart';
 import '../../../core/widgets/header_actions.dart';
+import '../../../core/widgets/tab_header.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/pos_identification_model.dart';
+import '../utils/pos_home_layout.dart';
+import '../widgets/pos_option_card.dart';
+import '../widgets/pos_quick_sale_button.dart';
 import 'face_recognition_scan_screen.dart';
 import 'qr_scan_screen.dart';
 import '../widgets/identified_user_sheet.dart';
@@ -82,298 +87,188 @@ class _PosHomeScreenState extends State<PosHomeScreen> with NotificationMixin {
     }
   }
 
-  /// Escala de textos y tarjetas: en tablet el cajero trabaja a cierta
-  /// distancia, así que todo se ve más grande y claro.
-  double get _scale => AppLayout.isTablet(context) ? 1.7 : 1.0;
+  Widget _buildHeader(PosHomeMetrics m) {
+    return TabHeader(
+      horizontalPadding: m.sideMargin,
+      leading: GreetingText(name: widget.userName, scale: m.greetingScale),
+      trailing: HeaderActions(
+        actions: [
+          HeaderAction(
+            icon: Icons.logout_rounded,
+            tooltip: 'Cerrar sesión',
+            onPressed: _confirmLogout,
+            color: AppColors.danger700,
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _buildOptions() {
-    final isLandscapeTablet =
-        AppLayout.isTablet(context) &&
-        MediaQuery.orientationOf(context) == Orientation.landscape;
-    final faceCard = _PosOptionCard(
-      stacked: isLandscapeTablet,
-      iconBackground: const Color(0xFF5932EA),
-      iconColor: Colors.white,
+  Widget _buildTitle(PosHomeMetrics m) {
+    final align = m.stacked ? TextAlign.center : TextAlign.start;
+    return Column(
+      crossAxisAlignment: m.stacked
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          '¿Cómo identificas al cliente?',
+          textAlign: align,
+          style: AppText.sectionTitle.copyWith(fontSize: m.titleSize),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Toca una opción para empezar a cobrar.',
+          textAlign: align,
+          style: AppText.secondary.copyWith(fontSize: m.subtitleSize),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOptions(PosHomeMetrics m) {
+    final face = PosOptionCard(
+      metrics: m,
       icon: Icons.face_retouching_natural_rounded,
-      title: 'Reconocimiento\nFacial',
-      titleColor: const Color(0xFF5932EA),
+      iconBackground: AppColors.secondary500,
+      title: 'Reconocimiento facial',
+      titleColor: AppColors.secondary500,
       subtitle: 'Identifica por rostro',
       onTap: _navigateToFaceScan,
-      scale: _scale,
     );
-    final qrCard = _PosOptionCard(
-      stacked: isLandscapeTablet,
-      iconBackground: const Color(0xFFE5A93C),
-      iconColor: Colors.white,
+    final qr = PosOptionCard(
+      metrics: m,
       icon: Icons.qr_code_2_rounded,
-      title: 'Escanear Código\nQR',
-      titleColor: const Color(0xFFE5A93C),
+      iconBackground: AppColors.brand500,
+      title: 'Escanear código QR',
+      titleColor: AppColors.brand700,
       subtitle: 'Escanea el código QR del usuario',
       onTap: _navigateToQrScan,
-      scale: _scale,
     );
-    // Teléfono y tablet vertical: una debajo de la otra, a todo el ancho.
-    // Tablet horizontal: lado a lado.
-    if (!isLandscapeTablet) {
+    if (!m.stacked) {
       return Column(
         children: [
-          faceCard,
-          SizedBox(height: AppSpacing.lg * _scale),
-          qrCard,
+          face,
+          SizedBox(height: m.cardGap),
+          qr,
         ],
       );
     }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: faceCard),
-          const SizedBox(width: AppSpacing.xl),
-          Expanded(child: qrCard),
-        ],
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: m.gridMaxWidth),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: face),
+            SizedBox(width: m.cardGap),
+            Expanded(child: qr),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final s = _scale;
-
-    return AppScaffold(
-      bubbleCorner: BubbleCorner.topRight,
-      maxContentWidth: AppLayout.wideMaxWidth,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final pad = AppSpacing.xl * (s > 1 ? 2 : 1);
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              pad,
-              HeaderActions.topInset * (s > 1 ? 2 : 1),
-              pad,
-              pad,
-            ),
-            // Con espacio de sobra, las opciones quedan centradas en vertical
-            // bajo el encabezado; si no cabe, la pantalla hace scroll.
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    constraints.maxHeight -
-                    pad -
-                    HeaderActions.topInset * (s > 1 ? 2 : 1),
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: GreetingText(name: widget.userName, scale: s),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        HeaderActions(
-                          actions: [
-                            HeaderAction(
-                              icon: Icons.logout_rounded,
-                              tooltip: 'Cerrar sesión',
-                              onPressed: _confirmLogout,
-                              color: AppColors.danger700,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      '¿Cómo identificamos al usuario?',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.teal700,
-                        fontSize: 22 * s,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Selecciona el método para identificar al usuario y registrar su consumo.',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink900.withValues(alpha: 0.6),
-                        fontSize: 14 * s,
-                      ),
-                    ),
-                    SizedBox(height: AppSpacing.md * s),
-                    _buildOptions(),
-                    SizedBox(height: AppSpacing.xl * s),
-                    Center(
-                      child: Container(
-                        width: 190 * s,
-                        height: 48 * s,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5932EA),
-                          borderRadius: BorderRadius.circular(12 * s),
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12 * s),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const PosMenuScreen(),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.bolt,
-                                  color: Colors.white,
-                                  size: 20 * s,
-                                ),
-                                SizedBox(width: 6 * s),
-                                Text(
-                                  'Venta Rápida',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16 * s,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+  Widget _buildQuickSale(PosHomeMetrics m) {
+    final label = Text(
+      '¿Sin identificar al cliente?',
+      textAlign: TextAlign.center,
+      style: AppText.secondary.copyWith(fontSize: m.labelSize),
+    );
+    final button = PosQuickSaleButton(
+      metrics: m,
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const PosMenuScreen())),
+    );
+    if (m.quickSaleInline) {
+      return Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: AppSpacing.lg - 2,
+        runSpacing: AppSpacing.md,
+        children: [label, button],
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        label,
+        const SizedBox(height: AppSpacing.sm),
+        button,
+      ],
     );
   }
-}
 
-/// Large tappable option used on the cashier home (face or QR identification).
-/// [scale] enlarges paddings, icon and text on tablets.
-class _PosOptionCard extends StatelessWidget {
-  final Color iconBackground;
-  final Color iconColor;
-  final IconData icon;
-  final String title;
-  final Color titleColor;
-  final String subtitle;
-  final VoidCallback onTap;
-  final double scale;
-
-  /// Icono arriba y texto centrado debajo; llena mejor el espacio de las
-  /// tarjetas lado a lado (tablet horizontal).
-  final bool stacked;
-
-  const _PosOptionCard({
-    required this.iconBackground,
-    required this.iconColor,
-    required this.icon,
-    required this.title,
-    required this.titleColor,
-    required this.subtitle,
-    required this.onTap,
-    this.scale = 1.0,
-    this.stacked = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final s = scale;
-    final align = stacked ? TextAlign.center : TextAlign.start;
-    final iconBox = Container(
-      width: 72 * s,
-      height: 72 * s,
-      decoration: BoxDecoration(
-        color: iconBackground,
-        borderRadius: BorderRadius.circular(18 * s),
-      ),
-      child: Icon(icon, color: iconColor, size: 42 * s),
-    );
-    final title = Text(
-      this.title,
-      textAlign: align,
-      style: TextStyle(
-        fontSize: 17 * s,
-        fontWeight: FontWeight.w800,
-        color: titleColor,
-        height: 1.2,
-      ),
-    );
-    final subtitle = Text(
-      this.subtitle,
-      textAlign: align,
-      style: TextStyle(fontSize: 12 * s, color: const Color(0xFF6B7280)),
-    );
-    return Container(
-      width: double.infinity,
-      // En teléfono se mantiene el ancho del Figma; en tablet ocupa el ancho.
-      constraints: BoxConstraints(maxWidth: s > 1 ? double.infinity : 340),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20 * s),
-        border: Border.all(color: const Color(0xFFD4D4D8), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20 * s),
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 20 * s,
-              vertical: (stacked ? 32 : 20) * s * (s > 1 ? 1.4 : 1),
-            ),
-            child: stacked
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      iconBox,
-                      SizedBox(height: 28 * s),
-                      title,
-                      SizedBox(height: 8 * s),
-                      subtitle,
-                    ],
-                  )
-                : Row(
-                    children: [
-                      iconBox,
-                      SizedBox(width: 28 * s),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            title,
-                            SizedBox(height: 6 * s),
-                            subtitle,
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: const Color(0xFFD4D4D8),
-                        size: 26 * s,
-                      ),
-                    ],
-                  ),
+  Widget _buildBody(PosHomeMetrics m) {
+    if (!m.stacked) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          m.sideMargin,
+          PosHomeMetrics.phoneTitleTop,
+          m.sideMargin,
+          m.bottomMargin,
+        ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTitle(m),
+              const SizedBox(height: AppSpacing.page),
+              _buildOptions(m),
+              const SizedBox(height: AppSpacing.xl),
+              _buildQuickSale(m),
+            ],
           ),
         ),
+      );
+    }
+    final landscape = m.quickSaleInline;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        m.sideMargin,
+        0,
+        m.sideMargin,
+        m.bottomMargin,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTitle(m),
+            SizedBox(height: landscape ? AppSpacing.xxl : 36),
+            _buildOptions(m),
+            SizedBox(height: landscape ? 28 : 36),
+            _buildQuickSale(m),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final variant = PosHomeVariant.fromSize(MediaQuery.sizeOf(context));
+    final m = PosHomeMetrics.of(variant);
+
+    return AppScaffold(
+      backgroundColor: AppColors.ink50,
+      // The header works out its own top margin, like the rest of the redesign.
+      safeAreaTop: false,
+      bubblesDesign: true,
+      bubblesLarge: variant.isTablet,
+      bubbleCorners: [
+        BubbleCorner.topRight,
+        if (variant.isTablet) BubbleCorner.bottomLeft,
+      ],
+      maxContentWidth: AppLayout.wideMaxWidth,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeader(m)),
+          SliverFillRemaining(hasScrollBody: false, child: _buildBody(m)),
+        ],
       ),
     );
   }

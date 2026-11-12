@@ -21,7 +21,15 @@ class FloatingBubbles extends StatefulWidget {
   final BubbleCorner corner;
   final bool design;
 
-  const FloatingBubbles({super.key, required this.corner, this.design = false});
+  /// Con [design], círculos más grandes (los de las tablets del rediseño).
+  final bool large;
+
+  const FloatingBubbles({
+    super.key,
+    required this.corner,
+    this.design = false,
+    this.large = false,
+  });
 
   @override
   State<FloatingBubbles> createState() => _FloatingBubblesState();
@@ -32,8 +40,9 @@ class FloatingBubbles extends StatefulWidget {
 /// en cualquier teléfono.
 class _DesignBubbles extends StatelessWidget {
   final BubbleCorner corner;
+  final bool large;
 
-  const _DesignBubbles({required this.corner});
+  const _DesignBubbles({required this.corner, this.large = false});
 
   Widget _circle(Color color, double size) => Container(
     width: size,
@@ -50,14 +59,20 @@ class _DesignBubbles extends StatelessWidget {
         children: [
           if (isTop) ...[
             Positioned(
-              top: -60,
-              right: -50,
-              child: _circle(AppColors.teal500, 140),
+              top: large ? -90 : -60,
+              right: large ? -70 : -50,
+              child: _circle(AppColors.teal500, large ? 210 : 140),
             ),
             Positioned(
-              top: -120,
-              right: 40,
-              child: _circle(AppColors.brand500, 180),
+              top: large ? -170 : -120,
+              right: large ? 70 : 40,
+              child: _circle(AppColors.brand500, large ? 260 : 180),
+            ),
+          ] else if (corner == BubbleCorner.bottomLeft) ...[
+            Positioned(
+              bottom: -120,
+              left: -80,
+              child: _circle(AppColors.secondary50, 240),
             ),
           ] else ...[
             Positioned(
@@ -143,7 +158,10 @@ class _FloatingBubblesState extends State<FloatingBubbles>
   Widget build(BuildContext context) {
     final controller = _controller;
     if (widget.design || controller == null) {
-      return _withBottomInset(context, _DesignBubbles(corner: widget.corner));
+      return _withBottomInset(
+        context,
+        _DesignBubbles(corner: widget.corner, large: widget.large),
+      );
     }
     // Escala proporcional al frame de 402 del Figma, con tope para que en
     // tablets (800-1280 de ancho) las burbujas no crezcan sin límite.
