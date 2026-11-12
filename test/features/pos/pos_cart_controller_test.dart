@@ -199,4 +199,51 @@ void main() {
     ]);
     expect(json['user_id'], 7);
   });
+
+  group('refreshing the stock', () {
+    test('a product sold out by a combo is removed from the cart', () {
+      cart.addProduct(sandwich, 2);
+
+      // A combo sale elsewhere used the last sandwiches: the catalog no longer
+      // lists it (the server hides products without stock).
+      final adjusted = cart.setCatalog([cola]);
+
+      expect(adjusted, ['Sanduche']);
+      expect(cart.quantityOfProduct(sandwich.id), 0);
+      expect(cart.addProduct(sandwich, 1), isNotNull);
+    });
+
+    test('a line is reduced to the stock that is left', () {
+      cart.addProduct(cola, 4);
+
+      final adjusted = cart.setCatalog([
+        sandwich,
+        product(2, 'Cola', 1.50, stock: 1),
+      ]);
+
+      expect(adjusted, ['Cola']);
+      expect(cart.quantityOfProduct(cola.id), 1);
+    });
+
+    test('a combo no longer offered is removed', () {
+      cart.addCombo(combo);
+
+      final adjusted = cart.setCatalog([sandwich, cola], combos: const []);
+
+      expect(adjusted, ['Combo almuerzo']);
+      expect(cart.isEmpty, isTrue);
+    });
+
+    test('nothing changes when the stock still covers the cart', () {
+      cart
+        ..addProduct(cola, 1)
+        ..addCombo(combo);
+
+      expect(cart.setCatalog([sandwich, cola], combos: [combo]), isEmpty);
+      expect(
+        (cart.quantityOfProduct(cola.id), cart.quantityOfCombo(combo.id)),
+        (1, 1),
+      );
+    });
+  });
 }

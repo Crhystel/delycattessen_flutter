@@ -46,7 +46,8 @@ class PosMenuScreen extends StatefulWidget {
   State<PosMenuScreen> createState() => _PosMenuScreenState();
 }
 
-class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
+class _PosMenuScreenState extends State<PosMenuScreen>
+    with NotificationMixin, WidgetsBindingObserver {
   late final MenuService _menuService = widget.menuService ?? MenuService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -67,11 +68,13 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     super.initState();
     _allergens = CustomerAllergenCheck.forUser(widget.user);
     _cart.addListener(_onCartChanged);
+    WidgetsBinding.instance.addObserver(this);
     _loadMenu();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cart
       ..removeListener(_onCartChanged)
       ..dispose();
@@ -81,17 +84,33 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
 
   void _onCartChanged() => setState(() {});
 
-  Future<void> _loadMenu() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  // Another cashier, a combo or a pre-order may have used the stock while the
+  // app was in the background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadMenu(silent: true);
+  }
+
+  /// [silent] refreshes the stock without hiding the list behind the spinner.
+  Future<void> _loadMenu({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       final offersFuture = _loadOffers();
       final items = await _menuService.getMenu();
       final offers = await offersFuture;
       if (!mounted) return;
-      _cart.setCatalog(items);
+      final adjusted = _cart.setCatalog(items, combos: offers.combos);
+      if (adjusted.isNotEmpty) {
+        showWarningSnackBar(
+          'Se ajustó el carrito al stock actual: ${adjusted.join(', ')}.',
+          title: 'Stock actualizado',
+        );
+      }
       setState(() {
         _items = items;
         _itemsById = {for (final item in items) item.id: item};
@@ -100,6 +119,8 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       });
     } catch (e) {
       if (!mounted) return;
+      // A failed background refresh keeps the list on screen.
+      if (silent) return;
       setState(() {
         _errorMessage = errorMessageOf(e);
         _isLoading = false;
@@ -230,13 +251,20 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
 
   void _onContinue() {
     if (_cart.isEmpty) return;
-    // The checkout edits this same cart, so the menu stays in sync.
+    // The checkout edits this same cart, so the menu stays in sync. Back from
+    // it, the stock is asked again (a failed charge may mean it changed).
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PosCheckoutScreen(user: widget.user, cart: _cart),
+        builder: (_) => PosCheckoutScreen(
+          user: widget.user,
+          cart: _cart,
+          onRefreshStock: () => _loadMenu(silent: true),
+        ),
       ),
-    );
+    ).then((_) {
+      if (mounted) _loadMenu(silent: true);
+    });
   }
 
   @override

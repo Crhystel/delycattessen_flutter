@@ -26,7 +26,16 @@ class PosCheckoutScreen extends StatefulWidget {
   final IdentifiedUser? user;
   final PosCartController cart;
 
-  const PosCheckoutScreen({super.key, required this.cart, this.user});
+  /// Asks the server for the current stock and adjusts [cart] to it; called
+  /// when a charge fails, because the stock may have changed meanwhile.
+  final Future<void> Function()? onRefreshStock;
+
+  const PosCheckoutScreen({
+    super.key,
+    required this.cart,
+    this.user,
+    this.onRefreshStock,
+  });
 
   @override
   State<PosCheckoutScreen> createState() => _PosCheckoutScreenState();
@@ -118,6 +127,7 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(errorMessageOf(e), title: 'No se pudo cobrar');
+      await widget.onRefreshStock?.call();
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

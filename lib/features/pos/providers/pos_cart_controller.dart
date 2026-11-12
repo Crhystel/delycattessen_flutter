@@ -31,11 +31,51 @@ class PosCartController extends ChangeNotifier {
   final Map<int, Combo> _combos = {};
   final Map<int, int> _comboQuantities = {};
 
-  /// Products the POS can sell; drops cart lines of products that are gone.
-  void setCatalog(List<MenuItem> items) {
+  /// Products the POS can sell (and, when given, the combos on sale) with the
+  /// server's current stock. The cart is rebuilt over that stock: lines that
+  /// no longer fit (sold out, hidden or no longer offered) are reduced or
+  /// removed. Returns the names of the lines that changed, so the cashier can
+  /// be told why.
+  List<String> setCatalog(List<MenuItem> items, {List<Combo>? combos}) {
+    final previousProducts = _products;
     _products = {for (final item in items) item.id: item};
-    _productQuantities.removeWhere((id, _) => !_products.containsKey(id));
+    final fresh = combos == null ? null : {for (final c in combos) c.id: c};
+
+    final productQuantities = Map.of(_productQuantities);
+    final comboQuantities = Map.of(_comboQuantities);
+    _productQuantities.clear();
+    _comboQuantities.clear();
+
+    final adjusted = <String>[];
+    for (final entry in productQuantities.entries) {
+      final item = _products[entry.key];
+      final added = item == null
+          ? 0
+          : _addUpTo(entry.value, () => _tryAddProduct(item, 1));
+      if (added < entry.value) {
+        adjusted.add(
+          item?.name ?? previousProducts[entry.key]?.name ?? 'Producto',
+        );
+      }
+    }
+    for (final entry in comboQuantities.entries) {
+      final combo = fresh == null ? _combos[entry.key] : fresh[entry.key];
+      final added = combo == null
+          ? 0
+          : _addUpTo(entry.value, () => _tryAddCombo(combo, 1));
+      if (added < entry.value) adjusted.add(_combos[entry.key]!.name);
+    }
     notifyListeners();
+    return adjusted;
+  }
+
+  /// Calls [addOne] up to [quantity] times while it succeeds; returns how many.
+  static int _addUpTo(int quantity, String? Function() addOne) {
+    var added = 0;
+    while (added < quantity && addOne() == null) {
+      added++;
+    }
+    return added;
   }
 
   bool get isEmpty => _productQuantities.isEmpty && _comboQuantities.isEmpty;
@@ -74,10 +114,15 @@ class PosCartController extends ChangeNotifier {
       lines.fold(0.0, (sum, line) => sum + line.unitPrice * line.quantity);
 
   String? addProduct(MenuItem item, int quantity) {
+    final short = _tryAddProduct(item, quantity);
+    if (short == null) notifyListeners();
+    return short;
+  }
+
+  String? _tryAddProduct(MenuItem item, int quantity) {
     final short = _shortProduct({item.id: quantity});
     if (short != null) return short;
     _productQuantities[item.id] = quantityOfProduct(item.id) + quantity;
-    notifyListeners();
     return null;
   }
 
@@ -85,6 +130,12 @@ class PosCartController extends ChangeNotifier {
   /// units already in the cart) and by the stock of each of its products.
   /// Returns the name of what would run out.
   String? addCombo(Combo combo, [int quantity = 1]) {
+    final short = _tryAddCombo(combo, quantity);
+    if (short == null) notifyListeners();
+    return short;
+  }
+
+  String? _tryAddCombo(Combo combo, int quantity) {
     final limit = combo.availableQuantity;
     if (limit != null && quantityOfCombo(combo.id) + quantity > limit) {
       return combo.name;
@@ -93,7 +144,6 @@ class PosCartController extends ChangeNotifier {
     if (short != null) return short;
     _combos[combo.id] = combo;
     _comboQuantities[combo.id] = (_comboQuantities[combo.id] ?? 0) + quantity;
-    notifyListeners();
     return null;
   }
 
