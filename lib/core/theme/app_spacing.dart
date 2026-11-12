@@ -6,6 +6,9 @@ class AppSpacing {
 
   /// Margen lateral de las pantallas del padre (rediseño).
   static const double page = 20;
+
+  /// Margen lateral de las pantallas de inicio en tablet.
+  static const double pageWide = 48;
   static const double xl = 24;
   static const double xxl = 32;
 

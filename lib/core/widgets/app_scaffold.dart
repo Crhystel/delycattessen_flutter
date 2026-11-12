@@ -20,6 +20,9 @@ class AppScaffold extends StatelessWidget {
   /// Burbujas estáticas del rediseño del padre (ver [FloatingBubbles.design]).
   final bool bubblesDesign;
 
+  /// Burbujas del rediseño más grandes, para tablet ([FloatingBubbles.large]).
+  final bool bubblesLarge;
+
   /// Respeta el área segura superior. El rediseño del padre lo apaga y deja
   /// que la cabecera calcule su propio margen (`AppLayout.pageTopPadding`), así
   /// el título queda a la misma distancia de las burbujas en todo dispositivo.
@@ -35,6 +38,7 @@ class AppScaffold extends StatelessWidget {
     this.maxContentWidth = AppLayout.pageMaxWidth,
     this.backgroundColor = Colors.white,
     this.bubblesDesign = false,
+    this.bubblesLarge = false,
     this.safeAreaTop = true,
   });
 
@@ -49,7 +53,11 @@ class AppScaffold extends StatelessWidget {
         children: [
           for (final corner in corners)
             RepaintBoundary(
-              child: FloatingBubbles(corner: corner, design: bubblesDesign),
+              child: FloatingBubbles(
+                corner: corner,
+                design: bubblesDesign,
+                large: bubblesLarge,
+              ),
             ),
           SafeArea(
             top: safeAreaTop,
