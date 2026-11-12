@@ -86,6 +86,7 @@ void main() {
               const SizedBox(height: 14),
               ChildOrderingRow(
                 name: 'Pepito Alejandro Pérez Villavicencio',
+                photoUrl: 'https://example.test/pepito.jpg',
                 onChange: () {},
               ),
               const SizedBox(height: 14),

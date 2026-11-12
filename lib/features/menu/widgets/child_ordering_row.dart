@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_text.dart';
+import '../../../core/widgets/app_network_image.dart';
 
-/// "Pidiendo para" row of the dish detail: the initials and name of the child
-/// the order is for, and "Cambiar". The whole row calls [onChange].
+/// "Pidiendo para" row of the dish detail: the photo (initials while it loads
+/// or when there is none) and name of the child the order is for, and
+/// "Cambiar". The whole row calls [onChange].
 class ChildOrderingRow extends StatelessWidget {
   final String name;
   final VoidCallback onChange;
+  final String? photoUrl;
 
   const ChildOrderingRow({
     super.key,
     required this.name,
     required this.onChange,
+    this.photoUrl,
   });
 
   static const double _minHeight = 64;
@@ -31,6 +35,12 @@ class ChildOrderingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final initials = Center(
+      child: Text(
+        _initials(name),
+        style: AppText.infoValue.copyWith(color: AppColors.teal700),
+      ),
+    );
     return Semantics(
       button: true,
       label: 'Cambiar hijo. Pidiendo para $name',
@@ -53,16 +63,15 @@ class ChildOrderingRow extends StatelessWidget {
                   Container(
                     width: _avatarSize,
                     height: _avatarSize,
-                    alignment: Alignment.center,
                     decoration: const BoxDecoration(
                       color: AppColors.teal50,
                       shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      _initials(name),
-                      style: AppText.infoValue.copyWith(
-                        color: AppColors.teal700,
-                      ),
+                    child: AppNetworkImage.circle(
+                      url: photoUrl,
+                      size: _avatarSize,
+                      placeholder: initials,
+                      error: initials,
                     ),
                   ),
                   const SizedBox(width: 12),

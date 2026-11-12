@@ -34,6 +34,7 @@ Future<void> _open(
   DateTime? servedDate,
   AllergenAdvisory advisory = const AllergenAdvisory(),
   String? orderingFor,
+  String? orderingPhotoUrl,
   Future<bool> Function()? onChangeChild,
   MenuDish? dish,
 }) async {
@@ -55,6 +56,7 @@ Future<void> _open(
                   servedDate: servedDate,
                   advisory: advisory,
                   orderingFor: orderingFor,
+                  orderingPhotoUrl: orderingPhotoUrl,
                   onChangeChild: onChangeChild,
                 ),
               ),
@@ -246,6 +248,37 @@ void main() {
 
       expect(find.byType(ChildOrderingRow), findsOneWidget);
       expect(find.text('Ana Pérez'), findsOneWidget);
+    });
+
+    testWidgets('the child photo reaches the row', (tester) async {
+      const url = 'https://example.test/ana.jpg';
+      await _open(
+        tester,
+        orderingFor: 'Ana Pérez',
+        orderingPhotoUrl: url,
+        onChangeChild: () async => false,
+      );
+
+      expect(
+        tester.widget<ChildOrderingRow>(find.byType(ChildOrderingRow)).photoUrl,
+        url,
+      );
+    });
+
+    testWidgets('without a photo the row falls back to the initials', (
+      tester,
+    ) async {
+      await _open(
+        tester,
+        orderingFor: 'Ana Pérez',
+        onChangeChild: () async => false,
+      );
+
+      expect(
+        tester.widget<ChildOrderingRow>(find.byType(ChildOrderingRow)).photoUrl,
+        isNull,
+      );
+      expect(find.text('AP'), findsOneWidget);
     });
 
     testWidgets('without a callback there is no row', (tester) async {
