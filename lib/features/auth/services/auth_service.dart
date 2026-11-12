@@ -101,6 +101,16 @@ class AuthService extends BaseApiService {
     return Child.fromJson(response as Map<String, dynamic>);
   }
 
+  /// Sets a child's password. The parent confirms with their own; the
+  /// backend closes the child's sessions and keeps the parent's, so no token
+  /// is touched here.
+  Future<void> changeChildPassword(
+    int studentId,
+    ChildPasswordChange data,
+  ) async {
+    await performPostRequest(ApiConfig.childPassword(studentId), data.toJson());
+  }
+
   Future<List<Child>> getChildren() async {
     final response = await performGetRequest(ApiConfig.children);
     return (response as List)

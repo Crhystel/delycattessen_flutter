@@ -81,6 +81,18 @@ void main() {
       expect(error, isA<ApiException>());
       expect(error.message, startsWith('Error de conexión'));
     });
+
+    test('keeps the technical detail out of the user message', () {
+      final error = handler.handleNetworkError(
+        http.ClientException(
+          "SocketException: Failed host lookup: 'api-uat.kushkipagos.com'",
+        ),
+      );
+
+      expect(error.message, isNot(contains('Detalles')));
+      expect(error.message, isNot(contains('SocketException')));
+      expect(error.message, isNot(contains('kushkipagos')));
+    });
   });
 
   group('errorMessageOf', () {

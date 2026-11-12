@@ -86,7 +86,6 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
   DocumentType _documentType = DocumentType.cedula;
   bool _acceptedTerms = false;
   bool _isSubmitting = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -113,14 +112,11 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
     );
     final validationError = data.validate();
     if (validationError != null) {
-      setState(() => _errorMessage = validationError);
+      showWarningSnackBar(validationError, title: 'Revisa tus datos');
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
       final status = await _rechargeService.recharge(
@@ -133,7 +129,10 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       _showResult(status);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = errorMessageOf(e));
+      showErrorSnackBar(
+        errorMessageOf(e),
+        title: 'No se pudo procesar la recarga',
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -144,13 +143,14 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       case CardRechargeStatus.credited:
         _showSuccess();
       case CardRechargeStatus.rejected:
-        setState(
-          () => _errorMessage = 'La recarga fue rechazada. Intenta de nuevo.',
+        showErrorSnackBar(
+          'La recarga fue rechazada. Intenta de nuevo.',
+          title: 'Recarga rechazada',
         );
       case CardRechargeStatus.timedOut:
-        setState(
-          () => _errorMessage =
-              'La recarga está tardando más de lo normal. Revisa el historial en unos minutos.',
+        showWarningSnackBar(
+          'La recarga está tardando más de lo normal. Revisa el historial en unos minutos.',
+          title: 'Recarga en proceso',
         );
       case CardRechargeStatus.submitted:
       case CardRechargeStatus.cancelled:
@@ -168,139 +168,158 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
       appBar: AppTheme.lightAppBar(title: const Text('Recarga segura')),
       body: ResponsiveCenter(
         maxWidth: AppLayout.formMaxWidth,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildCardPreview(),
-              const SizedBox(height: 12),
-              const KushkiBadge(),
-              const SizedBox(height: 16),
-              _buildUserSummaryCard(),
-              const SizedBox(height: 20),
-              _buildLabel('NÚMERO DE TARJETA'),
-              _buildField(
-                _cardNumberController,
-                '0000 0000 0000 0000',
-                icon: Icons.credit_card,
-                keyboardType: TextInputType.number,
-                inputFormatters: [_CardNumberFormatter()],
-              ),
-              const SizedBox(height: 14),
-              _buildLabel('NOMBRE DEL TITULAR'),
-              _buildField(
-                _holderNameController,
-                'Ingrese el nombre',
-                icon: Icons.person_outline,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('VENCIMIENTO'),
-                        _buildField(
-                          _expirationController,
-                          'MM/AA',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [_ExpirationDateFormatter()],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  SizedBox(
-                    width: 100,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('CVV'),
-                        _buildField(
-                          _cvvController,
-                          '•••',
-                          keyboardType: TextInputType.number,
-                          obscure: true,
-                          // 3 o 4 dígitos (4 en American Express): no deja
-                          // escribir más ni letras.
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(
-                              CardFormData.cvvMaxLength,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _buildLabel('CORREO'),
-              _buildField(
-                _emailController,
-                'correo@ejemplo.com',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 14),
-              _buildLabel('TELÉFONO'),
-              _buildField(
-                _phoneController,
-                'Ej. 0991234567',
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 14),
-              _buildLabel('TIPO DE DOCUMENTO'),
-              _buildDocumentTypeDropdown(),
-              const SizedBox(height: 14),
-              _buildLabel('NÚMERO DE DOCUMENTO'),
-              _buildField(
-                _documentNumberController,
-                'Ej. 1712345678',
-                icon: Icons.badge_outlined,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _acceptedTerms,
-                    onChanged: (value) =>
-                        setState(() => _acceptedTerms = value ?? false),
-                    activeColor: AppColors.secondary500,
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Acepto los Términos y Condiciones',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.ink900.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: AppColors.danger700, fontSize: 12),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
                 ),
-              ],
-              const SizedBox(height: 18),
-              PrimaryButton(
-                label: 'Confirmar pago',
-                icon: Icons.lock_outline,
-                isLoading: _isSubmitting,
-                onPressed: _confirmPayment,
+                child: _buildForm(),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+            _buildSubmitBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildCardPreview(),
+        const SizedBox(height: 12),
+        const KushkiBadge(),
+        const SizedBox(height: 16),
+        _buildUserSummaryCard(),
+        const SizedBox(height: 20),
+        _buildLabel('NÚMERO DE TARJETA'),
+        _buildField(
+          _cardNumberController,
+          '0000 0000 0000 0000',
+          icon: Icons.credit_card,
+          keyboardType: TextInputType.number,
+          inputFormatters: [_CardNumberFormatter()],
+        ),
+        const SizedBox(height: 14),
+        _buildLabel('NOMBRE DEL TITULAR'),
+        _buildField(
+          _holderNameController,
+          'Ingrese el nombre',
+          icon: Icons.person_outline,
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('VENCIMIENTO'),
+                  _buildField(
+                    _expirationController,
+                    'MM/AA',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [_ExpirationDateFormatter()],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            SizedBox(
+              width: 100,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('CVV'),
+                  _buildField(
+                    _cvvController,
+                    '•••',
+                    keyboardType: TextInputType.number,
+                    obscure: true,
+                    // 3 o 4 dígitos (4 en American Express): no deja
+                    // escribir más ni letras.
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(
+                        CardFormData.cvvMaxLength,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _buildLabel('CORREO'),
+        _buildField(
+          _emailController,
+          'correo@ejemplo.com',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 14),
+        _buildLabel('TELÉFONO'),
+        _buildField(
+          _phoneController,
+          'Ej. 0991234567',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+        const SizedBox(height: 14),
+        _buildLabel('TIPO DE DOCUMENTO'),
+        _buildDocumentTypeDropdown(),
+        const SizedBox(height: 14),
+        _buildLabel('NÚMERO DE DOCUMENTO'),
+        _buildField(
+          _documentNumberController,
+          'Ej. 1712345678',
+          icon: Icons.badge_outlined,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Checkbox(
+              value: _acceptedTerms,
+              onChanged: (value) =>
+                  setState(() => _acceptedTerms = value ?? false),
+              activeColor: AppColors.secondary500,
+            ),
+            Expanded(
+              child: Text(
+                'Acepto los Términos y Condiciones',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.ink900.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// Pinned below the scroll so the nav bar never covers it and the keyboard
+  /// pushes it up with the form.
+  Widget _buildSubmitBar() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: PrimaryButton(
+          label: 'Confirmar pago',
+          icon: Icons.lock_outline,
+          isLoading: _isSubmitting,
+          onPressed: _confirmPayment,
+          design: true,
+          shadow: true,
         ),
       ),
     );

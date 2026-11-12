@@ -24,45 +24,48 @@ import '../../menu/widgets/category_filter_bar.dart';
 import '../../menu/widgets/offers_section.dart';
 import '../models/pos_identification_model.dart';
 import '../providers/pos_cart_controller.dart';
+import '../utils/customer_allergen_check.dart';
 import '../widgets/pos_cart_bar.dart';
 import '../widgets/pos_user_banner.dart';
 import 'pos_checkout_screen.dart';
 import '../../../core/utils/error_message.dart';
 
 /// selección de productos para el usuario
-/// identificado. Los productos que contienen alérgenos del usuario quedan
-/// bloqueados desde la selección.
+/// identificado. Los productos que contienen alérgenos del usuario se pueden
+/// consultar (el detalle avisa) pero no se pueden agregar al carrito.
 class PosMenuScreen extends StatefulWidget {
   /// Cliente identificado; nulo en una venta rápida (solo efectivo).
   final IdentifiedUser? user;
 
-  const PosMenuScreen({super.key, this.user});
+  /// Replaceable in tests.
+  final MenuService? menuService;
+
+  const PosMenuScreen({super.key, this.user, this.menuService});
 
   @override
   State<PosMenuScreen> createState() => _PosMenuScreenState();
 }
 
 class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
-  final MenuService _menuService = MenuService();
+  late final MenuService _menuService = widget.menuService ?? MenuService();
   final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = true;
   String? _errorMessage;
   List<MenuItem> _items = [];
-  Map<int, MenuItem> _itemsById = const {}; // índice para alérgenos de combos
+  Map<int, MenuItem> _itemsById =
+      const {}; // fotos y precios de los platos de un combo
   CatalogOffers _offers = CatalogOffers.empty;
   final PosCartController _cart = PosCartController();
   String _searchQuery = '';
   String? _selectedCategory; // null = todas
 
-  late final Set<String> _userAllergies;
+  late final CustomerAllergenCheck _allergens;
 
   @override
   void initState() {
     super.initState();
-    _userAllergies = (widget.user?.allergies ?? const <String>[])
-        .map((a) => a.trim().toLowerCase())
-        .toSet();
+    _allergens = CustomerAllergenCheck.forUser(widget.user);
     _cart.addListener(_onCartChanged);
     _loadMenu();
   }
@@ -113,14 +116,6 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     }
   }
 
-  List<String> _conflictingAllergens(MenuItem item) {
-    if (_userAllergies.isEmpty) return const [];
-    return item.allergens
-        .where((a) => _userAllergies.contains(a.name.trim().toLowerCase()))
-        .map((a) => a.name)
-        .toList();
-  }
-
   List<MenuItem> get _visibleItems =>
       filterItems(_items, category: _selectedCategory, query: _searchQuery);
 
@@ -129,21 +124,21 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     title: 'Stock insuficiente',
   );
 
+  /// Last line of defense: an item with an allergen of the customer never
+  /// reaches the cart, whatever screen asked for it.
   void _addToCart(MenuItem item, int quantity) {
+    final conflicts = _allergens.productConflicts(item);
+    if (conflicts.isNotEmpty) {
+      _showAllergenBlockedDialog(item, conflicts);
+      return;
+    }
     final short = _cart.addProduct(item, quantity);
     if (short != null) _warnStock(short);
   }
 
-  /// Allergens of the customer found in the dishes of [combo].
-  Set<String> _comboConflicts(Combo combo) => {
-    for (final comboItem in combo.items)
-      if (_itemsById[comboItem.productId] case final item?)
-        ..._conflictingAllergens(item),
-  };
-
   /// Warns that [combo] has an allergen of the customer; true if it did.
   bool _warnComboBlocked(Combo combo) {
-    final conflicts = _comboConflicts(combo);
+    final conflicts = _allergens.comboConflicts(combo, _itemsById);
     if (conflicts.isEmpty) return false;
     AppNotificationDialog.show(
       context,
@@ -169,9 +164,9 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     );
   }
 
-  /// Tapping a combo opens its detail, like a normal product.
+  /// Tapping a combo always opens its detail, even with an allergen of the
+  /// customer: the detail explains it and offers no way to add it.
   void _openCombo(Combo combo) {
-    if (_warnComboBlocked(combo)) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -180,6 +175,12 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
           itemsById: _itemsById,
           onAdd: (qty) => _addCombo(combo, qty),
           stockBadge: CatalogStockBadges.exact,
+          advisory: _allergens.comboAdvisory(combo, _itemsById),
+          otherCombos: [
+            for (final other in _offers.combos)
+              if (other.id != combo.id) other,
+          ],
+          onComboTap: _openCombo,
         ),
       ),
     );
@@ -207,18 +208,21 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
     );
   }
 
+  /// Always opens the detail; the allergen notice replaces the add bar there.
   void _onTapItem(MenuItem item) {
-    final conflicts = _conflictingAllergens(item);
-    if (conflicts.isNotEmpty) {
-      _showAllergenBlockedDialog(item, conflicts);
-      return;
-    }
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ProductDetailScreen(
           item: item,
           onAdd: (qty) => _addToCart(item, qty),
+          advisory: _allergens.productAdvisory(item),
+          combos: [
+            for (final combo in _offers.combos)
+              if (combo.items.any((dish) => dish.productId == item.id)) combo,
+          ],
+          onComboTap: _openCombo,
+          exactStock: true,
         ),
       ),
     );
@@ -405,13 +409,14 @@ class _PosMenuScreenState extends State<PosMenuScreen> with NotificationMixin {
       onAddCombo: _addCombo,
       onComboTap: _openCombo,
       comboQuantity: (combo) => _cart.quantityOfCombo(combo.id),
-      isComboBlocked: (combo) => _comboConflicts(combo).isNotEmpty,
+      isComboBlocked: (combo) =>
+          _allergens.comboConflicts(combo, _itemsById).isNotEmpty,
       stockBadge: CatalogStockBadges.exact,
     );
   }
 
   Widget _buildItemCard(MenuItem item) {
-    final blocked = _conflictingAllergens(item).isNotEmpty;
+    final blocked = _allergens.productConflicts(item).isNotEmpty;
     final inCart = _cart.quantityOfProduct(item.id);
     return CatalogItemCard(
       name: item.name,

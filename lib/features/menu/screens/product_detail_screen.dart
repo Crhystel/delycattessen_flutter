@@ -1,114 +1,140 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/layout/responsive.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text.dart';
 import '../models/menu_models.dart';
+import '../utils/allergen_advisory.dart';
+import '../utils/product_stock_label.dart';
+import '../widgets/allergen_section_card.dart';
+import '../widgets/blocked_purchase_bar.dart';
+import '../widgets/combo_link_section.dart';
 import '../widgets/detail_chip.dart';
-import '../widgets/detail_hero_image.dart';
+import '../widgets/detail_info_grid.dart';
+import '../widgets/detail_scaffold.dart';
+import '../widgets/detail_section_card.dart';
+import '../widgets/detail_tag.dart';
 import '../widgets/quantity_add_bar.dart';
 
+/// Detail of a product. The allergen card is always shown; when the person it
+/// is checked against has one of them registered, the purchase bar is blocked
+/// instead of hidden, so the information stays readable.
 class ProductDetailScreen extends StatelessWidget {
   final MenuItem item;
 
   /// Si es nulo la pantalla es de solo consulta (sin cantidad ni botón añadir).
   final ValueChanged<int>? onAdd;
 
-  const ProductDetailScreen({super.key, required this.item, this.onAdd});
+  /// Allergens of the item and the ones the user has registered.
+  final AllergenAdvisory advisory;
+
+  /// Combos that include this product ("También en combo").
+  final List<Combo> combos;
+
+  /// Opens a combo of [combos]; null = the cards do not navigate.
+  final ValueChanged<Combo>? onComboTap;
+
+  /// POS: the stock tile shows the exact count instead of "Disponible".
+  final bool exactStock;
+
+  const ProductDetailScreen({
+    super.key,
+    required this.item,
+    this.onAdd,
+    this.advisory = const AllergenAdvisory(),
+    this.combos = const <Combo>[],
+    this.onComboTap,
+    this.exactStock = false,
+  });
+
+  Widget? _bottomBar() {
+    final add = onAdd;
+    if (add == null) return null;
+    if (advisory.hasConflict) {
+      return BlockedPurchaseBar(label: advisory.blockedLabel);
+    }
+    return QuantityAddBar(unitPrice: item.price, onAdd: add);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final add = onAdd;
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: ResponsiveCenter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DetailHeroImage(imageUrl: item.imageUrl),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    // Price under the name (not beside it) so a long name or
-                    // a large system font never pushes it out of the screen.
-                    Text(
-                      '\$${item.price.toStringAsFixed(2)}',
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.brand700,
-                      ),
-                    ),
-                    if (item.description.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        item.description,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink900.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ],
-                    if (item.ingredients.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      const _SectionTitle('Ingredientes'),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: [
-                          for (final i in item.ingredients) DetailChip(i.name),
-                        ],
-                      ),
-                    ],
-                    if (item.allergens.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      const _SectionTitle('Contiene alérgenos'),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: [
-                          for (final a in item.allergens)
-                            DetailChip(a.name, isAllergen: true),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+    return DetailScaffold(
+      // DetailScaffold always draws a tag; an uncategorized product says so.
+      tag: DetailTag.neutral(
+        item.category.isEmpty ? 'Producto' : item.category,
+      ),
+      imageUrl: item.imageUrl,
+      bottomBar: _bottomBar(),
+      children: [
+        _Header(item: item),
+        DetailInfoGrid(
+          tiles: [
+            DetailInfoTile(
+              icon: Icons.inventory_2_outlined,
+              label: 'Disponibles hoy',
+              value: productStockLabel(item.stock, exact: exactStock),
             ),
-            if (add != null) QuantityAddBar(unitPrice: item.price, onAdd: add),
+            const DetailInfoTile(
+              icon: Icons.storefront_outlined,
+              label: 'Se compra',
+              value: 'En caja',
+              tone: DetailInfoTone.blue,
+            ),
           ],
         ),
-      ),
+        AllergenSectionCard(
+          advisory: advisory,
+          subject: AllergenSubject.product,
+        ),
+        if (item.ingredients.isNotEmpty)
+          DetailSectionCard(
+            title: 'Ingredientes',
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final i in item.ingredients)
+                  DetailChip(i.name, design: true),
+              ],
+            ),
+          ),
+        if (combos.isNotEmpty)
+          ComboLinkSection(combos: combos, onComboTap: onComboTap ?? (_) {}),
+      ],
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
+/// Name and description on the left, price on the right. The name takes
+/// whatever the price leaves, so a long name or a large font never overflows.
+class _Header extends StatelessWidget {
+  final MenuItem item;
 
-  const _SectionTitle(this.text);
+  const _Header({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Text(
-        text,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.name, style: AppText.detailTitle),
+              if (item.description.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(item.description, style: AppText.detailSubtitle),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Text(
+          '\$${item.price.toStringAsFixed(2)}',
+          maxLines: 1,
+          style: AppText.detailPrice,
+        ),
+      ],
     );
   }
 }

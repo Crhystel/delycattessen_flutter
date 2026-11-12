@@ -66,17 +66,21 @@ void main() {
 
   group('ChildProfileUpdate', () {
     test('requires a username without spaces', () {
+      expect(const ChildProfileUpdate.username('ana.p').validate(), isNull);
+      expect(const ChildProfileUpdate.username('').validate(), isNotNull);
+      expect(const ChildProfileUpdate.username('ana p').validate(), isNotNull);
+    });
+
+    test('sends only what its screen changes', () {
+      expect(const ChildProfileUpdate.username(' ana.p ').toJson(), {
+        'username': 'ana.p',
+      });
+      final json = const ChildProfileUpdate.names(names).toJson();
+      expect(json.containsKey('username'), isFalse);
+      expect(json['first_name'], names.firstName.trim());
       expect(
-        const ChildProfileUpdate(names: names, username: 'ana.p').validate(),
-        isNull,
-      );
-      expect(
-        const ChildProfileUpdate(names: names, username: '').validate(),
-        isNotNull,
-      );
-      expect(
-        const ChildProfileUpdate(names: names, username: 'ana p').validate(),
-        isNotNull,
+        const ChildProfileUpdate.names(names).validate(),
+        names.validate(),
       );
     });
   });

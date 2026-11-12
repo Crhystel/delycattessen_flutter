@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/collapsing_scroll_view.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -13,6 +12,8 @@ import '../../../core/widgets/floating_bubbles.dart';
 import '../models/menu_models.dart';
 import '../providers/parent_menu_controller.dart';
 import '../screens/dish_detail_screen.dart';
+import '../utils/allergen_advisory.dart';
+import '../utils/dish_allergens.dart';
 import 'catalog_search_row.dart';
 import 'catalog_title_block.dart';
 import 'menu_days_strip.dart';
@@ -42,7 +43,9 @@ class MonthlyMenuView extends StatefulWidget {
     this.footer,
     this.onSelectDay,
     this.ordering,
-    this.onBlockedDish,
+    this.allergenAudience = AllergenAudience.unknown,
+    this.orderingFor,
+    this.onChangeChild,
   });
 
   final ParentMenuController menu;
@@ -73,9 +76,14 @@ class MonthlyMenuView extends StatefulWidget {
   /// Acciones de pedido; nulo = solo lectura.
   final MonthlyMenuOrdering? ordering;
 
-  /// Platillo con alérgenos que chocan con las del comensal. Sin callback solo
-  /// se informa lo que contiene.
-  final void Function(MenuDish dish)? onBlockedDish;
+  /// Whose allergies the dish detail is checked against.
+  final AllergenAudience allergenAudience;
+
+  /// Name of the child the order is for, shown in the dish detail.
+  final String? orderingFor;
+
+  /// Opens the child picker from the dish detail; true if the child changed.
+  final Future<bool> Function()? onChangeChild;
 
   @override
   State<MonthlyMenuView> createState() => _MonthlyMenuViewState();
@@ -143,28 +151,19 @@ class _MonthlyMenuViewState extends State<MonthlyMenuView> {
     }
   }
 
-  void _showAllergens(MenuDish dish) {
-    final blocked = widget.onBlockedDish;
-    if (dish.hasStudentAllergens && blocked != null) return blocked(dish);
-    AppNotificationDialog.show(
-      context,
-      type: NotificationType.warning,
-      title: 'Alérgenos de ${dish.name}',
-      message: dish.allergens.isEmpty
-          ? 'Este platillo no tiene alérgenos registrados.'
-          : 'Contiene: ${dish.allergens.join(', ')}.',
-    );
-  }
-
+  /// The detail always opens, with or without allergen conflicts: the notice
+  /// is what blocks the order, never hiding the dish.
   void _openDish(MenuDish dish) {
-    final blocked = widget.onBlockedDish;
-    if (dish.hasStudentAllergens && blocked != null) return blocked(dish);
     final ordering = widget.ordering;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => DishDetailScreen(
           dish: dish,
+          servedDate: DateTime.tryParse(_menu.selectedDay?.date ?? ''),
+          advisory: dishAdvisory(dish, audience: widget.allergenAudience),
+          orderingFor: widget.orderingFor,
+          onChangeChild: widget.onChangeChild,
           onAdd: ordering == null
               ? null
               : (qty) => ordering.onAddDish(dish, qty),
@@ -365,7 +364,7 @@ class _MonthlyMenuViewState extends State<MonthlyMenuView> {
       child: MenuDishCard(
         dish: dish,
         inCart: _menu.cart.containsKey(dish.id),
-        onShowAllergens: () => _showAllergens(dish),
+        onShowAllergens: () => _openDish(dish),
         onToggle: ordering == null ? null : () => ordering.onToggleDish(dish),
         onTap: () => _openDish(dish),
       ),

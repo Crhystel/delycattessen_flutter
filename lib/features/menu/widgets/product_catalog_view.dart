@@ -6,7 +6,6 @@ import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text.dart';
-import '../../../core/widgets/app_notification_dialog.dart';
 import '../../../core/widgets/collapsing_header.dart';
 import '../../../core/widgets/collapsing_scroll_view.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -15,6 +14,8 @@ import '../models/menu_models.dart';
 import '../screens/combo_detail_screen.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/product_catalog_source.dart';
+import '../utils/allergen_advisory.dart';
+import '../utils/catalog_allergens.dart';
 import '../utils/catalog_filters.dart';
 import '../utils/low_stock_rule.dart';
 import 'catalog_item_card.dart';
@@ -172,10 +173,8 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     await widget.onRefreshed?.call();
   }
 
-  List<String> _conflictingAllergens(MenuItem item) => item.allergens
-      .where((a) => _allergenIds.contains(a.id))
-      .map((a) => a.name)
-      .toList();
+  AllergenAudience get _audience =>
+      widget.source?.allergenAudience ?? AllergenAudience.unknown;
 
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
@@ -185,22 +184,49 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
     });
   }
 
+  /// The detail always opens, even when the item has an allergen the user has
+  /// registered: that case only shows the warning (consult-only, no buy bar).
   void _onTapItem(MenuItem item) {
-    final conflicts = _conflictingAllergens(item);
-    if (conflicts.isNotEmpty) {
-      AppNotificationDialog.show(
-        context,
-        type: NotificationType.danger,
-        title: 'Producto no disponible',
-        message:
-            '"${item.name}" contiene ${conflicts.join(', ')}, registrados en '
-            '${widget.source?.allergyOwnerLabel ?? 'las alergias'}.',
-      );
-      return;
-    }
+    final combos = combosIncluding(item.id, _offers.visibleCombos);
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ProductDetailScreen(item: item)),
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(
+          item: item,
+          advisory: productAdvisory(
+            item,
+            userAllergenIds: _allergenIds,
+            audience: _audience,
+          ),
+          combos: combos,
+          onComboTap: _openCombo,
+        ),
+      ),
+    );
+  }
+
+  void _openCombo(Combo combo) {
+    final itemsById = {for (final item in _items) item.id: item};
+    final visible = _offers.visibleCombos;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ComboDetailScreen(
+          combo: combo,
+          itemsById: itemsById,
+          advisory: comboAdvisory(
+            combo,
+            itemsById: itemsById,
+            userAllergenIds: _allergenIds,
+            audience: _audience,
+          ),
+          otherCombos: [
+            for (final other in visible)
+              if (other.id != combo.id) other,
+          ],
+          onComboTap: _openCombo,
+        ),
+      ),
     );
   }
 
@@ -489,17 +515,12 @@ class _ProductCatalogViewState extends State<ProductCatalogView> {
       offers: offers,
       itemsById: itemsById,
       carousel: widget.flatLayout,
-      onComboTap: (combo) => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ComboDetailScreen(combo: combo, itemsById: itemsById),
-        ),
-      ),
+      onComboTap: _openCombo,
     );
   }
 
   Widget _buildItemCard(MenuItem item) {
-    final blocked = _conflictingAllergens(item).isNotEmpty;
+    final blocked = conflictingAllergensOf(item, _allergenIds).isNotEmpty;
     return CatalogItemCard(
       name: item.name,
       description: item.description,

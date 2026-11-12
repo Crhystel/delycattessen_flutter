@@ -20,13 +20,15 @@ import '../utils/allergy_summary.dart';
 import '../utils/child_account_text.dart';
 import '../utils/parental_control_summary.dart';
 import '../widgets/child_photo_avatar.dart';
-import 'edit_child_account_screen.dart';
+import 'edit_child_names_screen.dart';
+import 'edit_child_password_screen.dart';
+import 'edit_child_username_screen.dart';
 import 'parental_control_screen.dart';
 
-/// "Datos del hijo": menú con su cuenta (nombres y usuario) y su configuración
-/// (control parental y alergias), más el cambio de foto, que también actualiza
-/// el reconocimiento facial. Pops with the updated [Child] when the names or
-/// the photo changed.
+/// "Datos del hijo": menú con su cuenta (nombres, usuario y contraseña, cada
+/// uno en su propia pantalla) y su configuración (control parental y alergias),
+/// más el cambio de foto, que también actualiza el reconocimiento facial. Pops
+/// with the updated [Child] when the names, username or photo changed.
 class EditChildScreen extends StatefulWidget {
   final Child child;
   final AuthService? authService;
@@ -74,13 +76,12 @@ class _EditChildScreenState extends State<EditChildScreen>
     super.dispose();
   }
 
-  Future<void> _openAccount() async {
-    final updated = await Navigator.of(context).push<Child>(
-      MaterialPageRoute(
-        builder: (_) =>
-            EditChildAccountScreen(child: _child, authService: _authService),
-      ),
-    );
+  /// Opens one of the child's edit screens; the names and the username come
+  /// back as the updated [Child].
+  Future<void> _openEditor(Widget screen) async {
+    final updated = await Navigator.of(
+      context,
+    ).push<Child>(MaterialPageRoute(builder: (_) => screen));
     if (updated == null || !mounted) return;
     setState(() {
       _child = updated;
@@ -201,14 +202,38 @@ class _EditChildScreenState extends State<EditChildScreen>
                                 icon: Icons.badge_outlined,
                                 title: 'Nombres',
                                 subtitle: _child.fullName,
-                                onTap: _openAccount,
+                                onTap: () => _openEditor(
+                                  EditChildNamesScreen(
+                                    child: _child,
+                                    authService: _authService,
+                                  ),
+                                ),
                               ),
                               SettingsRow(
                                 design: true,
                                 icon: Icons.person_outline,
                                 title: 'Usuario',
                                 subtitle: _child.usernameSummary,
-                                onTap: _openAccount,
+                                onTap: () => _openEditor(
+                                  EditChildUsernameScreen(
+                                    child: _child,
+                                    authService: _authService,
+                                  ),
+                                ),
+                              ),
+                              SettingsRow(
+                                design: true,
+                                icon: Icons.lock_outline,
+                                title: 'Contraseña',
+                                subtitle:
+                                    'Cambia la contraseña de '
+                                    '${_child.firstName}',
+                                onTap: () => _openEditor(
+                                  EditChildPasswordScreen(
+                                    child: _child,
+                                    authService: _authService,
+                                  ),
+                                ),
                               ),
                             ], design: true),
                           ),

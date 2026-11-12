@@ -112,4 +112,65 @@ class AppText {
 
   /// Etiqueta de chip/insignia.
   static final TextStyle badge = _base(size: 12, weight: FontWeight.w700);
+
+  /// Name of the item on a detail page.
+  static final TextStyle detailTitle = _base(
+    size: 26,
+    weight: FontWeight.w800,
+    letterSpacing: -0.26,
+  );
+
+  /// Price on a detail page.
+  static final TextStyle detailPrice = _base(
+    size: 26,
+    weight: FontWeight.w800,
+    color: AppColors.brand700,
+  );
+
+  /// Description under the name on a detail page.
+  static final TextStyle detailSubtitle = _base(
+    size: 15,
+    weight: FontWeight.w600,
+    color: AppColors.muted,
+  );
+
+  /// Value of an info tile ("Martes 10 nov", "En caja").
+  static final TextStyle infoValue = _base(size: 15, weight: FontWeight.w700);
+
+  /// Heading line of a notice box (allergen warning).
+  static final TextStyle noteTitle = _base(size: 15, weight: FontWeight.w800);
+
+  /// Body text of a notice box.
+  static final TextStyle noteBody = _base(size: 14, weight: FontWeight.w600);
+
+  /// Big amount on the sale receipt of the cashier.
+  static final TextStyle heroAmount = _base(
+    size: 42,
+    weight: FontWeight.w800,
+    color: AppColors.success700,
+    height: 1,
+  ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+
+  /// Item line of a receipt.
+  static final TextStyle receiptLine = _base(size: 15, weight: FontWeight.w600);
+
+  /// Amount at the end of a receipt line.
+  static final TextStyle receiptLineAmount = _base(
+    size: 15,
+    weight: FontWeight.w700,
+  ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+
+  /// Explanatory line of a receipt ("Saldo restante de …").
+  static final TextStyle receiptNote = _base(
+    size: 14.5,
+    weight: FontWeight.w600,
+    color: AppColors.muted,
+  );
+
+  /// Label floating over a photo (category, "COMBO").
+  static final TextStyle tag = _base(
+    size: 13,
+    weight: FontWeight.w700,
+    color: AppColors.secondary500,
+  );
 }

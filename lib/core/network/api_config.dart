@@ -27,6 +27,8 @@ class ApiConfig {
   static const String children = '$baseUrl/users/children/';
   static String childProfile(int studentId) =>
       '$baseUrl/users/children/$studentId/';
+  static String childPassword(int studentId) =>
+      '$baseUrl/users/children/$studentId/password/';
   static String childPhoto(int studentId) =>
       '$baseUrl/users/children/$studentId/photo/';
   static const String allergens = '$baseUrl/users/allergens/';

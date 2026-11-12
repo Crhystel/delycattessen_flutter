@@ -4,6 +4,8 @@ import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/providers/parent_menu_controller.dart';
 import 'package:delycattessen_flutter/features/menu/screens/dish_detail_screen.dart';
 import 'package:delycattessen_flutter/features/menu/screens/member_menu_screen.dart';
+import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
+import 'package:delycattessen_flutter/features/menu/widgets/blocked_purchase_bar.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/menu_dish_card.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/monthly_menu_ordering.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/monthly_menu_view.dart';
@@ -51,7 +53,9 @@ Future<void> _pump(
   ParentMenuController menu, {
   bool showBackButton = false,
   MonthlyMenuOrdering? ordering,
-  void Function(MenuDish)? onBlockedDish,
+  AllergenAudience audience = AllergenAudience.unknown,
+  String? orderingFor,
+  Future<bool> Function()? onChangeChild,
   Widget? footer,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
@@ -67,7 +71,9 @@ Future<void> _pump(
         onRefresh: () async {},
         onRetry: () {},
         ordering: ordering,
-        onBlockedDish: onBlockedDish,
+        allergenAudience: audience,
+        orderingFor: orderingFor,
+        onChangeChild: onChangeChild,
         footer: footer,
       ),
     ),
@@ -270,35 +276,31 @@ void main() {
       _day(2, [_dish(1, allergic: true)]),
     ];
 
-    testWidgets('onBlockedDish takes the tap and the allergen chip', (
-      tester,
-    ) async {
-      final blocked = <int>[];
-      final menu = await _loaded(tester, days);
-      await _pump(tester, menu, onBlockedDish: (dish) => blocked.add(dish.id));
-
-      await tester.tap(_shown(find.text('Plato 1')));
-      await tester.pump();
-      await tester.tap(_shown(find.text('Contiene alérgenos')));
-      await tester.pump();
-
-      expect(blocked, [1, 1]);
-      expect(find.byType(DishDetailScreen), findsNothing);
-    });
-
-    testWidgets('without onBlockedDish the tap opens the detail', (
+    testWidgets('tapping a dish with allergens opens its detail, blocked', (
       tester,
     ) async {
       final menu = await _loaded(tester, days);
-      await _pump(tester, menu);
+      await _pump(
+        tester,
+        menu,
+        ordering: MonthlyMenuOrdering(
+          onToggleDish: (_) {},
+          onAddDish: (_, _) {},
+        ),
+        audience: const AllergenAudience.named('Ana'),
+      );
 
       await tester.tap(_shown(find.text('Plato 1')));
       await tester.pumpAndSettle();
 
       expect(find.byType(DishDetailScreen), findsOneWidget);
+      expect(find.text('Contiene maní'), findsOneWidget);
+      expect(find.byType(BlockedPurchaseBar), findsOneWidget);
+      expect(find.text('No disponible para Ana'), findsOneWidget);
+      expect(find.textContaining('Añadir'), findsNothing);
     });
 
-    testWidgets('without onBlockedDish the chip says what it contains', (
+    testWidgets('the allergen chip of the card opens the same detail', (
       tester,
     ) async {
       final menu = await _loaded(tester, days);
@@ -307,7 +309,63 @@ void main() {
       await tester.tap(_shown(find.text('Contiene alérgenos')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Contiene: Maní.'), findsOneWidget);
+      expect(find.byType(DishDetailScreen), findsOneWidget);
+      expect(find.text('Maní'), findsOneWidget);
+    });
+
+    testWidgets('the detail gets the served day and the child to change', (
+      tester,
+    ) async {
+      var changes = 0;
+      final menu = await _loaded(tester, days);
+      await _pump(
+        tester,
+        menu,
+        ordering: MonthlyMenuOrdering(
+          onToggleDish: (_) {},
+          onAddDish: (_, _) {},
+        ),
+        orderingFor: 'Ana Pérez',
+        onChangeChild: () async {
+          changes++;
+          return false;
+        },
+      );
+
+      await tester.tap(_shown(find.text('Plato 1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dom 1 nov'), findsOneWidget); // day before the 2nd
+      expect(find.text('Ana Pérez'), findsOneWidget);
+      await tester.tap(find.text('Pedir para otro hijo'));
+      await tester.pump();
+      expect(changes, 1);
+    });
+
+    testWidgets('a dish without allergens can still be added from its detail', (
+      tester,
+    ) async {
+      final added = <int>[];
+      final menu = await _loaded(tester, [
+        _day(2, [_dish(1)]),
+      ]);
+      await _pump(
+        tester,
+        menu,
+        ordering: MonthlyMenuOrdering(
+          onToggleDish: (_) {},
+          onAddDish: (dish, quantity) => added.add(quantity),
+        ),
+        audience: const AllergenAudience.named('Ana'),
+      );
+
+      await tester.tap(_shown(find.text('Plato 1')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BlockedPurchaseBar), findsNothing);
+      await tester.tap(find.textContaining('Añadir'));
+      await tester.pump();
+      expect(added, [1]);
     });
   });
 

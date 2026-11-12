@@ -110,10 +110,10 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
         context,
         sale: sale,
         method: _method,
-        customerName: widget.user?.fullName,
+        user: widget.user,
       );
       if (!mounted) return;
-      // El POS es la raíz tras el login: se vuelve al inicio para otra venta.
+      // The POS is the root after login: back to the identification screen.
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;

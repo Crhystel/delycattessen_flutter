@@ -8,12 +8,16 @@ import '../models/sale_models.dart';
 class PaymentMethodOption {
   final PaymentMethod method;
   final String label;
+
+  /// One-word version of [label] for pills and receipts.
+  final String shortLabel;
   final String description;
   final IconData icon;
 
   const PaymentMethodOption({
     required this.method,
     required this.label,
+    required this.shortLabel,
     required this.description,
     required this.icon,
   });
@@ -29,18 +33,21 @@ class PaymentMethodPolicy {
     PaymentMethod.wallet: PaymentMethodOption(
       method: PaymentMethod.wallet,
       label: 'Saldo de billetera',
+      shortLabel: 'Billetera',
       description: 'Se descuenta del saldo del estudiante.',
       icon: Icons.account_balance_wallet_outlined,
     ),
     PaymentMethod.credit: PaymentMethodOption(
       method: PaymentMethod.credit,
       label: 'Crédito institucional',
+      shortLabel: 'Crédito',
       description: 'Se acumula a nombre del docente en el mes.',
       icon: Icons.account_balance_outlined,
     ),
     PaymentMethod.cash: PaymentMethodOption(
       method: PaymentMethod.cash,
       label: 'Efectivo',
+      shortLabel: 'Efectivo',
       description: 'El cliente paga en caja.',
       icon: Icons.payments_outlined,
     ),
