@@ -28,6 +28,9 @@ class DishDetailScreen extends StatelessWidget {
   /// Name of the child the order is for ("Pidiendo para").
   final String? orderingFor;
 
+  /// Photo of that child; the row falls back to their initials.
+  final String? orderingPhotoUrl;
+
   /// Opens the child picker; true when the child changed (the detail then
   /// closes, as it belonged to the previous child).
   final Future<bool> Function()? onChangeChild;
@@ -39,6 +42,7 @@ class DishDetailScreen extends StatelessWidget {
     this.servedDate,
     this.advisory = const AllergenAdvisory(),
     this.orderingFor,
+    this.orderingPhotoUrl,
     this.onChangeChild,
   });
 
@@ -90,6 +94,7 @@ class DishDetailScreen extends StatelessWidget {
         if (childName != null && change != null)
           ChildOrderingRow(
             name: childName,
+            photoUrl: orderingPhotoUrl,
             onChange: () => _changeChild(context),
           ),
         AllergenSectionCard(

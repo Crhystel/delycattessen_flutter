@@ -62,7 +62,9 @@ class TransactionDayGroupView extends StatelessWidget {
 }
 
 /// Fila de un movimiento: círculo con "+" o "−", título, subtítulo de una
-/// línea, monto con signo y, en los consumos, la flecha que abre el detalle.
+/// línea, monto con signo (y debajo, tenue, el saldo que quedó) y la flecha que
+/// abre el detalle. Todas las filas reservan la misma columna final para que
+/// los montos queden alineados.
 class TransactionRow extends StatelessWidget {
   const TransactionRow({
     super.key,
@@ -76,14 +78,13 @@ class TransactionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kind = transaction.kind;
-    final isConsumption = kind == TransactionKind.consumption;
     final isFailed = transaction.status == 'failed';
     final subtitle = transactionSubtitle(transaction);
 
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(14, 12, isConsumption ? 12 : 14, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         child: Row(
           children: [
             Container(
@@ -120,22 +121,33 @@ class TransactionRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              isFailed ? 'Fallida' : signedAmountText(transaction),
-              style: AppText.itemTitle.copyWith(
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                color: isFailed ? AppColors.muted : kind.rowAmountColor,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isFailed ? 'Fallida' : signedAmountText(transaction),
+                  style: AppText.itemTitle.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: isFailed ? AppColors.muted : kind.rowAmountColor,
+                  ),
+                ),
+                if (transaction.balanceAfter case final balance?)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      'Saldo \$${balance.toStringAsFixed(2)}',
+                      style: AppText.secondary.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: AppColors.muted.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            if (isConsumption) ...[
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.chevron,
-              ),
-            ],
+            const SizedBox(width: 12),
+            const Icon(Icons.chevron_right, size: 18, color: AppColors.chevron),
           ],
         ),
       ),

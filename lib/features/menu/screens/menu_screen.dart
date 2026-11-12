@@ -310,6 +310,7 @@ class _MenuScreenState extends State<MenuScreen> with NotificationMixin {
           ? AllergenAudience.unknown
           : AllergenAudience.named(child.firstName),
       orderingFor: child?.displayName,
+      orderingPhotoUrl: child?.profilePictureUrl,
       onChangeChild: canSwitchChild ? _pickAnotherChild : null,
       childBar: _selectedChild == null
           ? null

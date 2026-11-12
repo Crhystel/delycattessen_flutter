@@ -86,6 +86,10 @@ class TransactionModel {
   final DateTime createdAt;
   final List<TransactionItemDetail> items;
 
+  /// Wallet balance right after this movement; null when the backend does not
+  /// send it (pending or failed movements, older backends, teacher credit).
+  final double? balanceAfter;
+
   TransactionModel({
     required this.id,
     required this.displayName,
@@ -96,7 +100,10 @@ class TransactionModel {
     required this.time,
     required this.createdAt,
     required this.items,
+    this.balanceAfter,
   });
+
+  bool get hasBalanceAfter => balanceAfter != null;
 
   TransactionKind get kind => type == 'recharge'
       ? TransactionKind.recharge
@@ -116,7 +123,13 @@ class TransactionModel {
       items: itemsList
           .map((i) => TransactionItemDetail.fromJson(i as Map<String, dynamic>))
           .toList(),
+      balanceAfter: _parseBalance(json['balance_after']),
     );
+  }
+
+  static double? _parseBalance(Object? raw) {
+    final value = double.tryParse('${raw ?? ''}');
+    return value != null && value.isFinite ? value : null;
   }
 
   /// Adapta una venta del POS (p. ej. a crédito) al formato de movimientos.

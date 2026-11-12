@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:delycattessen_flutter/core/widgets/app_network_image.dart';
 import 'package:delycattessen_flutter/features/menu/models/menu_models.dart';
 import 'package:delycattessen_flutter/features/menu/utils/allergen_advisory.dart';
 import 'package:delycattessen_flutter/features/menu/widgets/allergen_section_card.dart';
@@ -256,6 +258,63 @@ void main() {
       );
       await tester.tap(find.byType(ChildOrderingRow));
       expect(taps, 1);
+    });
+
+    testWidgets('without a photo it shows the initials and no image', (
+      tester,
+    ) async {
+      await pumpDetailPiece(
+        tester,
+        ChildOrderingRow(name: 'Pepito Pérez', onChange: () {}),
+      );
+
+      expect(find.text('PP'), findsOneWidget);
+      expect(find.byType(CachedNetworkImage), findsNothing);
+    });
+
+    testWidgets('with a photo it loads that url and keeps the initials as '
+        'fallback while it loads', (tester) async {
+      const url = 'https://example.test/pepito.jpg';
+      await pumpDetailPiece(
+        tester,
+        ChildOrderingRow(name: 'Pepito Pérez', photoUrl: url, onChange: () {}),
+      );
+
+      final photo = tester.widget<AppNetworkImage>(
+        find.byType(AppNetworkImage),
+      );
+      expect(photo.url, url);
+      expect(photo.width, 44);
+      expect(find.byType(CachedNetworkImage), findsOneWidget);
+      expect(find.text('PP'), findsOneWidget);
+    });
+
+    testWidgets('an empty photo url behaves like no photo', (tester) async {
+      await pumpDetailPiece(
+        tester,
+        ChildOrderingRow(name: 'Pepito Pérez', photoUrl: '', onChange: () {}),
+      );
+
+      expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(find.text('PP'), findsOneWidget);
+    });
+
+    testWidgets('keeps its accessible label with a photo', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpDetailPiece(
+        tester,
+        ChildOrderingRow(
+          name: 'Pepito Pérez',
+          photoUrl: 'https://example.test/pepito.jpg',
+          onChange: () {},
+        ),
+      );
+
+      expect(
+        find.bySemanticsLabel('Cambiar hijo. Pidiendo para Pepito Pérez'),
+        findsOneWidget,
+      );
+      handle.dispose();
     });
 
     testWidgets('a single name gives a single initial', (tester) async {

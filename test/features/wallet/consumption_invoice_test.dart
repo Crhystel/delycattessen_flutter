@@ -3,18 +3,21 @@ import 'package:delycattessen_flutter/features/wallet/widgets/consumption_invoic
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-TransactionModel _consumption({List<TransactionItemDetail> items = const []}) =>
-    TransactionModel(
-      id: 1,
-      displayName: 'Compra en caja',
-      amount: 3.75,
-      gateway: '',
-      status: 'success',
-      type: 'consumption',
-      time: '13:05',
-      createdAt: DateTime(2026, 10, 14, 13, 5),
-      items: items,
-    );
+TransactionModel _consumption({
+  List<TransactionItemDetail> items = const [],
+  double? balanceAfter,
+}) => TransactionModel(
+  id: 1,
+  displayName: 'Compra en caja',
+  amount: 3.75,
+  gateway: '',
+  status: 'success',
+  type: 'consumption',
+  time: '13:05',
+  createdAt: DateTime(2026, 10, 14, 13, 5),
+  items: items,
+  balanceAfter: balanceAfter,
+);
 
 Future<void> _pump(WidgetTester tester, TransactionModel transaction) {
   return tester.pumpWidget(
@@ -78,6 +81,15 @@ void main() {
     );
     expect(find.text('Producto'), findsNothing);
     expect(find.text('-\$3.75'), findsOneWidget);
+  });
+
+  testWidgets('does not repeat the balance left after the purchase', (
+    tester,
+  ) async {
+    await _pump(tester, _consumption(balanceAfter: 6.25));
+
+    expect(find.text('Saldo después del movimiento'), findsNothing);
+    expect(find.text('\$6.25'), findsNothing);
   });
 
   test('formatDate uses day/month/year and 24h time', () {

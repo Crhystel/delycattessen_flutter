@@ -48,6 +48,7 @@ void main() {
               servedDate: DateTime(2026, 11, 10),
               advisory: _conflict,
               orderingFor: 'Pepito Alejandro Pérez Villavicencio',
+              orderingPhotoUrl: 'https://example.test/pepito.jpg',
               onChangeChild: () async => false,
             ),
           ),

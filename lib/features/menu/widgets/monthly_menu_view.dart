@@ -45,6 +45,7 @@ class MonthlyMenuView extends StatefulWidget {
     this.ordering,
     this.allergenAudience = AllergenAudience.unknown,
     this.orderingFor,
+    this.orderingPhotoUrl,
     this.onChangeChild,
   });
 
@@ -81,6 +82,9 @@ class MonthlyMenuView extends StatefulWidget {
 
   /// Name of the child the order is for, shown in the dish detail.
   final String? orderingFor;
+
+  /// Photo of that child, shown next to the name in the dish detail.
+  final String? orderingPhotoUrl;
 
   /// Opens the child picker from the dish detail; true if the child changed.
   final Future<bool> Function()? onChangeChild;
@@ -163,6 +167,7 @@ class _MonthlyMenuViewState extends State<MonthlyMenuView> {
           servedDate: DateTime.tryParse(_menu.selectedDay?.date ?? ''),
           advisory: dishAdvisory(dish, audience: widget.allergenAudience),
           orderingFor: widget.orderingFor,
+          orderingPhotoUrl: widget.orderingPhotoUrl,
           onChangeChild: widget.onChangeChild,
           onAdd: ordering == null
               ? null

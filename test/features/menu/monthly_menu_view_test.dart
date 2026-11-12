@@ -55,6 +55,7 @@ Future<void> _pump(
   MonthlyMenuOrdering? ordering,
   AllergenAudience audience = AllergenAudience.unknown,
   String? orderingFor,
+  String? orderingPhotoUrl,
   Future<bool> Function()? onChangeChild,
   Widget? footer,
 }) async {
@@ -73,6 +74,7 @@ Future<void> _pump(
         ordering: ordering,
         allergenAudience: audience,
         orderingFor: orderingFor,
+        orderingPhotoUrl: orderingPhotoUrl,
         onChangeChild: onChangeChild,
         footer: footer,
       ),
@@ -340,6 +342,32 @@ void main() {
       await tester.tap(find.text('Pedir para otro hijo'));
       await tester.pump();
       expect(changes, 1);
+    });
+
+    testWidgets('the detail gets the photo of the child', (tester) async {
+      const url = 'https://example.test/ana.jpg';
+      final menu = await _loaded(tester, days);
+      await _pump(
+        tester,
+        menu,
+        ordering: MonthlyMenuOrdering(
+          onToggleDish: (_) {},
+          onAddDish: (_, _) {},
+        ),
+        orderingFor: 'Ana Pérez',
+        orderingPhotoUrl: url,
+        onChangeChild: () async => false,
+      );
+
+      await tester.tap(_shown(find.text('Plato 1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DishDetailScreen>(find.byType(DishDetailScreen))
+            .orderingPhotoUrl,
+        url,
+      );
     });
 
     testWidgets('a dish without allergens can still be added from its detail', (
