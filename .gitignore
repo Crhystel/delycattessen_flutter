@@ -55,3 +55,6 @@ key.properties
 
 # Claude Code configuration (local only, not tracked in the repo)
 .claude/
+
+# AI agent guidelines (local only)
+AGENTS.md
