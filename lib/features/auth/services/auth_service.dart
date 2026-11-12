@@ -118,10 +118,12 @@ class AuthService extends BaseApiService {
         .toList();
   }
 
+  /// Call it only after the parent accepted the terms for the new photo: the
+  /// backend records that acceptance as legal evidence.
   Future<Child> updateChildPhoto(int studentId, String photoPath) async {
     final response = await performMultipartPatchRequest(
       ApiConfig.childPhoto(studentId),
-      {},
+      {'accept_terms': 'true'},
       'profile_picture',
       photoPath,
     );

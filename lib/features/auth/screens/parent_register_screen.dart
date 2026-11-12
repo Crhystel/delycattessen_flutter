@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/password_check.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/terms_checkbox.dart';
 import '../widgets/auth_form_layout.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../core/widgets/app_notification_dialog.dart';
@@ -26,6 +27,7 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _isLoading = false;
+  bool _acceptedTerms = false;
 
   @override
   void dispose() {
@@ -46,6 +48,15 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
         type: NotificationType.warning,
         title: issue.title,
         message: issue.message,
+      );
+      return;
+    }
+    if (!_acceptedTerms) {
+      AppNotificationDialog.show(
+        context,
+        type: NotificationType.warning,
+        title: 'Términos y condiciones',
+        message: 'Debes aceptar los términos y condiciones.',
       );
       return;
     }
@@ -105,7 +116,12 @@ class _ParentRegisterScreenState extends State<ParentRegisterScreen> {
           passwordHint: 'Contraseña',
           confirmHint: 'Confirmar Contraseña',
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
+        TermsCheckbox(
+          value: _acceptedTerms,
+          onChanged: (value) => setState(() => _acceptedTerms = value),
+        ),
+        const SizedBox(height: AppSpacing.md),
         PrimaryButton(
           label: 'Siguiente',
           isLoading: _isLoading,

@@ -9,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../widgets/password_requirements.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
+import '../../../core/widgets/terms_checkbox.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
 import '../../children/screens/parent_shell.dart';
@@ -467,21 +468,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         ),
         PasswordRequirements(password: _passwordController.text),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Checkbox(
-              value: _acceptedTerms,
-              onChanged: (value) =>
-                  setState(() => _acceptedTerms = value ?? false),
-              activeColor: AppColors.secondary500,
-            ),
-            Expanded(
-              child: Text(
-                'Acepto Términos y Condiciones',
-                style: TextStyle(fontSize: 12, color: AppColors.ink900),
-              ),
-            ),
-          ],
+        TermsCheckbox(
+          value: _acceptedTerms,
+          onChanged: (value) => setState(() => _acceptedTerms = value),
         ),
       ],
     );

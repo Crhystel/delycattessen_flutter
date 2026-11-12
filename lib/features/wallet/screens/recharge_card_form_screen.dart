@@ -5,11 +5,15 @@ import '../../../core/layout/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/terms_checkbox.dart';
 import '../../../core/widgets/app_notification_messenger.dart';
 import '../models/document_type.dart';
 import '../services/card_recharge_service.dart';
 import '../widgets/kushki_badge.dart';
 import '../../../core/utils/error_message.dart';
+
+/// Terms and conditions of Kushki, the card payment gateway.
+const _kushkiTermsUrl = 'https://www.kushkipagos.com/terminos-y-condiciones';
 
 /// Inserts a space every 4 digits as the user types the card number.
 class _CardNumberFormatter extends TextInputFormatter {
@@ -282,24 +286,11 @@ class _RechargeCardFormScreenState extends State<RechargeCardFormScreen>
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Checkbox(
-              value: _acceptedTerms,
-              onChanged: (value) =>
-                  setState(() => _acceptedTerms = value ?? false),
-              activeColor: AppColors.secondary500,
-            ),
-            Expanded(
-              child: Text(
-                'Acepto los Términos y Condiciones',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.ink900.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
-          ],
+        TermsCheckbox(
+          value: _acceptedTerms,
+          onChanged: (value) => setState(() => _acceptedTerms = value),
+          termsUrl: _kushkiTermsUrl,
+          textColor: AppColors.ink900.withValues(alpha: 0.7),
         ),
         const SizedBox(height: 12),
       ],

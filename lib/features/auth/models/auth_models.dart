@@ -34,10 +34,13 @@ class ParentRegistration {
     required this.passwordConfirm,
   });
 
+  /// Only built after the terms checkbox was ticked; the backend records the
+  /// accepted version and date as legal evidence.
   Map<String, dynamic> toJson() => {
     'email': email,
     'password': password,
     'password_confirm': passwordConfirm,
+    'accept_terms': true,
   };
 }
 
@@ -81,6 +84,7 @@ class StudentRegistration {
     'institution_id': institutionId.toString(),
     'username': username,
     'password': password,
+    'accept_terms': 'true',
   };
 }
 

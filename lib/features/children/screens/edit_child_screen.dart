@@ -10,6 +10,7 @@ import '../../../core/widgets/form_section_card.dart';
 import '../../../core/widgets/photo_source_dialog.dart';
 import '../../../core/widgets/profile_summary_card.dart';
 import '../../../core/widgets/subpage_header.dart';
+import '../../../core/widgets/terms_checkbox.dart';
 import '../../auth/models/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/widgets/settings_row.dart';
@@ -117,6 +118,13 @@ class _EditChildScreenState extends State<EditChildScreen>
   }
 
   Future<void> _updatePhoto() async {
+    // The new photo feeds the facial recognition: the backend keeps the
+    // acceptance of the terms as legal evidence.
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _PhotoTermsDialog(),
+    );
+    if (accepted != true || !mounted) return;
     final photo = await PhotoSourceDialog.show(
       context,
       title: 'Foto de ${_child.firstName}',
@@ -276,6 +284,49 @@ class _EditChildScreenState extends State<EditChildScreen>
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks for the terms before a new photo of the child is taken.
+class _PhotoTermsDialog extends StatefulWidget {
+  const _PhotoTermsDialog();
+
+  @override
+  State<_PhotoTermsDialog> createState() => _PhotoTermsDialogState();
+}
+
+class _PhotoTermsDialogState extends State<_PhotoTermsDialog> {
+  bool _accepted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cambiar foto'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'La foto se usa para el reconocimiento facial en la caja.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TermsCheckbox(
+            value: _accepted,
+            onChanged: (value) => setState(() => _accepted = value),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _accepted ? () => Navigator.of(context).pop(true) : null,
+          child: const Text('Continuar'),
+        ),
+      ],
     );
   }
 }
