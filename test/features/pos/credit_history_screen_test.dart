@@ -69,6 +69,25 @@ void main() {
     expect(find.byType(ChoiceChip), findsNothing);
   });
 
+  testWidgets('a purchase detail has no balance line (credit has no wallet)', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _FakePos(
+        history: _history([_sale(1, 'Helado', '3.50', '2026-10-22T21:55:00')]),
+      ),
+    );
+
+    // Wide enough for the test font (every glyph is a full em wide).
+    await tester.binding.setSurfaceSize(const Size(600, 900));
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Total'), findsOneWidget);
+    expect(find.text('Saldo después del movimiento'), findsNothing);
+  });
+
   testWidgets('shows an empty message when there are no purchases', (
     tester,
   ) async {
