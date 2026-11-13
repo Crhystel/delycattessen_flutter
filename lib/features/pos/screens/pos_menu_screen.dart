@@ -24,6 +24,7 @@ import '../../menu/widgets/category_filter_bar.dart';
 import '../../menu/widgets/offers_section.dart';
 import '../models/pos_identification_model.dart';
 import '../providers/pos_cart_controller.dart';
+import '../services/pos_service.dart';
 import '../utils/customer_allergen_check.dart';
 import '../widgets/pos_cart_bar.dart';
 import '../widgets/pos_user_banner.dart';
@@ -40,7 +41,15 @@ class PosMenuScreen extends StatefulWidget {
   /// Replaceable in tests.
   final MenuService? menuService;
 
-  const PosMenuScreen({super.key, this.user, this.menuService});
+  /// Replaceable in tests; handed to the checkout.
+  final PosService? posService;
+
+  const PosMenuScreen({
+    super.key,
+    this.user,
+    this.menuService,
+    this.posService,
+  });
 
   @override
   State<PosMenuScreen> createState() => _PosMenuScreenState();
@@ -261,11 +270,16 @@ class _PosMenuScreenState extends State<PosMenuScreen>
         builder: (_) => PosCheckoutScreen(
           user: widget.user,
           cart: _cart,
+          posService: widget.posService,
           onRefreshStock: () => _loadMenu(silent: true),
         ),
       ),
     ).then((_) {
-      if (mounted) _loadMenu(silent: true);
+      // Back with the menu on top (back button or a failed charge). After a
+      // sale the menu is already leaving: nothing to refresh or announce.
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
+        _loadMenu(silent: true);
+      }
     });
   }
 
