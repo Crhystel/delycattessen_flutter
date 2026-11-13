@@ -37,6 +37,10 @@ class ComboOfferCard extends StatelessWidget {
   /// catalogs). The POS passes the exact stock.
   final StockBadgeBuilder stockBadge;
 
+  /// Units left to show instead of [Combo.availableQuantity] (POS: the stock
+  /// once the cart is taken out). Null = the combo's own.
+  final int? availableQuantity;
+
   const ComboOfferCard({
     super.key,
     required this.combo,
@@ -46,6 +50,7 @@ class ComboOfferCard extends StatelessWidget {
     this.blocked = false,
     this.onTap,
     this.stockBadge = CatalogStockBadges.low,
+    this.availableQuantity,
   });
 
   static const double _dimmedOpacity = 0.75;
@@ -53,8 +58,9 @@ class ComboOfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final soldOut = !combo.isAvailable;
-    final stock = stockBadge(combo.availableQuantity);
+    final available = availableQuantity ?? combo.availableQuantity;
+    final soldOut = available != null && available <= 0;
+    final stock = stockBadge(available);
     return Opacity(
       opacity: blocked || soldOut ? _dimmedOpacity : 1.0,
       child: OfferCardFrame(

@@ -46,6 +46,11 @@ class ComboDetailScreen extends StatelessWidget {
   /// Opens another combo; null makes those cards do nothing.
   final ValueChanged<Combo>? onComboTap;
 
+  /// Units left to show and to cap the quantity bar instead of
+  /// [Combo.availableQuantity] (POS: the stock once the cart is taken out).
+  /// Null = the combo's own.
+  final int? availableQuantity;
+
   const ComboDetailScreen({
     super.key,
     required this.combo,
@@ -55,7 +60,10 @@ class ComboDetailScreen extends StatelessWidget {
     this.advisory = const AllergenAdvisory(),
     this.otherCombos = const <Combo>[],
     this.onComboTap,
+    this.availableQuantity,
   });
+
+  int? get _available => availableQuantity ?? combo.availableQuantity;
 
   /// Photo of the combo, or the one of its first dish when it has none.
   String? get _imageUrl {
@@ -76,7 +84,7 @@ class ComboDetailScreen extends StatelessWidget {
     return QuantityAddBar(
       unitPrice: combo.price,
       onAdd: add,
-      maxQuantity: combo.availableQuantity,
+      maxQuantity: _available,
     );
   }
 
@@ -87,7 +95,7 @@ class ComboDetailScreen extends StatelessWidget {
       imageUrl: _imageUrl,
       bottomBar: _bottomBar,
       children: [
-        _Header(combo: combo, stockBadge: stockBadge),
+        _Header(combo: combo, stockBadge: stockBadge, available: _available),
         DetailInfoGrid(
           tiles: [
             DetailInfoTile(
@@ -119,13 +127,18 @@ class ComboDetailScreen extends StatelessWidget {
 class _Header extends StatelessWidget {
   final Combo combo;
   final StockBadgeBuilder stockBadge;
+  final int? available;
 
-  const _Header({required this.combo, required this.stockBadge});
+  const _Header({
+    required this.combo,
+    required this.stockBadge,
+    required this.available,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final stock = combo.isAvailable
-        ? stockBadge(combo.availableQuantity)
+    final stock = available == null || available! > 0
+        ? stockBadge(available)
         : CatalogStockBadges.soldOut;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

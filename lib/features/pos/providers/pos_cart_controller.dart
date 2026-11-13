@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../../menu/models/menu_models.dart';
@@ -198,6 +200,32 @@ class PosCartController extends ChangeNotifier {
   Map<int, int> _unitsOfCombo(Combo combo, int quantity) => {
     for (final item in combo.items) item.productId: item.quantity * quantity,
   };
+
+  /// Units of [productId] still addable: its stock minus what the cart already
+  /// uses, loose and inside combos. Without stock data it counts as 0, like in
+  /// [_shortProduct].
+  int remainingOfProduct(int productId) =>
+      math.max(0, (_stockOf(productId, null) ?? 0) - _unitsInCart(productId));
+
+  /// Units of [combo] still addable: the scarcest of its products once the
+  /// cart's usage is taken out, and its own [Combo.availableQuantity] minus the
+  /// units of it already in the cart. Null when nothing limits it.
+  int? remainingOfCombo(Combo combo) {
+    final limits = <int>[
+      for (final item in combo.items)
+        math.max(
+          0,
+          ((_stockOf(item.productId, combo) ?? 0) -
+                  _unitsInCart(item.productId)) ~/
+              item.quantity,
+        ),
+    ];
+    final available = combo.availableQuantity;
+    if (available != null) {
+      limits.add(math.max(0, available - quantityOfCombo(combo.id)));
+    }
+    return limits.isEmpty ? null : limits.reduce(math.min);
+  }
 
   /// Units of [productId] the cart already uses, loose and inside combos.
   int _unitsInCart(int productId) {

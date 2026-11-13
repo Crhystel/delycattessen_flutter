@@ -30,11 +30,15 @@ class PosCheckoutScreen extends StatefulWidget {
   /// when a charge fails, because the stock may have changed meanwhile.
   final Future<void> Function()? onRefreshStock;
 
+  /// Replaceable in tests.
+  final PosService? posService;
+
   const PosCheckoutScreen({
     super.key,
     required this.cart,
     this.user,
     this.onRefreshStock,
+    this.posService,
   });
 
   @override
@@ -43,7 +47,7 @@ class PosCheckoutScreen extends StatefulWidget {
 
 class _PosCheckoutScreenState extends State<PosCheckoutScreen>
     with NotificationMixin {
-  final PosService _posService = PosService();
+  late final PosService _posService = widget.posService ?? PosService();
   late final List<PaymentMethodOption> _options;
   late PaymentMethod _method;
   bool _isSubmitting = false;
@@ -73,9 +77,13 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
 
   void _onCartChanged() {
     if (!mounted) return;
-    // Removing the last line goes back to the menu.
+    // Removing the last line goes back to the menu. Only when this screen is
+    // the one on top: while it is already leaving, a second pop would take
+    // out the route below it (the POS home).
     if (_cart.isEmpty) {
-      Navigator.of(context).pop();
+      if (ModalRoute.of(context)?.isCurrent ?? false) {
+        Navigator.of(context).pop();
+      }
       return;
     }
     setState(() {});
@@ -115,6 +123,10 @@ class _PosCheckoutScreenState extends State<PosCheckoutScreen>
         _cart.toSaleRequest(_method, userId: widget.user?.userId),
       );
       if (!mounted) return;
+      // The sale used up this cart: an emptied cart must not pop this screen
+      // again, and nothing is left to reconcile against the new stock.
+      _cart.removeListener(_onCartChanged);
+      _cart.clear();
       await PosSaleSuccessSheet.show(
         context,
         sale: sale,

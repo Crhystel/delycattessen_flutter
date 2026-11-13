@@ -36,6 +36,10 @@ class ProductDetailScreen extends StatelessWidget {
   /// POS: the stock tile shows the exact count instead of "Disponible".
   final bool exactStock;
 
+  /// POS: units still addable once the cart is taken out. It caps the quantity
+  /// bar and replaces the stock of the item; null = no cap.
+  final int? maxQuantity;
+
   const ProductDetailScreen({
     super.key,
     required this.item,
@@ -44,6 +48,7 @@ class ProductDetailScreen extends StatelessWidget {
     this.combos = const <Combo>[],
     this.onComboTap,
     this.exactStock = false,
+    this.maxQuantity,
   });
 
   Widget? _bottomBar() {
@@ -52,7 +57,11 @@ class ProductDetailScreen extends StatelessWidget {
     if (advisory.hasConflict) {
       return BlockedPurchaseBar(label: advisory.blockedLabel);
     }
-    return QuantityAddBar(unitPrice: item.price, onAdd: add);
+    return QuantityAddBar(
+      unitPrice: item.price,
+      onAdd: add,
+      maxQuantity: maxQuantity,
+    );
   }
 
   @override
@@ -71,7 +80,10 @@ class ProductDetailScreen extends StatelessWidget {
             DetailInfoTile(
               icon: Icons.inventory_2_outlined,
               label: 'Disponibles hoy',
-              value: productStockLabel(item.stock, exact: exactStock),
+              value: productStockLabel(
+                maxQuantity ?? item.stock,
+                exact: exactStock,
+              ),
             ),
             const DetailInfoTile(
               icon: Icons.storefront_outlined,

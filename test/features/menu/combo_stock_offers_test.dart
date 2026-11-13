@@ -46,7 +46,11 @@ Future<void> _pumpCatalog(
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-Future<void> _pumpPosOffers(WidgetTester tester, List<Combo> combos) async {
+Future<void> _pumpPosOffers(
+  WidgetTester tester,
+  List<Combo> combos, {
+  int? Function(Combo combo)? comboStock,
+}) async {
   tester.view.physicalSize = const Size(411, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -58,6 +62,7 @@ Future<void> _pumpPosOffers(WidgetTester tester, List<Combo> combos) async {
             offers: CatalogOffers(combos: combos),
             itemsById: _byId,
             onAddCombo: (_) {},
+            comboStock: comboStock,
             stockBadge: CatalogStockBadges.exact,
           ),
         ),
@@ -179,6 +184,40 @@ void main() {
         expect(_opacityOf(tester, 'Combo disponible'), 1.0);
       },
     );
+  });
+
+  group('POS offers with the cart taken out', () {
+    testWidgets('comboStock replaces the stock the server sent', (
+      tester,
+    ) async {
+      await _pumpPosOffers(tester, [
+        _combo(1, 'Combo A', available: 7),
+      ], comboStock: (_) => 3);
+
+      expect(find.text('Stock: 3'), findsOneWidget);
+      expect(find.text('Stock: 7'), findsNothing);
+    });
+
+    testWidgets('zero from comboStock sells the combo out', (tester) async {
+      await _pumpPosOffers(tester, [
+        _combo(1, 'Combo A', available: 7),
+      ], comboStock: (_) => 0);
+
+      expect(find.text('Agotado'), findsOneWidget);
+      expect(find.text('Agregar combo'), findsNothing);
+      expect(_opacityOf(tester, 'Combo A'), lessThan(1.0));
+    });
+
+    testWidgets('a null from comboStock keeps the own stock of the combo', (
+      tester,
+    ) async {
+      await _pumpPosOffers(tester, [
+        _combo(1, 'Combo A', available: 7),
+      ], comboStock: (_) => null);
+
+      expect(find.text('Stock: 7'), findsOneWidget);
+      expect(find.text('Agregar combo'), findsOneWidget);
+    });
   });
 
   group('overflow', () {

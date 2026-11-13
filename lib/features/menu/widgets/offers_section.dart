@@ -26,6 +26,10 @@ class OffersSection extends StatelessWidget {
   /// POS only: a dish of the combo has an allergen of the customer.
   final bool Function(Combo combo)? isComboBlocked;
 
+  /// POS only: units left of a combo once the cart is taken out; null result
+  /// = the combo's own [Combo.availableQuantity].
+  final int? Function(Combo combo)? comboStock;
+
   /// Opens the detail of a combo (tapping its card).
   final ValueChanged<Combo>? onComboTap;
 
@@ -44,6 +48,7 @@ class OffersSection extends StatelessWidget {
     this.onAddCombo,
     this.comboQuantity,
     this.isComboBlocked,
+    this.comboStock,
     this.onComboTap,
     this.carousel = false,
     this.stockBadge = CatalogStockBadges.low,
@@ -68,6 +73,7 @@ class OffersSection extends StatelessWidget {
           blocked: isComboBlocked?.call(combo) ?? false,
           onTap: onComboTap == null ? null : () => onComboTap!(combo),
           stockBadge: stockBadge,
+          availableQuantity: comboStock?.call(combo),
         ),
     ];
     return Padding(

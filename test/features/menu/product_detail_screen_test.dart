@@ -52,6 +52,7 @@ Future<void> _pump(
   List<Combo> combos = const [],
   ValueChanged<Combo>? onComboTap,
   bool exactStock = false,
+  int? maxQuantity,
 }) async {
   tester.view.physicalSize = const Size(411, 900);
   tester.view.devicePixelRatio = 1;
@@ -70,6 +71,7 @@ Future<void> _pump(
                   combos: combos,
                   onComboTap: onComboTap,
                   exactStock: exactStock,
+                  maxQuantity: maxQuantity,
                 ),
               ),
             ),
@@ -123,6 +125,63 @@ void main() {
 
       expect(find.text('8 unidades'), findsOneWidget);
       expect(find.text('Disponible'), findsNothing);
+    });
+  });
+
+  group('quantity cap from the POS cart', () {
+    testWidgets('a cap of zero reads Agotado and adds nothing', (tester) async {
+      final added = <int>[];
+      await _pump(
+        tester,
+        item: _item(stock: 8),
+        onAdd: added.add,
+        exactStock: true,
+        maxQuantity: 0,
+      );
+
+      expect(find.text('0 unidades'), findsNothing);
+      expect(find.text('Agotado'), findsWidgets);
+      expect(find.textContaining('Añadir'), findsNothing);
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      expect(added, isEmpty);
+    });
+
+    testWidgets('the cap, not the server stock, limits the quantity', (
+      tester,
+    ) async {
+      final added = <int>[];
+      await _pump(
+        tester,
+        item: _item(stock: 8),
+        onAdd: added.add,
+        exactStock: true,
+        maxQuantity: 2,
+      );
+
+      expect(find.text('2 unidades'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      await tester.tap(find.textContaining('Añadir'));
+      await tester.pumpAndSettle();
+
+      expect(added, [2]);
+    });
+
+    testWidgets('without a cap nothing changes', (tester) async {
+      final added = <int>[];
+      await _pump(tester, item: _item(stock: 8), onAdd: added.add);
+
+      for (var i = 0; i < 4; i++) {
+        await tester.tap(find.byIcon(Icons.add));
+        await tester.pump();
+      }
+      await tester.tap(find.textContaining('Añadir'));
+      await tester.pumpAndSettle();
+
+      expect(added, [5]);
     });
   });
 

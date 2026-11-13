@@ -246,4 +246,129 @@ void main() {
       );
     });
   });
+
+  group('remaining stock', () {
+    Combo comboOf(
+      List<ComboItem> items, {
+      int id = 30,
+      int? availableQuantity,
+    }) => Combo(
+      id: id,
+      name: 'Combo $id',
+      price: 3,
+      regularPrice: 4,
+      endDate: DateTime(2026, 10, 31),
+      items: items,
+      availableQuantity: availableQuantity,
+    );
+
+    test('a product with nothing in the cart has all its stock', () {
+      expect(cart.remainingOfProduct(sandwich.id), 3);
+      expect(cart.remainingOfProduct(cola.id), 5);
+    });
+
+    test('loose units take stock away', () {
+      cart.addProduct(sandwich, 2);
+
+      expect(cart.remainingOfProduct(sandwich.id), 1);
+    });
+
+    test('units inside a combo take stock away from each of its products', () {
+      cart.addCombo(combo, 2);
+
+      expect(cart.remainingOfProduct(sandwich.id), 1);
+      expect(cart.remainingOfProduct(cola.id), 3);
+    });
+
+    test('loose and combo units add up and it never goes below zero', () {
+      cart.addCombo(combo, 2);
+      cart.addProduct(sandwich, 1);
+
+      expect(cart.remainingOfProduct(sandwich.id), 0);
+      expect(cart.remainingOfProduct(sandwich.id), isNonNegative);
+    });
+
+    test('removing the line gives the stock back', () {
+      cart.addCombo(combo);
+      cart.removeLine(cart.lines.single);
+
+      expect(cart.remainingOfProduct(sandwich.id), 3);
+      expect(cart.remainingOfProduct(cola.id), 5);
+    });
+
+    test('a product without stock data counts as sold out', () {
+      expect(cart.remainingOfProduct(999), 0);
+    });
+
+    test('a combo has what its scarcest product allows', () {
+      // Sanduche 3 and Cola 5, one of each per combo.
+      expect(cart.remainingOfCombo(combo), 3);
+    });
+
+    test('a combo counts the quantity each unit needs', () {
+      final double = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 2),
+      ]);
+
+      expect(cart.remainingOfCombo(double), 2); // 5 colas, 2 per combo
+    });
+
+    test('a combo shrinks with its own units in the cart', () {
+      cart.addCombo(combo, 2);
+
+      expect(cart.remainingOfCombo(combo), 1);
+    });
+
+    test('a combo shrinks with the loose products it shares', () {
+      cart.addProduct(sandwich, 3);
+
+      expect(cart.remainingOfCombo(combo), 0);
+    });
+
+    test('another combo that shares a product takes from this one too', () {
+      final other = comboOf(const [
+        ComboItem(productId: 1, name: 'Sanduche', quantity: 1),
+      ], id: 31);
+      cart.addCombo(other, 2);
+
+      expect(cart.remainingOfCombo(combo), 1);
+    });
+
+    test('the combo limit of the server caps it', () {
+      final capped = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 1),
+      ], availableQuantity: 2);
+
+      expect(cart.remainingOfCombo(capped), 2);
+      cart.addCombo(capped);
+      expect(cart.remainingOfCombo(capped), 1);
+    });
+
+    test('a server limit of zero keeps the combo sold out', () {
+      final soldOut = comboOf(const [
+        ComboItem(productId: 2, name: 'Cola', quantity: 1),
+      ], availableQuantity: 0);
+
+      expect(cart.remainingOfCombo(soldOut), 0);
+    });
+
+    test('a combo with a product the POS does not sell is sold out', () {
+      cart.setCatalog([cola]);
+
+      expect(cart.remainingOfCombo(combo), 0);
+    });
+
+    test('the stock of a product outside the catalog comes from the combo', () {
+      cart.setCatalog([cola]);
+      final withStock = comboOf(const [
+        ComboItem(productId: 1, name: 'Sanduche', quantity: 1, stock: 4),
+      ]);
+
+      expect(cart.remainingOfCombo(withStock), 4);
+    });
+
+    test('a combo without items and without a limit has none', () {
+      expect(cart.remainingOfCombo(comboOf(const [])), isNull);
+    });
+  });
 }
