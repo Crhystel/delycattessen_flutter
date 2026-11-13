@@ -44,6 +44,7 @@ Future<List<int>> _open(
   AllergenAdvisory advisory = const AllergenAdvisory(),
   List<Combo> otherCombos = const [],
   ValueChanged<Combo>? onComboTap,
+  int? availableQuantity,
 }) async {
   tester.view.physicalSize = const Size(411, 1400);
   tester.view.devicePixelRatio = 1;
@@ -65,6 +66,7 @@ Future<List<int>> _open(
                     advisory: advisory,
                     otherCombos: otherCombos,
                     onComboTap: onComboTap,
+                    availableQuantity: availableQuantity,
                   ),
                 ),
               ),
@@ -372,6 +374,46 @@ void main() {
       await tester.pump();
       expect(added, isEmpty);
       expect(find.byType(ComboDetailScreen), findsOneWidget);
+    });
+
+    testWidgets('units left once the POS cart is taken out replace the own', (
+      tester,
+    ) async {
+      final added = await _open(
+        tester,
+        canAdd: true,
+        combo: lunchCombo(availableQuantity: 8),
+        stockBadge: CatalogStockBadges.exact,
+        availableQuantity: 2,
+      );
+
+      expect(find.text('Stock: 2'), findsOneWidget);
+      expect(find.text('Stock: 8'), findsNothing);
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      await tester.tap(find.textContaining('Añadir'));
+      await tester.pumpAndSettle();
+      expect(added, [2]);
+    });
+
+    testWidgets('none left in the POS cart sells the combo out', (
+      tester,
+    ) async {
+      final added = await _open(
+        tester,
+        canAdd: true,
+        combo: lunchCombo(availableQuantity: 8),
+        stockBadge: CatalogStockBadges.exact,
+        availableQuantity: 0,
+      );
+
+      expect(find.text('Agotado'), findsNWidgets(2));
+      expect(find.textContaining('Stock:'), findsNothing);
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      expect(added, isEmpty);
     });
 
     testWidgets('the quantity cannot exceed the available units', (

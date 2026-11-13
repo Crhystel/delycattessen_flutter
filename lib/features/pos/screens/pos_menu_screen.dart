@@ -202,6 +202,7 @@ class _PosMenuScreenState extends State<PosMenuScreen>
               if (other.id != combo.id) other,
           ],
           onComboTap: _openCombo,
+          availableQuantity: _cart.remainingOfCombo(combo),
         ),
       ),
     );
@@ -244,6 +245,7 @@ class _PosMenuScreenState extends State<PosMenuScreen>
           ],
           onComboTap: _openCombo,
           exactStock: true,
+          maxQuantity: _cart.remainingOfProduct(item.id),
         ),
       ),
     );
@@ -437,6 +439,7 @@ class _PosMenuScreenState extends State<PosMenuScreen>
       onAddCombo: _addCombo,
       onComboTap: _openCombo,
       comboQuantity: (combo) => _cart.quantityOfCombo(combo.id),
+      comboStock: _cart.remainingOfCombo,
       isComboBlocked: (combo) =>
           _allergens.comboConflicts(combo, _itemsById).isNotEmpty,
       stockBadge: CatalogStockBadges.exact,
@@ -446,17 +449,24 @@ class _PosMenuScreenState extends State<PosMenuScreen>
   Widget _buildItemCard(MenuItem item) {
     final blocked = _allergens.productConflicts(item).isNotEmpty;
     final inCart = _cart.quantityOfProduct(item.id);
+    // What is left once the cart is taken out, so a sold out product shows it
+    // before the cashier taps it.
+    final remaining = _cart.remainingOfProduct(item.id);
+    final soldOut = remaining <= 0;
     return CatalogItemCard(
       name: item.name,
       description: item.description,
       price: item.price,
       imageUrl: item.imageUrl,
-      dimmed: blocked,
+      dimmed: blocked || soldOut,
       onTap: () => _onTapItem(item),
       badges: [
         if (blocked) const CatalogBadge.allergen(),
         // Stock 0 = agotado, igual que lo trata el servidor.
-        CatalogBadge.info('Stock: ${item.stock}'),
+        if (soldOut)
+          CatalogStockBadges.soldOut
+        else
+          CatalogBadge.info('Stock: $remaining'),
         if (inCart > 0)
           CatalogBadge.info(
             '$inCart en carrito',
