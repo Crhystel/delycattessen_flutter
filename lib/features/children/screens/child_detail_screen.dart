@@ -225,7 +225,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
               children: [
                 ChildInfoRow(
                   icon: Icons.shield_outlined,
-                  title: 'Límite diario',
+                  title: 'Control parental',
                   onTap: _goToParentalControl,
                   child: Text(
                     ParentalControlSummary.detailed(_settings.parentalControl),

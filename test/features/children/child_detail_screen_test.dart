@@ -151,7 +151,7 @@ void main() {
     expect(find.text('Recargar'), findsOneWidget);
 
     expect(find.text('Su día'), findsOneWidget);
-    expect(find.text('Límite diario'), findsOneWidget);
+    expect(find.text('Control parental'), findsOneWidget);
     expect(find.text('Límite \$1.00/día'), findsOneWidget);
     expect(find.text('Alergias'), findsOneWidget);
     expect(find.text('Sulfitos'), findsOneWidget);
